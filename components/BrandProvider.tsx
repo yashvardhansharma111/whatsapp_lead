@@ -15,7 +15,7 @@ export interface ClientBrand {
 }
 
 const BrandContext = createContext<ClientBrand>({
-  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "WhatsCRM",
+  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "Waboxa",
   logoUrl: null,
   primaryColor: "#059669",
   supportEmail: null,

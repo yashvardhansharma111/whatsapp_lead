@@ -6,9 +6,9 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "About Us — WhatsCRM",
+  title: "About Us — Waboxa",
   description:
-    "WhatsCRM is built by Corescent Technologies to help Indian businesses turn WhatsApp conversations into customers.",
+    "Waboxa is built to help Indian businesses turn WhatsApp conversations into customers.",
 };
 
 /**
@@ -67,7 +67,7 @@ const TEAM = [
     name: "Aditya Raghav",
     role: "Co-founder & CEO",
     initials: "AR",
-    bio: "Spent eight years building sales software. Started WhatsCRM after watching his family's business lose leads in a WhatsApp group.",
+    bio: "Spent eight years building sales software. Started Waboxa after watching his family's business lose leads in a WhatsApp group.",
   },
   {
     name: "Kavya Menon",
@@ -90,9 +90,9 @@ const TEAM = [
 ];
 
 const STORY = [
-  "WhatsCRM started with a real estate broker in Mumbai — the co-founder's uncle. He was getting forty property enquiries a day on WhatsApp and losing most of them, not because he was bad at selling, but because the messages were buried in a group chat nobody owned. Enquiries got answered two days late, or twice, or never.",
+  "Waboxa started with a real estate broker in Mumbai — the co-founder's uncle. He was getting forty property enquiries a day on WhatsApp and losing most of them, not because he was bad at selling, but because the messages were buried in a group chat nobody owned. Enquiries got answered two days late, or twice, or never.",
   "We looked for a tool to fix it and found two kinds: enterprise CRMs that cost more than his monthly rent and took a quarter to set up, and simple auto-responders that could not tell a serious buyer from a window shopper. Nothing in between. So in 2021 we built the thing in between.",
-  "Today WhatsCRM runs on the official WhatsApp Business Cloud API and handles millions of messages for more than 500 businesses across India — real estate, coaching centres, D2C brands, clinics, dealerships. The product has grown a lot since that first version, but the goal has not moved: every message gets answered, and every real lead gets found.",
+  "Today Waboxa runs on the official WhatsApp Business Cloud API and handles millions of messages for more than 500 businesses across India — real estate, coaching centres, D2C brands, clinics, dealerships. The product has grown a lot since that first version, but the goal has not moved: every message gets answered, and every real lead gets found.",
   "We are a small, remote-first team headquartered in Bengaluru, and we are building this for the long run.",
 ];
 
@@ -124,7 +124,7 @@ export default function AboutPage() {
 
       <Section tone="plain">
         <div className="mx-auto max-w-3xl">
-          <SectionHeading eyebrow="Our story" title="How WhatsCRM started" />
+          <SectionHeading eyebrow="Our story" title="How Waboxa started" />
           <Stage className="mt-8 space-y-6">
             {STORY.map((paragraph, i) => (
               <p

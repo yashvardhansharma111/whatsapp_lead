@@ -160,7 +160,7 @@ export interface EmailBrand {
 }
 
 const PLATFORM_EMAIL_BRAND: EmailBrand = {
-  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "WhatsCRM",
+  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "Waboxa",
   color: "#059669",
 };
 

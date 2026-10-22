@@ -65,7 +65,7 @@ export async function extractDocumentText(
     }
     case "URL": {
       if (!opts.url) throw new Error("URL is required");
-      const res = await fetch(opts.url, { headers: { "User-Agent": "WhatsCRM-KB/1.0" } });
+      const res = await fetch(opts.url, { headers: { "User-Agent": "Waboxa-KB/1.0" } });
       if (!res.ok) throw new Error(`Could not fetch URL (${res.status})`);
       const html = await res.text();
       const $ = cheerio.load(html);

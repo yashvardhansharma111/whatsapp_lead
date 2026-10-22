@@ -29,7 +29,7 @@ export function getStripe(): Stripe {
     client = new Stripe(process.env.STRIPE_SECRET_KEY, {
       // Pin nothing — let the SDK use the version bundled with it (v22).
       typescript: true,
-      appInfo: { name: "WhatsCRM Billing" },
+      appInfo: { name: "Waboxa Billing" },
     });
   }
   return client;

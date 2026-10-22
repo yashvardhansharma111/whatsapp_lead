@@ -425,7 +425,7 @@ function dataStatusSheet(workbook: ExcelJS.Workbook, report: RevenueReport) {
 /** The whole report as a formatted .xlsx workbook. */
 export async function buildRevenueWorkbook(report: RevenueReport): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "WhatsCRM";
+  workbook.creator = "Waboxa";
   workbook.created = report.generatedAt;
 
   summarySheet(workbook, report);

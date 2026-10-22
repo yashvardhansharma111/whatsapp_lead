@@ -8,9 +8,9 @@ import { listPosts } from "@/components/marketing/blog/posts";
 import { INDUSTRIES } from "@/components/marketing/industries";
 
 export const metadata: Metadata = {
-  title: "Site Map — WhatsCRM",
+  title: "Site Map — Waboxa",
   description:
-    "Every page on the WhatsCRM website in one list: product, company, developer, legal and account pages, plus every industry page and blog article.",
+    "Every page on the Waboxa website in one list: product, company, developer, legal and account pages, plus every industry page and blog article.",
 };
 
 /**
@@ -50,7 +50,7 @@ const GROUPS: Group[] = [
     Icon: Building2,
     title: "Company",
     entries: [
-      { label: "About Us", href: "/about", note: "Who builds WhatsCRM" },
+      { label: "About Us", href: "/about", note: "Who builds Waboxa" },
       { label: "Why Choose Us", href: "/why-choose-us", note: "Six reasons, with mechanisms" },
       { label: "Become a Partner", href: "/become-a-partner", note: "Refer, resell or integrate" },
       { label: "Career", href: "/careers", note: "Open roles and how we hire" },
@@ -62,7 +62,7 @@ const GROUPS: Group[] = [
     title: "Developers",
     entries: [
       { label: "Documentation", href: "/documentation", note: "Set it up and run it" },
-      { label: "WhatsCRM API", href: "/api-docs", note: "Quickstart and concepts" },
+      { label: "Waboxa API", href: "/api-docs", note: "Quickstart and concepts" },
       { label: "API Reference", href: "/api-reference", note: "Every endpoint" },
       { label: "Blog", href: "/blog", note: "Guides and product news" },
       { label: "Site Map", href: "/site-map", note: "This page" },

@@ -24,10 +24,10 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const post = getPost(slug);
-  if (!post) return { title: "Article not found — WhatsCRM" };
+  if (!post) return { title: "Article not found — Waboxa" };
 
   return {
-    title: `${post.title} — WhatsCRM`,
+    title: `${post.title} — Waboxa`,
     description: post.excerpt,
     openGraph: {
       title: post.title,

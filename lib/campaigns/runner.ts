@@ -21,7 +21,7 @@ import { resolveWhatsAppCreds, resolveConversationWhatsAppCreds } from "@/lib/bu
 /** Statuses a campaign may be in and still be eligible to start sending. */
 const CLAIMABLE: CampaignStatus[] = ["DRAFT", "SCHEDULED", "FAILED", "CANCELLED"];
 
-const DEFAULT_MESSAGE = "Hello from WhatsCRM";
+const DEFAULT_MESSAGE = "Hello from Waboxa";
 
 export class CampaignClaimError extends Error {
   constructor(message = "Campaign is already processing or was already sent") {

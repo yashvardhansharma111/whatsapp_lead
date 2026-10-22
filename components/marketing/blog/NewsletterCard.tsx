@@ -20,7 +20,7 @@ export function NewsletterCard() {
       <div className="relative">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-400/25">
           <Sparkles className="h-3 w-3" />
-          Try WhatsCRM
+          Try Waboxa
         </span>
 
         <p className="mt-3.5 text-base font-semibold leading-snug text-white">

@@ -23,9 +23,9 @@ import { ArticleCard } from "@/components/marketing/blog/ArticleCard";
 import { listPosts } from "@/components/marketing/blog/posts";
 
 export const metadata: Metadata = {
-  title: "Documentation — WhatsCRM",
+  title: "Documentation — Waboxa",
   description:
-    "WhatsCRM documentation: connect a WhatsApp number, teach the AI from your own documents, run a shared inbox and a lead pipeline, send campaigns, and build on the API.",
+    "Waboxa documentation: connect a WhatsApp number, teach the AI from your own documents, run a shared inbox and a lead pipeline, send campaigns, and build on the API.",
   alternates: { canonical: "/documentation" },
 };
 
@@ -70,7 +70,7 @@ const QUICKSTART: { Icon: LucideIcon; title: string; body: string; href: string;
   {
     Icon: MessageSquare,
     title: "Connect your WhatsApp number",
-    body: "WhatsCRM runs on the official Meta Cloud API. Register the number, verify the business, send a test message.",
+    body: "Waboxa runs on the official Meta Cloud API. Register the number, verify the business, send a test message.",
     href: "/api-docs",
     cta: "Read the setup guide",
   },

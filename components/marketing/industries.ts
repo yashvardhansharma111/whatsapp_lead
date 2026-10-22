@@ -163,7 +163,7 @@ export type Industry = {
   line: string;
   /** Listing card: the pain, in under ten words. */
   problem: string;
-  /** Listing card: what WhatsCRM does about it, in under twelve words. */
+  /** Listing card: what Waboxa does about it, in under twelve words. */
   solution: string;
   /** The long form, used on the detail page's hero. */
   summary: string;
@@ -194,7 +194,7 @@ export const INDUSTRIES: Industry[] = [
     problem: "Stock and timing questions pile up unanswered.",
     solution: "AI answers from your catalogue and keeps the buyers worth calling.",
     summary:
-      "Shoppers ask about stock, sizes and store timings on WhatsApp and expect an answer now. WhatsCRM answers from your own catalogue and keeps the ones worth following up.",
+      "Shoppers ask about stock, sizes and store timings on WhatsApp and expect an answer now. Waboxa answers from your own catalogue and keeps the ones worth following up.",
     useCases: [
       "Stock, size and price questions answered instantly",
       "Store timings and location on autopilot",
@@ -257,7 +257,7 @@ export const INDUSTRIES: Industry[] = [
       {
         Icon: Target,
         title: "Buyer intent scoring",
-        body: "A shopper asking about a specific size is closer to buying than one asking your address. WhatsCRM scores the difference so staff call the right one.",
+        body: "A shopper asking about a specific size is closer to buying than one asking your address. Waboxa scores the difference so staff call the right one.",
       },
       {
         Icon: Bell,
@@ -300,7 +300,7 @@ export const INDUSTRIES: Industry[] = [
     problem: "Property enquiries go cold in a group chat.",
     solution: "AI qualifies budget, location and timeline, then assigns the agent.",
     summary:
-      "Property enquiries arrive on WhatsApp and go cold in a group chat. WhatsCRM captures every one and tells you which buyer is actually ready to visit.",
+      "Property enquiries arrive on WhatsApp and go cold in a group chat. Waboxa captures every one and tells you which buyer is actually ready to visit.",
     useCases: [
       "Auto-reply with floor plans, price and location",
       "AI scores buyers on budget and timeline",
@@ -621,7 +621,7 @@ export const INDUSTRIES: Industry[] = [
     problem: "Work is won in the chat and lost in the follow-up.",
     solution: "Every enquiry becomes a pipeline record with an owner and a next step.",
     summary:
-      "Agencies, consultants and local service businesses win work in the chat and lose it in the follow-up. WhatsCRM keeps every enquiry in a pipeline with an owner.",
+      "Agencies, consultants and local service businesses win work in the chat and lose it in the follow-up. Waboxa keeps every enquiry in a pipeline with an owner.",
     useCases: [
       "Scope and rate questions answered from your docs",
       "Enquiries assigned to the right person automatically",

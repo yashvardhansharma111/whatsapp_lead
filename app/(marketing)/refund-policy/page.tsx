@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import LegalPage, { type LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Refund Policy — WhatsCRM",
+  title: "Refund Policy — Waboxa",
   description:
-    "WhatsCRM's 7-day refund window, what is and is not covered, and how to request a refund.",
+    "Waboxa's 7-day refund window, what is and is not covered, and how to request a refund.",
 };
 
 const SECTIONS: LegalSection[] = [
   {
     heading: "The 7-Day Refund Window",
     paragraphs: [
-      "If you are not happy with WhatsCRM, you can request a full refund within 7 days of your first paid charge on any plan. No forms to fill in and no justification needed — one email is enough.",
+      "If you are not happy with Waboxa, you can request a full refund within 7 days of your first paid charge on any plan. No forms to fill in and no justification needed — one email is enough.",
       "This window applies to your first payment only. It covers the initial monthly charge, or the first year of an annual plan.",
     ],
   },
@@ -74,7 +74,7 @@ export default function RefundPolicyPage() {
     <LegalPage
       title="Refund Policy"
       lastUpdated="1 July 2026"
-      intro="We want you to pay for WhatsCRM only if it genuinely works for your team. This policy explains our 7-day refund window, what it covers, and how to claim it."
+      intro="We want you to pay for Waboxa only if it genuinely works for your team. This policy explains our 7-day refund window, what it covers, and how to claim it."
       sections={SECTIONS}
       footer={
         <p className="text-sm leading-relaxed text-gray-600">

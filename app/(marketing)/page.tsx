@@ -19,11 +19,11 @@ import { FinalCta } from "@/components/marketing/home/FinalCta";
 import { Newsletter } from "@/components/marketing/home/Newsletter";
 
 export const metadata: Metadata = {
-  title: "WhatsCRM — Turn WhatsApp conversations into qualified leads",
+  title: "Waboxa — Turn WhatsApp conversations into qualified leads",
   description:
     "An AI-powered WhatsApp CRM: one shared inbox, replies grounded in your own documents, automated BANT lead qualification, and a pipeline that turns conversations into customers.",
   openGraph: {
-    title: "WhatsCRM — Turn WhatsApp conversations into qualified leads",
+    title: "Waboxa — Turn WhatsApp conversations into qualified leads",
     description:
       "One shared inbox, intelligent AI replies, automated lead qualification, and a pipeline built around conversations. Built on the official Meta WhatsApp Business Cloud API.",
     type: "website",

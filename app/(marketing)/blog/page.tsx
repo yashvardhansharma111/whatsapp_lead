@@ -11,9 +11,9 @@ import { BlogCta } from "@/components/marketing/blog/BlogCta";
 import { listPosts } from "@/components/marketing/blog/posts";
 
 export const metadata: Metadata = {
-  title: "Insights & guides — WhatsCRM",
+  title: "Insights & guides — Waboxa",
   description:
-    "Playbooks on WhatsApp marketing, AI automation, lead qualification and running a sales pipeline on the WhatsApp Business API — from the team building WhatsCRM.",
+    "Playbooks on WhatsApp marketing, AI automation, lead qualification and running a sales pipeline on the WhatsApp Business API — from the team building Waboxa.",
 };
 
 /**

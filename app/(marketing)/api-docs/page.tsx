@@ -17,9 +17,9 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "WhatsCRM API — Developer documentation",
+  title: "Waboxa API — Developer documentation",
   description:
-    "Build on WhatsCRM: authenticate, send WhatsApp messages, sync contacts and leads, and receive webhooks. Quickstart, concepts, rate limits and error handling.",
+    "Build on Waboxa: authenticate, send WhatsApp messages, sync contacts and leads, and receive webhooks. Quickstart, concepts, rate limits and error handling.",
 };
 
 /**
@@ -171,7 +171,7 @@ export default function ApiDocsPage() {
   return (
     <div>
       <PageHero
-        eyebrow="WhatsCRM API"
+        eyebrow="Waboxa API"
         title="Build WhatsApp into whatever you already run"
         description="A REST API over the same workspace your team uses: send messages, sync contacts and leads, read analytics, and receive every event as a signed webhook."
         primaryCta={{ label: "Browse the reference", href: "/api-reference" }}

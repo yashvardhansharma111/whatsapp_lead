@@ -7,9 +7,9 @@ import { getSection } from "@/lib/cms/content";
 
 // Plan prices are managed in the CMS, so the description does not quote them.
 export const metadata: Metadata = {
-  title: "Pricing — WhatsCRM",
+  title: "Pricing — Waboxa",
   description:
-    "Simple, transparent pricing for WhatsCRM — plans for every stage of your WhatsApp sales team, with monthly or annual billing.",
+    "Simple, transparent pricing for Waboxa — plans for every stage of your WhatsApp sales team, with monthly or annual billing.",
 };
 
 type ComparisonRow = {

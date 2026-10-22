@@ -3,35 +3,48 @@ import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import ContactForm from "@/components/marketing/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Contact Us — WhatsCRM",
+  title: "Contact Us — Waboxa",
   description:
-    "Talk to the WhatsCRM team. Book a demo, ask a question, or get help connecting your WhatsApp Business number.",
+    "Talk to the Waboxa team. Book a demo, ask a question, or get help connecting your WhatsApp Business number.",
 };
 
 const CONTACT_DETAILS = [
   {
     Icon: Mail,
     label: "Email us",
-    value: "support@whatscrm.in",
-    href: "mailto:support@whatscrm.in",
+    value: "info@waboxa.com",
+    href: "mailto:info@waboxa.com",
   },
   {
     Icon: Phone,
     label: "Call us",
-    value: "+91 80 4567 8900",
-    href: "tel:+918045678900",
-  },
-  {
-    Icon: MapPin,
-    label: "Visit us",
-    value: "Corescent Technologies Pvt Ltd, 4th Floor, Indiranagar, Bengaluru 560038",
-    href: null,
+    value: "+91 7079000777",
+    href: "tel:+917079000777",
   },
   {
     Icon: Clock,
     label: "Support hours",
     value: "Monday to Saturday, 9 AM – 8 PM IST",
     href: null,
+  },
+];
+
+const OFFICES = [
+  {
+    label: "Registered Office",
+    value: "MNR Complex, 17th Cross, Sampige Road, Malleshwaram, Bangalore, Karnataka 560003",
+  },
+  {
+    label: "Patna HQ",
+    value: "House No. 8, Kasturba Path, Axis Bank ATM Compound, Boring Road, Near Jamuna Apartment, Patna, Bihar 800001",
+  },
+  {
+    label: "Delhi Office",
+    value: "8, Vaishali Enclave, Pitampura, New Delhi, Delhi 110034",
+  },
+  {
+    label: "Mumbai Office",
+    value: "Office No. G-139, Haware Fantasia Business Park, Behind Inorbit Mall, Near Vashi Railway Station, Plot No. 47, Sector 30 A, Mumbai, Maharashtra 400705",
   },
 ];
 
@@ -90,7 +103,23 @@ export default function ContactPage() {
               ))}
             </ul>
 
-            <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            {/* Offices */}
+            <div className="mt-8">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                Our Offices
+              </h3>
+              <ul className="mt-4 space-y-4">
+                {OFFICES.map(({ label, value }) => (
+                  <li key={label} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{label}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-600">{value}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-6">
               <p className="text-sm font-semibold text-gray-900">Already a customer?</p>
               <p className="mt-2 text-sm leading-relaxed text-gray-600">
                 Raise a ticket from inside your dashboard and our support team will pick it up right

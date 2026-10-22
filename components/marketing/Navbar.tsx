@@ -144,9 +144,9 @@ const NAV_ITEMS: NavItem[] = [
         icon: BookOpen,
       },
       { label: "Blog", description: "Guides and product news", href: "/blog", icon: Newspaper },
-      { label: "WhatsCRM API", description: "Build on the platform", href: "/api-docs", icon: Code2 },
+      { label: "Waboxa API", description: "Build on the platform", href: "/api-docs", icon: Code2 },
       { label: "FAQ", description: "Answers to the common ones", href: "/#faq", icon: HelpCircle },
-      { label: "About us", description: "Who builds WhatsCRM", href: "/about", icon: Users },
+      { label: "About us", description: "Who builds Waboxa", href: "/about", icon: Users },
       { label: "Contact", description: "Talk to a human", href: "/contact", icon: Mail },
     ],
   },
@@ -162,7 +162,7 @@ function Wordmark({ onClick }: { onClick?: () => void }) {
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 shadow-sm shadow-emerald-600/30 transition-transform duration-300 hover:scale-105">
         <MessageSquare className="h-4 w-4 text-white" />
       </span>
-      <span className="text-lg font-bold tracking-tight text-slate-900">WhatsCRM</span>
+      <span className="text-lg font-bold tracking-tight text-slate-900">Waboxa</span>
     </Link>
   );
 }

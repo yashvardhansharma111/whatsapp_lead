@@ -7,9 +7,9 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "API Reference — WhatsCRM API",
+  title: "API Reference — Waboxa API",
   description:
-    "Every WhatsCRM API endpoint: messages, conversations, contacts, leads, campaigns, templates, tickets, knowledge base and analytics — with parameters, responses and error codes.",
+    "Every Waboxa API endpoint: messages, conversations, contacts, leads, campaigns, templates, tickets, knowledge base and analytics — with parameters, responses and error codes.",
 };
 
 /**

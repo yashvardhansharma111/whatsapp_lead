@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import LegalPage, { type LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Security — WhatsCRM",
+  title: "Security — Waboxa",
   description:
-    "How WhatsCRM protects your workspace: tenant isolation, encryption in transit and at rest, access control, and how to report a vulnerability.",
+    "How Waboxa protects your workspace: tenant isolation, encryption in transit and at rest, access control, and how to report a vulnerability.",
 };
 
 /**
@@ -26,7 +26,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Workspace Isolation",
     paragraphs: [
-      "WhatsCRM is multi-tenant, and every record in the database belongs to exactly one workspace. Every query the application makes is scoped to the workspace of the signed-in session before it reaches the database — isolation is enforced in the data layer rather than checked in the interface.",
+      "Waboxa is multi-tenant, and every record in the database belongs to exactly one workspace. Every query the application makes is scoped to the workspace of the signed-in session before it reaches the database — isolation is enforced in the data layer rather than checked in the interface.",
       "There is no code path that reads across workspaces, including for support. When our team needs to look at your workspace to help you, we ask you first.",
     ],
   },
@@ -54,7 +54,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "The WhatsApp Connection",
     paragraphs: [
-      "WhatsCRM connects to WhatsApp only through the official Meta WhatsApp Business Cloud API. We do not use unofficial libraries, QR-code bridges or anything else that puts your number at risk of being banned.",
+      "Waboxa connects to WhatsApp only through the official Meta WhatsApp Business Cloud API. We do not use unofficial libraries, QR-code bridges or anything else that puts your number at risk of being banned.",
       "Inbound webhooks from Meta are signature-verified before they are processed, so a forged request cannot inject a message into your inbox. Outbound webhooks we send to your systems are signed the same way, for the same reason.",
     ],
   },

@@ -18,7 +18,7 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "Career — WhatsCRM",
+  title: "Career — Waboxa",
   description:
     "Build the WhatsApp CRM Indian businesses run on. Open roles in engineering, design, sales and support at Corescent Technologies, Bengaluru and remote.",
 };
@@ -342,7 +342,7 @@ export default function CareersPage() {
       <PageCta
         title="Want to see what you would be working on?"
         description="The product is free to try. Spend ten minutes inside it before your first conversation with us."
-        primary={{ label: "Try WhatsCRM", href: "/register" }}
+        primary={{ label: "Try Waboxa", href: "/register" }}
         secondary={{ label: "Read about the team", href: "/about" }}
       />
     </div>

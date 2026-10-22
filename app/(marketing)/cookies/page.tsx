@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import LegalPage, { type LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — WhatsCRM",
+  title: "Cookie Policy — Waboxa",
   description:
-    "Which cookies WhatsCRM sets, what each one is for, how long it lasts, and how to control them in your browser.",
+    "Which cookies Waboxa sets, what each one is for, how long it lasts, and how to control them in your browser.",
 };
 
 /**
@@ -86,7 +86,7 @@ export default function CookiePolicyPage() {
     <LegalPage
       title="Cookie Policy"
       lastUpdated="26 August 2026"
-      intro="WhatsCRM uses the smallest set of cookies that lets the product work. This page lists every one of them, what it is for and how long it lasts."
+      intro="Waboxa uses the smallest set of cookies that lets the product work. This page lists every one of them, what it is for and how long it lasts."
       sections={SECTIONS}
       footer={
         <p className="text-sm leading-relaxed text-gray-600">

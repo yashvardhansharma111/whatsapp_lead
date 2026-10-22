@@ -17,9 +17,9 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "Why Choose Us — WhatsCRM",
+  title: "Why Choose Us — Waboxa",
   description:
-    "Why teams pick WhatsCRM: the official Meta Cloud API, AI grounded in your own documents, lead qualification that is built in rather than bolted on, and pricing in rupees.",
+    "Why teams pick Waboxa: the official Meta Cloud API, AI grounded in your own documents, lead qualification that is built in rather than bolted on, and pricing in rupees.",
 };
 
 /**
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
  * list of adjectives. "Powerful. Reliable. Trusted." says nothing, and a buyer
  * comparing three WhatsApp tools has read it on all three.
  *
- * So every reason here is a claim with a mechanism attached — the thing WhatsCRM does
+ * So every reason here is a claim with a mechanism attached — the thing Waboxa does
  * differently, in one sentence, followed by why it matters. The comparison table names
  * categories of tool ("an unofficial API wrapper", "a generic CRM with a WhatsApp
  * plugin") rather than competitors by name: naming a competitor invites an argument
@@ -174,7 +174,7 @@ export default function WhyChooseUsPage() {
       <PageHero
         eyebrow="Why choose us"
         title="Six reasons, each with a mechanism behind it"
-        description="Every WhatsApp tool claims to be powerful and reliable. Here is what WhatsCRM actually does differently, and why each difference matters on the day you need it."
+        description="Every WhatsApp tool claims to be powerful and reliable. Here is what Waboxa actually does differently, and why each difference matters on the day you need it."
         primaryCta={{ label: "Start Free Trial", href: "/register" }}
         secondaryCta={{ label: "See pricing", href: "/pricing" }}
       />
@@ -219,7 +219,7 @@ export default function WhyChooseUsPage() {
                     Capability
                   </th>
                   <th scope="col" className="bg-emerald-50/60 px-5 py-4 text-xs font-semibold uppercase tracking-wider text-emerald-800">
-                    WhatsCRM
+                    Waboxa
                   </th>
                   <th scope="col" className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Unofficial API wrapper

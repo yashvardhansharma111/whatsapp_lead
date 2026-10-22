@@ -102,7 +102,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
         <Rocket className="h-8 w-8 text-emerald-600" />
       </div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome to WhatsCRM!</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome to Waboxa!</h1>
       <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">
         Let's get your workspace set up in just 2 steps. It only takes a couple of minutes.
       </p>

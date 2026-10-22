@@ -20,9 +20,9 @@ import {
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "Solutions — WhatsCRM",
+  title: "Solutions — Waboxa",
   description:
-    "Six things teams come to WhatsCRM to fix: slow first replies, unqualified leads, lost conversations, one-off outreach, support that does not scale, and no idea what is working.",
+    "Six things teams come to Waboxa to fix: slow first replies, unqualified leads, lost conversations, one-off outreach, support that does not scale, and no idea what is working.",
 };
 
 /**
@@ -70,7 +70,7 @@ const SOLUTIONS: Solution[] = [
     Icon: Target,
     symptom: "“Every chat looks the same.”",
     title: "Qualify every lead automatically",
-    body: "WhatsCRM reads the conversation for budget, authority, need and timeline, scores the lead 0–100 and files it in the pipeline. Your team opens the app to a sorted list instead of a wall of unread chats.",
+    body: "Waboxa reads the conversation for budget, authority, need and timeline, scores the lead 0–100 and files it in the pipeline. Your team opens the app to a sorted list instead of a wall of unread chats.",
     points: [
       "BANT extracted from the conversation itself",
       "A 0–100 score, recalculated as the thread grows",
@@ -138,7 +138,7 @@ export default function SolutionsPage() {
       <PageHero
         eyebrow="Solutions"
         title="Start from what is broken, not from a feature list"
-        description="Six problems teams bring to us, and exactly what WhatsCRM does about each one. Every mechanism below is shipped and running in the product today."
+        description="Six problems teams bring to us, and exactly what Waboxa does about each one. Every mechanism below is shipped and running in the product today."
         primaryCta={{ label: "Start Free Trial", href: "/register" }}
         secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       />

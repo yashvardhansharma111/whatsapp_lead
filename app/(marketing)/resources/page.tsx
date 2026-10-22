@@ -21,9 +21,9 @@ import { ArticleCard } from "@/components/marketing/blog/ArticleCard";
 import { listPosts } from "@/components/marketing/blog/posts";
 
 export const metadata: Metadata = {
-  title: "Resources — WhatsCRM",
+  title: "Resources — Waboxa",
   description:
-    "Everything for learning, launching and building on WhatsCRM: guides, the blog, API documentation, industry playbooks, FAQs and support.",
+    "Everything for learning, launching and building on Waboxa: guides, the blog, API documentation, industry playbooks, FAQs and support.",
 };
 
 /**
@@ -55,7 +55,7 @@ const DESTINATIONS: {
   },
   {
     Icon: Terminal,
-    title: "WhatsCRM API",
+    title: "Waboxa API",
     body: "Authentication, sending messages, webhooks and rate limits — the developer landing page and quickstart.",
     href: "/api-docs",
     cta: "Open the docs",
@@ -169,7 +169,7 @@ export default function ResourcesPage() {
         <SectionHeading
           align="center"
           eyebrow="Start here"
-          title="New to WhatsCRM? Three links, in order"
+          title="New to Waboxa? Three links, in order"
         />
         <Stage className="mt-8 grid gap-3 sm:grid-cols-3">
           {START_HERE.map((item, i) => (

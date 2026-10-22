@@ -27,7 +27,7 @@ function getClient(): OpenAI {
       // Optional but recommended by OpenRouter for attribution/rankings.
       defaultHeaders: {
         "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://whatscrm.app",
-        "X-Title": process.env.NEXT_PUBLIC_APP_NAME ?? "WhatsCRM",
+        "X-Title": process.env.NEXT_PUBLIC_APP_NAME ?? "Waboxa",
       },
     });
     return client;

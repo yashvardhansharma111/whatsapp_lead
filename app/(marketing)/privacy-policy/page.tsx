@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import LegalPage, { type LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — WhatsCRM",
+  title: "Privacy Policy — Waboxa",
   description:
-    "How WhatsCRM collects, uses, stores and protects your data, and the rights you have over it.",
+    "How Waboxa collects, uses, stores and protects your data, and the rights you have over it.",
 };
 
 const SECTIONS: LegalSection[] = [
   {
     heading: "Data We Collect",
     paragraphs: [
-      "We collect only the data we need to run WhatsCRM for you. This falls into three groups.",
+      "We collect only the data we need to run Waboxa for you. This falls into three groups.",
     ],
     bullets: [
       "Account data: your name, work email, phone number, company name and hashed password.",
@@ -75,13 +75,13 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Children's Privacy",
     paragraphs: [
-      "WhatsCRM is a business product and is not directed at anyone under the age of 18. We do not knowingly collect personal data from children.",
+      "Waboxa is a business product and is not directed at anyone under the age of 18. We do not knowingly collect personal data from children.",
     ],
   },
   {
     heading: "Changes to This Policy",
     paragraphs: [
-      "If we make a material change to this policy we will notify you by email and inside the product at least 14 days before it takes effect. Continuing to use WhatsCRM after that date means you accept the updated policy.",
+      "If we make a material change to this policy we will notify you by email and inside the product at least 14 days before it takes effect. Continuing to use Waboxa after that date means you accept the updated policy.",
     ],
   },
   {
@@ -97,7 +97,7 @@ export default function PrivacyPolicyPage() {
     <LegalPage
       title="Privacy Policy"
       lastUpdated="1 July 2026"
-      intro="This policy explains what data WhatsCRM collects, why we collect it, how we protect it, and the control you have over it. It applies to whatscrm.in and to the WhatsCRM application."
+      intro="This policy explains what data Waboxa collects, why we collect it, how we protect it, and the control you have over it. It applies to whatscrm.in and to the Waboxa application."
       sections={SECTIONS}
       footer={
         <p className="text-sm leading-relaxed text-gray-600">

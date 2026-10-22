@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Features — WhatsCRM",
+  title: "Features — Waboxa",
   description:
     "WhatsApp shared inbox, AI auto-reply, lead pipeline, bulk campaigns, analytics and an AI knowledge base — everything your team needs to sell on WhatsApp.",
 };
@@ -237,7 +237,7 @@ const FEATURES = [
     eyebrow: "AI Auto-Reply",
     title: "AI that answers instantly, 24×7",
     description:
-      "Powered by Llama 3.3, WhatsCRM replies to common questions in seconds using your own product data — so a lead that messages at 2 AM gets an answer at 2 AM, not the next morning.",
+      "Powered by Llama 3.3, Waboxa replies to common questions in seconds using your own product data — so a lead that messages at 2 AM gets an answer at 2 AM, not the next morning.",
     points: [
       "Replies grounded in your knowledge base",
       "Custom system prompt in your brand's tone",
@@ -293,7 +293,7 @@ const FEATURES = [
     eyebrow: "Knowledge Base",
     title: "Teach the AI your business, once",
     description:
-      "Upload your catalogue, pricing sheet and FAQs. WhatsCRM indexes them and the AI answers from your own content — so replies are accurate, current and never invented.",
+      "Upload your catalogue, pricing sheet and FAQs. Waboxa indexes them and the AI answers from your own content — so replies are accurate, current and never invented.",
     points: [
       "Upload PDF, DOCX or Markdown",
       "Answers cite your own documents",

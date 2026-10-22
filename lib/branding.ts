@@ -61,16 +61,16 @@ export interface Brand {
 }
 
 export const PLATFORM_BRAND: Brand = {
-  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "WhatsCRM",
-  legalName: process.env.BRAND_LEGAL_NAME ?? "Corescent Technologies Pvt Ltd",
+  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "Waboxa",
+  legalName: process.env.BRAND_LEGAL_NAME ?? "Waboxa",
   logoUrl: process.env.NEXT_PUBLIC_BRAND_LOGO_URL ?? null,
   faviconUrl: null,
   primaryColor: "#059669",
   accentColor: null,
-  supportEmail: process.env.BRAND_SUPPORT_EMAIL ?? null,
-  supportPhone: process.env.BRAND_SUPPORT_PHONE ?? null,
-  website: process.env.NEXT_PUBLIC_APP_URL ?? null,
-  address: null,
+  supportEmail: process.env.BRAND_SUPPORT_EMAIL ?? "info@waboxa.com",
+  supportPhone: process.env.BRAND_SUPPORT_PHONE ?? "+91 7079000777",
+  website: process.env.NEXT_PUBLIC_APP_URL ?? "https://waboxa.com",
+  address: "MNR Complex, 17th Cross, Sampige Road, Malleshwaram, Bangalore, Karnataka 560003",
   loginHeadline: "Turn every WhatsApp chat into a qualified lead.",
   loginSubtext:
     "One workspace for your team to talk to customers, score leads with AI and close faster — all on the channel your customers already use.",

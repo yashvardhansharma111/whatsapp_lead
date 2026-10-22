@@ -21,9 +21,9 @@ import { stagger } from "@/components/marketing/home/motion";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Become a Partner — WhatsCRM",
+  title: "Become a Partner — Waboxa",
   description:
-    "Partner with WhatsCRM as a referral partner, an agency reseller or a technology integrator. Recurring revenue share, deal support, co-marketing and a free partner workspace.",
+    "Partner with Waboxa as a referral partner, an agency reseller or a technology integrator. Recurring revenue share, deal support, co-marketing and a free partner workspace.",
   alternates: { canonical: "/become-a-partner" },
 };
 
@@ -72,7 +72,7 @@ const TRACKS: Track[] = [
     Icon: Store,
     name: "Agency & reseller",
     who: "Marketing, CRM and automation agencies",
-    body: "You sell, configure and manage WhatsCRM for your clients, on your own terms and your own invoice.",
+    body: "You sell, configure and manage Waboxa for your clients, on your own terms and your own invoice.",
     points: [
       "Margin on every workspace you resell",
       "Manage all client workspaces from one place",
@@ -84,7 +84,7 @@ const TRACKS: Track[] = [
     Icon: Puzzle,
     name: "Technology & integration",
     who: "SaaS products, system integrators, ISVs",
-    body: "You build on the WhatsCRM API, or connect it to the CRM, ERP or storefront your customers already run.",
+    body: "You build on the Waboxa API, or connect it to the CRM, ERP or storefront your customers already run.",
     points: [
       "Full API access and a sandbox workspace",
       "Engineering support during the build",
@@ -173,7 +173,7 @@ const FAQS: FaqItem[] = [
   {
     question: "How is commission calculated and paid?",
     answer:
-      "As a percentage of the subscription revenue from accounts you bring, recurring for as long as the account stays with WhatsCRM. Rates depend on your tier and track, and are confirmed in writing before you register your first deal. Payouts run monthly.",
+      "As a percentage of the subscription revenue from accounts you bring, recurring for as long as the account stays with Waboxa. Rates depend on your tier and track, and are confirmed in writing before you register your first deal. Payouts run monthly.",
   },
   {
     question: "Can I resell under my own brand and invoice?",
@@ -203,7 +203,7 @@ export default function BecomeAPartnerPage() {
       <PageHero
         eyebrow="Partner programme"
         title="Sell the WhatsApp CRM your clients keep asking you for"
-        description="Refer, resell or build on WhatsCRM. Recurring revenue share, a free partner workspace, and a solutions engineer on the calls that matter."
+        description="Refer, resell or build on Waboxa. Recurring revenue share, a free partner workspace, and a solutions engineer on the calls that matter."
         primaryCta={{ label: "Apply to partner", href: "/contact" }}
         secondaryCta={{ label: "See pricing", href: "/pricing" }}
       >
@@ -420,7 +420,7 @@ export default function BecomeAPartnerPage() {
       </Section>
 
       <PageCta
-        title="Ready to partner with WhatsCRM?"
+        title="Ready to partner with Waboxa?"
         description="Tell us who you work with and which track fits. We reply within a couple of working days."
         primary={{ label: "Apply to partner", href: "/contact" }}
         secondary={{ label: "See the product", href: "/features" }}

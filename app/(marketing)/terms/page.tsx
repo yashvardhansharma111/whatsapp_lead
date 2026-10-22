@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import LegalPage, { type LegalSection } from "@/components/marketing/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions — WhatsCRM",
+  title: "Terms & Conditions — Waboxa",
   description:
-    "The terms that govern your use of WhatsCRM, including your account, acceptable use, billing and liability.",
+    "The terms that govern your use of Waboxa, including your account, acceptable use, billing and liability.",
 };
 
 const SECTIONS: LegalSection[] = [
   {
     heading: "Acceptance of Terms",
     paragraphs: [
-      "By creating a WhatsCRM account or using the service, you agree to these Terms & Conditions on behalf of yourself and the organisation you represent. If you do not agree, do not use the service.",
-      "These terms are between you and Corescent Technologies Pvt Ltd, a company registered in India, which operates WhatsCRM.",
+      "By creating a Waboxa account or using the service, you agree to these Terms & Conditions on behalf of yourself and the organisation you represent. If you do not agree, do not use the service.",
+      "These terms are between you and Corescent Technologies Pvt Ltd, a company registered in India, which operates Waboxa.",
     ],
   },
   {
@@ -30,8 +30,8 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Subscriptions & Billing",
     paragraphs: [
-      "WhatsCRM is sold as a monthly or annual subscription. Every plan begins with a 14-day free trial that requires no card. When the trial ends, your chosen plan begins and your card is charged unless you cancel first.",
-      "Subscriptions renew automatically at the end of each billing cycle until you cancel. Prices are shown exclusive of GST, which is added where applicable. WhatsApp conversation charges levied by Meta are billed to you separately by Meta and are not part of your WhatsCRM subscription.",
+      "Waboxa is sold as a monthly or annual subscription. Every plan begins with a 14-day free trial that requires no card. When the trial ends, your chosen plan begins and your card is charged unless you cancel first.",
+      "Subscriptions renew automatically at the end of each billing cycle until you cancel. Prices are shown exclusive of GST, which is added where applicable. WhatsApp conversation charges levied by Meta are billed to you separately by Meta and are not part of your Waboxa subscription.",
       "We may change our prices, but never mid-cycle. Existing customers get at least 30 days' notice by email before a new price applies at their next renewal.",
     ],
   },
@@ -45,7 +45,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Acceptable Use",
     paragraphs: [
-      "You agree not to use WhatsCRM to do any of the following, and to ensure your agents do not either:",
+      "You agree not to use Waboxa to do any of the following, and to ensure your agents do not either:",
     ],
     bullets: [
       "Send spam, or message people who have not opted in to hear from you.",
@@ -59,20 +59,20 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Your Content & Our Rights",
     paragraphs: [
-      "You own everything you put into WhatsCRM — your contacts, conversations, documents and leads. You grant us only the limited licence needed to host, process and display that content in order to provide the service.",
-      "We own the WhatsCRM software, brand and everything we create around it. Nothing in these terms transfers that ownership to you.",
+      "You own everything you put into Waboxa — your contacts, conversations, documents and leads. You grant us only the limited licence needed to host, process and display that content in order to provide the service.",
+      "We own the Waboxa software, brand and everything we create around it. Nothing in these terms transfers that ownership to you.",
     ],
   },
   {
     heading: "Third-Party Services",
     paragraphs: [
-      "WhatsCRM depends on third-party platforms, most importantly Meta's WhatsApp Business Cloud API. Your use of WhatsApp through our product is also governed by Meta's terms. We are not responsible for outages, policy changes, number bans or charges originating from Meta or any other third-party provider.",
+      "Waboxa depends on third-party platforms, most importantly Meta's WhatsApp Business Cloud API. Your use of WhatsApp through our product is also governed by Meta's terms. We are not responsible for outages, policy changes, number bans or charges originating from Meta or any other third-party provider.",
     ],
   },
   {
     heading: "Service Availability",
     paragraphs: [
-      "We work hard to keep WhatsCRM available and fast, and Enterprise customers receive a 99.9% uptime SLA. On all other plans the service is provided on an 'as available' basis. We may carry out maintenance, and will give advance notice for anything planned that causes downtime.",
+      "We work hard to keep Waboxa available and fast, and Enterprise customers receive a 99.9% uptime SLA. On all other plans the service is provided on an 'as available' basis. We may carry out maintenance, and will give advance notice for anything planned that causes downtime.",
     ],
   },
   {
@@ -97,7 +97,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Changes to These Terms",
     paragraphs: [
-      "We may update these terms as the product evolves. For material changes we give at least 14 days' notice by email and in-product. Continuing to use WhatsCRM after the change takes effect means you accept the new terms.",
+      "We may update these terms as the product evolves. For material changes we give at least 14 days' notice by email and in-product. Continuing to use Waboxa after the change takes effect means you accept the new terms.",
     ],
   },
 ];
@@ -107,7 +107,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms & Conditions"
       lastUpdated="1 July 2026"
-      intro="These terms govern your use of WhatsCRM, operated by Corescent Technologies Pvt Ltd. Please read them carefully — they set out what you can expect from us and what we expect from you."
+      intro="These terms govern your use of Waboxa, operated by Corescent Technologies Pvt Ltd. Please read them carefully — they set out what you can expect from us and what we expect from you."
       sections={SECTIONS}
       footer={
         <p className="text-sm leading-relaxed text-gray-600">

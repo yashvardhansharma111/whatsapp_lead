@@ -27,7 +27,7 @@ export const HOME_DEFAULTS: HomeDefaults = {
       title: "Turn WhatsApp conversations into",
       highlight: "qualified leads",
       description:
-        "WhatsCRM replies to every customer in seconds, qualifies the lead with AI and keeps your pipeline up to date — all from one shared WhatsApp inbox.",
+        "Waboxa replies to every customer in seconds, qualifies the lead with AI and keeps your pipeline up to date — all from one shared WhatsApp inbox.",
       primaryCtaLabel: "Start free trial",
       primaryCtaHref: "/register",
       secondaryCtaLabel: "See how it works",
@@ -94,7 +94,7 @@ export const HOME_DEFAULTS: HomeDefaults = {
       title: "WhatsApp is where your leads are — and where they slip away",
       description:
         "When sales run on a shared phone, speed, context and ownership are the first things to go.",
-      closing: "WhatsCRM fixes all four — automatically.",
+      closing: "Waboxa fixes all four — automatically.",
     },
     items: {
       card: [
@@ -275,12 +275,12 @@ export const HOME_DEFAULTS: HomeDefaults = {
     content: {
       eyebrow: "Integrations",
       title: "Works with the tools you already use",
-      description: "Connect WhatsApp, bring in your data and plug WhatsCRM into the rest of your stack.",
+      description: "Connect WhatsApp, bring in your data and plug Waboxa into the rest of your stack.",
     },
     items: {
       integration: [
         { icon: "MessageCircle", name: "WhatsApp Cloud API", description: "Official Meta Business Platform connection", imageUrl: "", href: "" },
-        { icon: "Code2", name: "WhatsCRM API", description: "Send messages, sync contacts and leads", imageUrl: "", href: "/api-docs" },
+        { icon: "Code2", name: "Waboxa API", description: "Send messages, sync contacts and leads", imageUrl: "", href: "/api-docs" },
         { icon: "Webhook", name: "Webhooks", description: "Receive conversation events in real time", imageUrl: "", href: "/api-docs#webhooks" },
         { icon: "FileSpreadsheet", name: "Excel & CSV import", description: "Bring in contacts and leads in bulk", imageUrl: "", href: "" },
         { icon: "FileText", name: "PDF & Word documents", description: "Train the AI on your own files", imageUrl: "", href: "" },
@@ -307,14 +307,14 @@ export const HOME_DEFAULTS: HomeDefaults = {
     isActive: true,
     content: {
       eyebrow: "Customers",
-      title: "What teams say about WhatsCRM",
+      title: "What teams say about Waboxa",
       description: "Businesses running sales and support on WhatsApp.",
     },
     items: {
       testimonial: [1, 2, 3].map(() => ({
         isActive: false,
         quote:
-          "Replace with a short quote from a real customer — what changed after they moved their WhatsApp sales to WhatsCRM.",
+          "Replace with a short quote from a real customer — what changed after they moved their WhatsApp sales to Waboxa.",
         name: "Customer name",
         role: "Role",
         company: "Company",
@@ -356,14 +356,14 @@ export const HOME_DEFAULTS: HomeDefaults = {
     items: {
       faq: [
         {
-          question: "What is WhatsCRM?",
+          question: "What is Waboxa?",
           answer:
             "An AI-powered CRM for your WhatsApp Business number. Incoming chats become contacts and leads automatically, the AI replies and qualifies them, and your team works everything from one shared inbox and pipeline.",
         },
         {
           question: "Can I connect my own WhatsApp number?",
           answer:
-            "Yes. WhatsCRM runs on the official Meta WhatsApp Business Cloud API. You need a Meta Business Account with WhatsApp enabled, and the setup wizard walks you through connecting it.",
+            "Yes. Waboxa runs on the official Meta WhatsApp Business Cloud API. You need a Meta Business Account with WhatsApp enabled, and the setup wizard walks you through connecting it.",
         },
         {
           question: "How does the AI qualify leads?",
@@ -424,8 +424,8 @@ export const HOME_DEFAULTS: HomeDefaults = {
       ctaHref: "/register",
       description:
         "An AI-powered WhatsApp CRM: one shared inbox, replies grounded in your own documents, and leads qualified automatically.",
-      email: "support@whatscrm.in",
-      copyright: "© WhatsCRM by Corescent Technologies Pvt Ltd. All rights reserved.",
+      email: "info@waboxa.com",
+      copyright: "© Waboxa. All rights reserved.",
       legalNote: "Built on the official Meta WhatsApp Business Cloud API.",
     },
     items: {
@@ -455,7 +455,7 @@ export const HOME_DEFAULTS: HomeDefaults = {
           heading: "Developer",
           links: [
             { label: "Documentation", href: "/documentation", isActive: true },
-            { label: "WhatsCRM API", href: "/api-docs", isActive: true },
+            { label: "Waboxa API", href: "/api-docs", isActive: true },
             { label: "Site Map", href: "/site-map", isActive: true },
             { label: "Contact", href: "/contact", isActive: true },
           ],
@@ -478,11 +478,10 @@ export const HOME_DEFAULTS: HomeDefaults = {
         { icon: "Zap", label: "Free trial, no card" },
       ],
       social: [
-        { platform: "twitter", href: "https://twitter.com" },
-        { platform: "linkedin", href: "https://linkedin.com" },
-        { platform: "facebook", href: "https://facebook.com" },
-        { platform: "instagram", href: "https://instagram.com" },
-        { platform: "youtube", href: "https://youtube.com" },
+        { platform: "instagram", href: "https://www.instagram.com/waboxaofficial" },
+        { platform: "youtube", href: "https://www.youtube.com/@waboxaofficial" },
+        { platform: "facebook", href: "https://www.facebook.com/WAboxaofficial" },
+        { platform: "pinterest", href: "https://in.pinterest.com/waboxaofficial/" },
       ],
     },
   },

@@ -34,7 +34,7 @@ export function BlogCta() {
                 className="wa-lift mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-300"
               >
                 Product updates, WhatsApp insights, automation tips and more — from the team
-                building WhatsCRM.
+                building Waboxa.
               </p>
 
               <div

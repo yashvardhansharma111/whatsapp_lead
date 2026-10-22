@@ -117,7 +117,7 @@ export function IndustryPage({ industry }: { industry: Industry }) {
                   >
                     <Icon className={cn("h-3 w-3", tone.icon)} aria-hidden />
                   </span>
-                  WhatsCRM for {name}
+                  Waboxa for {name}
                 </span>
               </Reveal>
 

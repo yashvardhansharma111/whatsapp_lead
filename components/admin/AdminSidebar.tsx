@@ -52,7 +52,7 @@ export function AdminSidebar({ name, email }: { name?: string | null; email?: st
           <ShieldCheck className="h-4 w-4 text-white" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold tracking-tight text-slate-900">Corescent Admin</p>
+          <p className="truncate text-sm font-bold tracking-tight text-slate-900">Waboxa Admin</p>
           <p className="truncate text-[11px] text-slate-500">Super Admin Panel</p>
         </div>
         <button

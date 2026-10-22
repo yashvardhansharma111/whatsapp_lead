@@ -101,7 +101,7 @@ export const POSTS: Post[] = [
         heading: "Step 2 — Add a WhatsApp Business Account and register your number",
         body: [
           "Inside your verified Business Account, add the WhatsApp product and register your phone number. Meta issues a phone number ID and an access token. Those two values, plus a webhook verify token you choose yourself, are everything a platform needs to send and receive on your behalf.",
-          "Treat the access token like a password. In WhatsCRM it is encrypted before it is stored and is never returned to the browser — not in an API response and not in the settings form you typed it into. Any platform that shows it back to you in plain text is storing it in plain text.",
+          "Treat the access token like a password. In Waboxa it is encrypted before it is stored and is never returned to the browser — not in an API response and not in the settings form you typed it into. Any platform that shows it back to you in plain text is storing it in plain text.",
         ],
       },
       {
@@ -109,7 +109,7 @@ export const POSTS: Post[] = [
         body: [
           "Meta delivers inbound messages and delivery receipts by calling a URL you nominate. Two things matter here. The first is that the endpoint answers Meta's verification challenge with the token you configured. The second is that it answers fast — Meta gives a webhook a few seconds and treats anything slower as a failed delivery, which it then retries.",
           "That retry behaviour is why serious implementations acknowledge the delivery immediately and do the real work behind it. If a platform runs an AI model call inline on the webhook request, a slow model turns into a duplicate reply in front of your customer.",
-          "WhatsCRM also verifies the X-Hub-Signature-256 header on every inbound call, so a request that did not come from Meta is refused rather than processed.",
+          "Waboxa also verifies the X-Hub-Signature-256 header on every inbound call, so a request that did not come from Meta is refused rather than processed.",
         ],
       },
       {
@@ -160,7 +160,7 @@ export const POSTS: Post[] = [
       {
         heading: "Score, then sort",
         body: [
-          "In WhatsCRM, qualification runs across the whole transcript and returns a verdict on each of the four criteria plus a short reason. Those produce a score from 0 to 100, which sorts the lead into COLD, WARM, HOT or QUALIFIED.",
+          "In Waboxa, qualification runs across the whole transcript and returns a verdict on each of the four criteria plus a short reason. Those produce a score from 0 to 100, which sorts the lead into COLD, WARM, HOT or QUALIFIED.",
           "The score is written onto the lead record rather than displayed once and forgotten. That matters more than it sounds: a number that lives on the record can sort a pipeline, filter a view and drive a follow-up. A number in a chat window can only be looked at.",
         ],
       },
@@ -175,7 +175,7 @@ export const POSTS: Post[] = [
         heading: "Then let the pipeline do its job",
         body: [
           "Once leads carry a score, the pipeline stops being a list and starts being an order of operations. Qualified leads move to the front, cold ones go to a nurture sequence, and the reps spend their day on conversations that can actually close.",
-          "Pipeline stages in WhatsCRM are yours to define — rename, recolour, reorder or add as many as your process needs. The qualification step feeds the pipeline; it does not dictate its shape.",
+          "Pipeline stages in Waboxa are yours to define — rename, recolour, reorder or add as many as your process needs. The qualification step feeds the pipeline; it does not dictate its shape.",
         ],
       },
     ],
@@ -220,7 +220,7 @@ export const POSTS: Post[] = [
         heading: "Track the status rather than resubmitting blind",
         body: [
           "Approval is not instant and it is not always final — a template can be approved and later disabled if it draws enough negative feedback. That means the status you saw on submission day is not necessarily the status today.",
-          "WhatsCRM keeps local templates in step with Meta's review state, so an approved template that is later disabled shows as disabled rather than failing silently the next time a campaign tries to use it.",
+          "Waboxa keeps local templates in step with Meta's review state, so an approved template that is later disabled shows as disabled rather than failing silently the next time a campaign tries to use it.",
         ],
       },
       {
@@ -321,7 +321,7 @@ export const POSTS: Post[] = [
         heading: "4. Handoff that actually hands off",
         body: [
           "This is the one most implementations get wrong. A handoff node that only switches the bot off leaves the thread unassigned, and unassigned threads are how leads go missing.",
-          "A real handoff picks a specific person. In WhatsCRM the thread goes to the least-loaded active agent, is marked as assigned, and has AI switched off so nothing talks over the human who just took it.",
+          "A real handoff picks a specific person. In Waboxa the thread goes to the least-loaded active agent, is marked as assigned, and has AI switched off so nothing talks over the human who just took it.",
         ],
       },
       {
@@ -358,7 +358,7 @@ export const POSTS: Post[] = [
         heading: "Opt-in is the whole game",
         body: [
           "WhatsApp is not email, and a purchased list is not an audience. Every recipient should have given you their number for this purpose, and you should be able to say when and where.",
-          "Handle opt-out as seriously as opt-in. WhatsCRM treats STOP, UNSUBSCRIBE, CANCEL, END and QUIT as an immediate unsubscribe with a confirmation, and skips those contacts on every AI reply, flow and campaign until they send START. That behaviour runs before anything else on the inbound path, so nothing can talk over it.",
+          "Handle opt-out as seriously as opt-in. Waboxa treats STOP, UNSUBSCRIBE, CANCEL, END and QUIT as an immediate unsubscribe with a confirmation, and skips those contacts on every AI reply, flow and campaign until they send START. That behaviour runs before anything else on the inbound path, so nothing can talk over it.",
         ],
       },
       {
@@ -379,7 +379,7 @@ export const POSTS: Post[] = [
         heading: "Measure replies, not sends",
         body: [
           "'Sent' is the least interesting number in a campaign report. It tells you the message left the building.",
-          "The funnel worth watching is sent, delivered, read and replied. WhatsCRM stamps the message id Meta returns onto each recipient, so delivery receipts correlate back to the exact person and a reply is credited once and only once. If a campaign is read widely and replied to rarely, the offer is the problem — not the deliverability.",
+          "The funnel worth watching is sent, delivered, read and replied. Waboxa stamps the message id Meta returns onto each recipient, so delivery receipts correlate back to the exact person and a reply is credited once and only once. If a campaign is read widely and replied to rarely, the offer is the problem — not the deliverability.",
         ],
       },
     ],
@@ -464,7 +464,7 @@ export const POSTS: Post[] = [
         heading: "Make the reply cheap",
         body: [
           "The follow-up should be answerable in one tap. A short menu — still interested, send me the quote again, not right now — converts far better than an open question, because it costs the customer nothing to respond.",
-          "It also tells you something a page view never could. When a customer taps 'send me the quote again', they have chosen that question from a list inside their own conversation. WhatsCRM records those taps with the intent they carried, which turns a follow-up into a signal rather than just a nudge.",
+          "It also tells you something a page view never could. When a customer taps 'send me the quote again', they have chosen that question from a list inside their own conversation. Waboxa records those taps with the intent they carried, which turns a follow-up into a signal rather than just a nudge.",
         ],
       },
       {
@@ -506,7 +506,7 @@ export const POSTS: Post[] = [
       {
         heading: "Make the stages yours, and keep them editable",
         body: [
-          "Your first pipeline will be wrong, which is fine as long as it is changeable. In WhatsCRM stages are data rather than code: you can rename, recolour, reorder, enable, disable or add them with no cap, and mark which one new leads land in.",
+          "Your first pipeline will be wrong, which is fine as long as it is changeable. In Waboxa stages are data rather than code: you can rename, recolour, reorder, enable, disable or add them with no cap, and mark which one new leads land in.",
           "Two of them carry meaning beyond presentation — the ones that close a deal as won or lost — because analytics needs to know which outcomes count as revenue.",
         ],
       },
@@ -555,7 +555,7 @@ export const POSTS: Post[] = [
       {
         heading: "Ground the answers, and know when there is no ground",
         body: [
-          "An AI agent should answer from your own material rather than from general knowledge. In WhatsCRM, replies are drafted from documents you upload, and the document each reply drew on is recorded on the message — so a wrong answer points you at the file that caused it.",
+          "An AI agent should answer from your own material rather than from general knowledge. In Waboxa, replies are drafted from documents you upload, and the document each reply drew on is recorded on the message — so a wrong answer points you at the file that caused it.",
           "The corollary matters more: when retrieval finds nothing relevant, the honest move is to hand over rather than to improvise. An agent that says 'let me get someone who can answer that properly' is doing its job.",
         ],
       },
@@ -576,7 +576,7 @@ export const POSTS: Post[] = [
   },
   {
     slug: "inside-the-knowledge-base",
-    title: "Inside WhatsCRM: how the knowledge base grounds every AI reply",
+    title: "Inside Waboxa: how the knowledge base grounds every AI reply",
     excerpt:
       "Upload, index, retrieve, cite. A look at what happens between dropping in a PDF and a customer getting an answer from it.",
     category: "Product",
@@ -593,7 +593,7 @@ export const POSTS: Post[] = [
         heading: "Upload and extraction",
         body: [
           "A document arrives as a PDF, DOCX, text file or a URL. The first job is turning it into clean text — and this is where naive implementations lose most of their accuracy, because a pricing table flattened into a run-on line is worse than useless.",
-          "WhatsCRM converts documents to structured Markdown so tables stay tables and scanned pages are read rather than skipped, with a local extractor as a fallback when that service is unavailable.",
+          "Waboxa converts documents to structured Markdown so tables stay tables and scanned pages are read rather than skipped, with a local extractor as a fallback when that service is unavailable.",
         ],
       },
       {

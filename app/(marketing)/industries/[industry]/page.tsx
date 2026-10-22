@@ -20,14 +20,14 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { industry: slug } = await params;
   const industry = getIndustry(slug);
-  if (!industry) return { title: "Industry not found — WhatsCRM" };
+  if (!industry) return { title: "Industry not found — Waboxa" };
 
   return {
-    title: `WhatsCRM for ${industry.name} — AI WhatsApp CRM`,
+    title: `Waboxa for ${industry.name} — AI WhatsApp CRM`,
     description: industry.summary,
     alternates: { canonical: `/industries/${industry.id}` },
     openGraph: {
-      title: `WhatsCRM for ${industry.name}`,
+      title: `Waboxa for ${industry.name}`,
       description: industry.summary,
       type: "website",
     },

@@ -53,7 +53,7 @@ export async function dispatchWebhook(
             "Content-Type": "application/json",
             "X-Webhook-Signature": signature,
             "X-Webhook-Event": event,
-            "User-Agent": "WhatsCRM-Webhook/1.0",
+            "User-Agent": "Waboxa-Webhook/1.0",
           },
           body,
           signal: AbortSignal.timeout(10_000),

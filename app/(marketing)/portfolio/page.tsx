@@ -22,9 +22,9 @@ import { Reveal, SectionHeading, Stage } from "@/components/marketing/home/primi
 import { stagger } from "@/components/marketing/home/motion";
 
 export const metadata: Metadata = {
-  title: "Portfolio — WhatsCRM",
+  title: "Portfolio — Waboxa",
   description:
-    "The surfaces we have shipped and the reference builds behind them — how a real estate, EdTech, e-commerce or automotive workspace is actually configured in WhatsCRM.",
+    "The surfaces we have shipped and the reference builds behind them — how a real estate, EdTech, e-commerce or automotive workspace is actually configured in Waboxa.",
 };
 
 /**

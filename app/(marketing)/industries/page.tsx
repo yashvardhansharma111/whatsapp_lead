@@ -8,9 +8,9 @@ import { stagger } from "@/components/marketing/home/motion";
 import { ACCENT_STYLE, INDUSTRIES } from "@/components/marketing/industries";
 
 export const metadata: Metadata = {
-  title: "Industries — WhatsCRM",
+  title: "Industries — Waboxa",
   description:
-    "How retail, real estate, education, healthcare, professional services, e-commerce, finance and automotive teams use WhatsCRM to capture and close leads on WhatsApp.",
+    "How retail, real estate, education, healthcare, professional services, e-commerce, finance and automotive teams use Waboxa to capture and close leads on WhatsApp.",
 };
 
 /**
@@ -19,11 +19,11 @@ export const metadata: Metadata = {
  * A DOOR, NOT A DESTINATION. This page used to be the industry content — eight long
  * cards, every use case spelled out, nowhere to go from any of them. That made it the
  * longest page on the site and the least likely to be read, and it meant an ad
- * pointing at "WhatsCRM for real estate" had to land on a page that was mostly about
+ * pointing at "Waboxa for real estate" had to land on a page that was mostly about
  * seven other sectors.
  *
  * So the cards are now compact and each one is a link to a page of its own. Name, the
- * pain in one line, what WhatsCRM does about it in one line, an arrow. Everything
+ * pain in one line, what Waboxa does about it in one line, an arrow. Everything
  * longer moved to /industries/[industry], where it belongs.
  *
  * The card keeps `id` as an anchor target, so the older `/industries#real-estate`
@@ -80,7 +80,7 @@ export default function IndustriesPage() {
                 <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{industry.problem}</p>
 
                 <p className="mt-3 text-xs font-medium uppercase tracking-wide text-emerald-600">
-                  WhatsCRM does
+                  Waboxa does
                 </p>
                 <p className="mt-0.5 flex-1 text-sm leading-relaxed text-slate-600">
                   {industry.solution}
@@ -123,7 +123,7 @@ export default function IndustriesPage() {
 
       <PageCta
         title="Not sure how it fits your business?"
-        description="Tell us how your team sells today and we will show you exactly what WhatsCRM would change."
+        description="Tell us how your team sells today and we will show you exactly what Waboxa would change."
         secondary={{ label: "Book a Demo", href: "/contact" }}
       />
     </div>
