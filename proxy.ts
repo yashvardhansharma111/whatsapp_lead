@@ -122,6 +122,7 @@ export default auth((req) => {
       "/api/nest",
       "/api/v1",
       "/api/ping",
+      "/api/debug",     // debug endpoints — never proxy to NestJS
     ];
     const stayInNext = NEXTJS_ONLY_API.some((p) => pathname.startsWith(p));
 
