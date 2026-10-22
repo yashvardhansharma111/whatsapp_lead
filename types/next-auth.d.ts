@@ -32,6 +32,7 @@ declare module "next-auth" {
     resellerType: string | null;
     parentTenantId: string | null;
     avatar?: string;
+    nestToken?: string;
   }
 }
 
@@ -53,5 +54,7 @@ declare module "@auth/core/jwt" {
     avatar?: string;
     /** When the claims above were last read from the database (ms). */
     claimsAt?: number;
+    /** NestJS access_token stored for /auth/me claim refresh calls. */
+    nestToken?: string;
   }
 }

@@ -1,12 +1,15 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { VIEW_AS_COOKIE, decodeViewAs } from "@/lib/viewAs";
 
-/** The view-as cookie of this request, or undefined outside a request (or when unset). */
+const CLAIMS_TTL_MS = 5 * 60_000;
+
+function backendUrl() {
+  return process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+}
+
 async function viewAsCookie(): Promise<string | undefined> {
   try {
     return (await cookies()).get(VIEW_AS_COOKIE)?.value;
@@ -15,44 +18,35 @@ async function viewAsCookie(): Promise<string | undefined> {
   }
 }
 
-/**
- * How long session claims (role, account type, active flags) are trusted before they
- * are re-read from the database. Sessions are JWTs, so without this a user who was
- * deactivated, demoted, or whose account was suspended or converted kept their old
- * powers until the token expired — days. The re-read is one indexed query, done at
- * most once per window per token.
- */
-const CLAIMS_TTL_MS = 5 * 60_000;
-
-/** Current claims for a user, or null when the user or their account can no longer sign in. */
-async function loadClaims(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      role: true,
-      isActive: true,
-      tenant: {
-        select: {
-          id: true, slug: true, name: true, isActive: true,
-          accountType: true, resellerType: true, parentId: true,
-        },
-      },
-    },
-  });
-  if (!user || !user.isActive || !user.tenant.isActive) return null;
-  return {
-    role: user.role,
-    tenantId: user.tenant.id,
-    tenantSlug: user.tenant.slug,
-    tenantName: user.tenant.name,
-    accountType: user.tenant.accountType,
-    resellerType: user.tenant.resellerType ?? null,
-    parentTenantId: user.tenant.parentId ?? null,
-  };
+/** Refresh claims by calling NestJS /auth/me with the stored NestJS JWT. */
+async function loadClaims(nestToken: string) {
+  const base = backendUrl();
+  if (!base || !nestToken) return null;
+  try {
+    const res = await fetch(`${base}/auth/me`, {
+      headers: { Authorization: `Bearer ${nestToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const u = body.data ?? body;
+    return {
+      role:           u.role           as string,
+      tenantId:       u.tenantId       as string,
+      tenantSlug:     u.tenantSlug     as string,
+      tenantName:     u.tenantName     as string,
+      accountType:    u.accountType    as string,
+      resellerType:   (u.resellerType  as string | null) ?? null,
+      parentTenantId: (u.parentTenantId as string | null) ?? null,
+      avatar:         u.avatar         as string | undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email:    z.string().email(),
   password: z.string().min(6),
 });
 
@@ -60,106 +54,106 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
-    error: "/login",
+    error:  "/login",
   },
   providers: [
     Credentials({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email:    { label: "Email",    type: "email"    },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
+        const base = backendUrl();
+        if (!base) return null;
 
-        const user = await prisma.user.findFirst({
-          where: { email, isActive: true },
-          include: { tenant: true },
-        });
+        let res: Response;
+        try {
+          res = await fetch(`${base}/auth/login`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email: parsed.data.email, password: parsed.data.password }),
+            cache:   "no-store",
+          });
+        } catch {
+          return null;
+        }
 
-        if (!user || !user.tenant.isActive) return null;
+        if (!res.ok) return null;
 
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (!passwordMatch) return null;
+        const body = await res.json();
+        // TransformInterceptor wraps as { success, data } — unwrap if present
+        const payload = body.data ?? body;
+        const { access_token, user: u } = payload;
 
-        // Update last login
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        });
+        if (!access_token || !u?.id) return null;
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          tenantId: user.tenantId,
-          tenantSlug: user.tenant.slug,
-          tenantName: user.tenant.name,
-          accountType: user.tenant.accountType,
-          resellerType: user.tenant.resellerType ?? null,
-          parentTenantId: user.tenant.parentId ?? null,
-          // Prisma models a missing avatar as null; the augmented NextAuth `User` models it as
-          // optional. Normalising here keeps the two in agreement without widening the session type.
-          avatar: user.avatar ?? undefined,
+          id:             u.id,
+          email:          u.email,
+          name:           u.name          ?? null,
+          role:           u.role,
+          tenantId:       u.tenantId,
+          tenantSlug:     u.tenantSlug,
+          tenantName:     u.tenantName,
+          accountType:    u.accountType,
+          resellerType:   u.resellerType   ?? null,
+          parentTenantId: u.parentTenantId ?? null,
+          avatar:         u.avatar         ?? undefined,
+          nestToken:      access_token,
         };
       },
     }),
   ],
   callbacks: {
-    // `user` is only present on the sign-in pass; on every later call the claims are already on
-    // the token. The augmented User/JWT interfaces in types/next-auth.d.ts carry the tenant claims,
-    // so no casts are needed — asserting `any` here would have silently discarded that contract.
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id ?? token.id;
-        token.role = user.role;
-        token.tenantId = user.tenantId;
-        token.tenantSlug = user.tenantSlug;
-        token.tenantName = user.tenantName;
-        token.accountType = user.accountType;
-        token.resellerType = user.resellerType;
+        token.id             = user.id ?? token.id;
+        token.role           = user.role;
+        token.tenantId       = user.tenantId;
+        token.tenantSlug     = user.tenantSlug;
+        token.tenantName     = user.tenantName;
+        token.accountType    = user.accountType;
+        token.resellerType   = user.resellerType;
         token.parentTenantId = user.parentTenantId;
-        token.avatar = user.avatar;
-        token.claimsAt = Date.now();
+        token.avatar         = user.avatar;
+        token.nestToken      = (user as any).nestToken;
+        token.claimsAt       = Date.now();
         return token;
       }
 
-      // Refresh stale claims from the database; sign out a user who can no longer sign in.
+      // Refresh stale claims from NestJS every 5 min
       if (!token.claimsAt || Date.now() - token.claimsAt > CLAIMS_TTL_MS) {
-        const claims = await loadClaims(token.id);
-        if (!claims) return null;
+        const claims = await loadClaims(token.nestToken ?? "");
+        if (!claims) return null; // deactivated / token expired → sign out
         Object.assign(token, claims, { claimsAt: Date.now() });
       }
       return token;
     },
-    // Every tenant-scoped query in the app reads `session.user.tenantId`, so the claims are
-    // projected from the token onto the session on each request.
-    async session({ session, token }) {
-      session.user.id = token.id;
-      session.user.role = token.role;
-      session.user.tenantId = token.tenantId;
-      session.user.tenantSlug = token.tenantSlug;
-      session.user.tenantName = token.tenantName;
-      session.user.accountType = token.accountType ?? "CLIENT";
-      session.user.resellerType = token.resellerType ?? null;
-      session.user.parentTenantId = token.parentTenantId ?? null;
-      session.user.avatar = token.avatar;
-      session.user.viewAs = null;
 
-      // Super Admin "view as" (lib/viewAs.ts): the account claims become the viewed
-      // account's; the user — id and role — stays the Super Admin.
+    async session({ session, token }) {
+      session.user.id             = token.id;
+      session.user.role           = token.role;
+      session.user.tenantId       = token.tenantId;
+      session.user.tenantSlug     = token.tenantSlug;
+      session.user.tenantName     = token.tenantName;
+      session.user.accountType    = token.accountType ?? "CLIENT";
+      session.user.resellerType   = token.resellerType ?? null;
+      session.user.parentTenantId = token.parentTenantId ?? null;
+      session.user.avatar         = token.avatar;
+      session.user.viewAs         = null;
+
       if (token.role === "SUPER_ADMIN") {
         const target = decodeViewAs(await viewAsCookie(), token.id);
         if (target && target.tenantId !== token.tenantId) {
-          session.user.viewAs = { homeTenantId: token.tenantId, homeTenantName: token.tenantName };
-          session.user.tenantId = target.tenantId;
-          session.user.tenantSlug = target.tenantSlug;
-          session.user.tenantName = target.tenantName;
-          session.user.accountType = target.accountType;
+          session.user.viewAs       = { homeTenantId: token.tenantId, homeTenantName: token.tenantName };
+          session.user.tenantId     = target.tenantId;
+          session.user.tenantSlug   = target.tenantSlug;
+          session.user.tenantName   = target.tenantName;
+          session.user.accountType  = target.accountType;
           session.user.resellerType = target.resellerType;
           session.user.parentTenantId = target.parentTenantId;
         }
