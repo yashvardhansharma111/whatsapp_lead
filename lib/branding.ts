@@ -16,8 +16,24 @@
 
 import type { CSSProperties } from "react";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import { isPlatformHost, normalizeHost, platformRootDomain, subdomainOf } from "@/lib/hosts";
+import { isPlatformHost, normalizeHost, platformRootDomain } from "@/lib/hosts";
+
+function nestBase() {
+  return process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+}
+
+async function nestGet(path: string): Promise<ConfigRow | null> {
+  const base = nestBase();
+  if (!base) return null;
+  try {
+    const res = await fetch(`${base}${path}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return (body.data !== undefined ? body.data : body) as ConfigRow | null;
+  } catch {
+    return null;
+  }
+}
 
 export interface Brand {
   name: string;
@@ -90,21 +106,6 @@ type ConfigRow = {
   privacyContent: string | null;
 };
 
-const CONFIG_SELECT = {
-  tenantId: true, brandName: true, logoUrl: true, faviconUrl: true, primaryColor: true,
-  accentColor: true, domain: true, supportEmail: true, supportPhone: true, website: true,
-  address: true, loginHeadline: true, loginSubtext: true, subdomain: true, landingEnabled: true,
-  landingTitle: true, landingSubtitle: true, termsContent: true, privacyContent: true,
-} as const;
-
-/** Only an active config of an active WHITE_LABEL reseller counts. */
-const LIVE_CONFIG = {
-  isActive: true,
-  // Suspended by the platform (e.g. unpaid white-label fee) → the platform brand shows.
-  suspendedAt: null,
-  tenant: { accountType: "RESELLER" as const, resellerType: "WHITE_LABEL" as const, isActive: true },
-};
-
 function toBrand(c: ConfigRow): Brand {
   return {
     name: c.brandName,
@@ -151,12 +152,7 @@ export async function getBrandForHost(host: string | null | undefined): Promise<
   const hit = byHost.get(h);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.brand;
 
-  // Its custom domain, or its free subdomain of the platform's root domain.
-  const sub = subdomainOf(h);
-  const config = await prisma.whiteLabelConfig.findFirst({
-    where: { ...(sub ? { subdomain: sub } : { domain: h }), ...LIVE_CONFIG },
-    select: CONFIG_SELECT,
-  });
+  const config = await nestGet(`/brand?host=${encodeURIComponent(h)}`);
   const brand = config ? toBrand(config) : PLATFORM_BRAND;
   byHost.set(h, { at: Date.now(), brand });
   return brand;
@@ -173,21 +169,8 @@ export async function getBrandForTenant(tenantId: string): Promise<Brand> {
   const hit = byTenant.get(tenantId);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.brand;
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { accountType: true, parentId: true },
-  });
-  const brandOwner =
-    tenant?.accountType === "RESELLER" ? tenantId : tenant?.accountType === "CLIENT" ? tenant.parentId : null;
-
-  let brand = PLATFORM_BRAND;
-  if (brandOwner) {
-    const config = await prisma.whiteLabelConfig.findFirst({
-      where: { tenantId: brandOwner, ...LIVE_CONFIG },
-      select: CONFIG_SELECT,
-    });
-    if (config) brand = toBrand(config);
-  }
+  const config = await nestGet(`/brand/by-tenant?tenantId=${encodeURIComponent(tenantId)}`);
+  const brand = config ? toBrand(config) : PLATFORM_BRAND;
   byTenant.set(tenantId, { at: Date.now(), brand });
   return brand;
 }

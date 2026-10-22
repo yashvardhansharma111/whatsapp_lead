@@ -2,6 +2,8 @@ import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
+    /** NestJS JWT for direct server-component calls to the NestJS backend. */
+    nestToken?: string;
     user: {
       id: string;
       role: string;

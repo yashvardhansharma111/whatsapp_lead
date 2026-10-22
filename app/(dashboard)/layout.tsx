@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ViewAsBanner } from "@/components/dashboard/ViewAsBanner";
@@ -10,18 +9,18 @@ import { brandStyle, getBrandForTenant } from "@/lib/branding";
 import { BrandProvider } from "@/components/BrandProvider";
 import { ToastProvider } from "@/components/ui/toast";
 
-/**
- * The plan badge lives in the sidebar but isn't on the JWT, so it's read here.
- * The database may not be reachable during local UI work, and a dead sidebar is
- * worse than a missing badge — fall back to null rather than crashing the shell.
- */
-async function getPlanName(tenantId: string) {
+async function getPlanName(nestToken: string | undefined): Promise<string | null> {
+  const base = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!base || !nestToken) return null;
   try {
-    const sub = await prisma.subscription.findUnique({
-      where: { tenantId },
-      select: { plan: { select: { displayName: true, name: true } } },
+    const res = await fetch(`${base}/account/plan-name`, {
+      headers: { Authorization: `Bearer ${nestToken}` },
+      cache: "no-store",
     });
-    return sub?.plan.displayName ?? sub?.plan.name ?? null;
+    if (!res.ok) return null;
+    const body = await res.json();
+    const data = body.data !== undefined ? body.data : body;
+    return typeof data === "string" ? data : null;
   } catch {
     return null;
   }
@@ -36,10 +35,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (session.user.role === "SUPER_ADMIN" && !viewing) redirect("/dashboard");
 
   const isReseller = session.user.accountType === "RESELLER";
+  const nestToken = session.nestToken;
   // A white-label reseller and its clients see the reseller's brand; its colour
   // re-points the app's emerald palette for everything below (lib/branding.ts).
   const [plan, brand] = await Promise.all([
-    isReseller ? Promise.resolve(null) : getPlanName(session.user.tenantId),
+    isReseller ? Promise.resolve(null) : getPlanName(nestToken),
     getBrandForTenant(session.user.tenantId),
   ]);
 

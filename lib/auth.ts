@@ -180,6 +180,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
+      // nestToken is kept server-side for NestJS direct calls in server components.
+      (session as any).nestToken = token.nestToken;
+
       session.user.id             = token.id;
       session.user.role           = token.role;
       session.user.tenantId       = token.tenantId;
