@@ -7,7 +7,9 @@ import { VIEW_AS_COOKIE, decodeViewAs } from "@/lib/viewAs";
 const CLAIMS_TTL_MS = 5 * 60_000;
 
 function backendUrl() {
-  return process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+  const url = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+  console.log("[auth] backendUrl resolved:", url || "(empty — not set)");
+  return url;
 }
 
 async function viewAsCookie(): Promise<string | undefined> {
@@ -18,15 +20,19 @@ async function viewAsCookie(): Promise<string | undefined> {
   }
 }
 
-/** Refresh claims by calling NestJS /auth/me with the stored NestJS JWT. */
 async function loadClaims(nestToken: string) {
   const base = backendUrl();
-  if (!base || !nestToken) return null;
+  if (!base || !nestToken) {
+    console.log("[auth] loadClaims: skipped — no backendUrl or no nestToken");
+    return null;
+  }
   try {
+    console.log("[auth] loadClaims: calling /auth/me");
     const res = await fetch(`${base}/auth/me`, {
       headers: { Authorization: `Bearer ${nestToken}` },
       cache: "no-store",
     });
+    console.log("[auth] loadClaims: /auth/me status", res.status);
     if (!res.ok) return null;
     const body = await res.json();
     const u = body.data ?? body;
@@ -40,7 +46,8 @@ async function loadClaims(nestToken: string) {
       parentTenantId: (u.parentTenantId as string | null) ?? null,
       avatar:         u.avatar         as string | undefined,
     };
-  } catch {
+  } catch (err) {
+    console.error("[auth] loadClaims: fetch threw", err);
     return null;
   }
 }
@@ -64,32 +71,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("[auth] authorize: called with email:", (credentials as any)?.email);
+
         const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+        if (!parsed.success) {
+          console.log("[auth] authorize: schema validation failed", parsed.error.issues);
+          return null;
+        }
 
         const base = backendUrl();
-        if (!base) return null;
+        if (!base) {
+          console.error("[auth] authorize: BACKEND_INTERNAL_URL and NEXT_PUBLIC_BACKEND_URL are both unset");
+          return null;
+        }
+
+        const loginUrl = `${base}/auth/login`;
+        console.log("[auth] authorize: POSTing to", loginUrl);
 
         let res: Response;
         try {
-          res = await fetch(`${base}/auth/login`, {
+          res = await fetch(loginUrl, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ email: parsed.data.email, password: parsed.data.password }),
             cache:   "no-store",
           });
-        } catch {
+        } catch (err) {
+          console.error("[auth] authorize: fetch to NestJS threw:", err);
           return null;
         }
 
-        if (!res.ok) return null;
+        console.log("[auth] authorize: NestJS /auth/login status:", res.status);
 
-        const body = await res.json();
+        if (!res.ok) {
+          let errBody = "";
+          try { errBody = await res.text(); } catch {}
+          console.error("[auth] authorize: NestJS returned non-OK. Body:", errBody);
+          return null;
+        }
+
+        let body: any;
+        try {
+          body = await res.json();
+        } catch (err) {
+          console.error("[auth] authorize: failed to parse NestJS response JSON:", err);
+          return null;
+        }
+
+        console.log("[auth] authorize: NestJS response keys:", Object.keys(body));
+
         // TransformInterceptor wraps as { success, data } — unwrap if present
         const payload = body.data ?? body;
         const { access_token, user: u } = payload;
 
-        if (!access_token || !u?.id) return null;
+        console.log("[auth] authorize: access_token present:", !!access_token, "user.id:", u?.id);
+
+        if (!access_token || !u?.id) {
+          console.error("[auth] authorize: missing access_token or user.id in NestJS response");
+          return null;
+        }
 
         return {
           id:             u.id,
@@ -111,6 +151,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log("[auth] jwt callback: initial sign-in for user", user.id);
         token.id             = user.id ?? token.id;
         token.role           = user.role;
         token.tenantId       = user.tenantId;
@@ -125,10 +166,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return token;
       }
 
-      // Refresh stale claims from NestJS every 5 min
       if (!token.claimsAt || Date.now() - token.claimsAt > CLAIMS_TTL_MS) {
+        console.log("[auth] jwt callback: refreshing claims via /auth/me");
         const claims = await loadClaims(token.nestToken ?? "");
-        if (!claims) return null; // deactivated / token expired → sign out
+        if (!claims) {
+          console.warn("[auth] jwt callback: loadClaims returned null — signing out");
+          return null;
+        }
         Object.assign(token, claims, { claimsAt: Date.now() });
       }
       return token;
@@ -149,12 +193,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.role === "SUPER_ADMIN") {
         const target = decodeViewAs(await viewAsCookie(), token.id);
         if (target && target.tenantId !== token.tenantId) {
-          session.user.viewAs       = { homeTenantId: token.tenantId, homeTenantName: token.tenantName };
-          session.user.tenantId     = target.tenantId;
-          session.user.tenantSlug   = target.tenantSlug;
-          session.user.tenantName   = target.tenantName;
-          session.user.accountType  = target.accountType;
-          session.user.resellerType = target.resellerType;
+          session.user.viewAs         = { homeTenantId: token.tenantId, homeTenantName: token.tenantName };
+          session.user.tenantId       = target.tenantId;
+          session.user.tenantSlug     = target.tenantSlug;
+          session.user.tenantName     = target.tenantName;
+          session.user.accountType    = target.accountType;
+          session.user.resellerType   = target.resellerType;
           session.user.parentTenantId = target.parentTenantId;
         }
       }
