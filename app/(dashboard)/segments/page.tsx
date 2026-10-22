@@ -446,7 +446,7 @@ function RuleRow({
 }) {
   const isText = (TEXT_FIELDS as readonly string[]).includes(rule.field) || rule.field === "custom";
   const suggestions =
-    rule.field === "location" ? options?.locations.map((l) => l.value) : rule.field === "source" ? options?.sources : undefined;
+    rule.field === "location" ? options?.locations?.map((l) => l.value) : rule.field === "source" ? options?.sources : undefined;
 
   const choices: { value: string; label: string }[] | null =
     rule.field === "tags"

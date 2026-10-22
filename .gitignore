@@ -44,3 +44,6 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# NestJS backend (microservices — separate deployment, tracked separately)
+/backend

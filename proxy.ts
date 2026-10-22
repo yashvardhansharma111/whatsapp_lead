@@ -112,6 +112,27 @@ export default auth((req) => {
         { status: 403 },
       );
     }
+
+    // Routes that must stay in Next.js (auth, QStash workers, cron, the proxy itself)
+    const NEXTJS_ONLY_API = [
+      "/api/auth",
+      "/api/webhook/",   // Meta webhook — keep in Next.js (inbound message processing)
+      "/api/workers",
+      "/api/cron",
+      "/api/nest",
+      "/api/v1",
+      "/api/ping",
+    ];
+    const stayInNext = NEXTJS_ONLY_API.some((p) => pathname.startsWith(p));
+
+    // Forward everything else to the NestJS backend via the /api/nest proxy route
+    // Only active when NEXT_PUBLIC_BACKEND_URL is set (i.e. NestJS is running)
+    if (!stayInNext && process.env.NEXT_PUBLIC_BACKEND_URL) {
+      const url = req.nextUrl.clone();
+      url.pathname = pathname.replace(/^\/api\//, "/api/nest/");
+      return NextResponse.rewrite(url);
+    }
+
     return NextResponse.next();
   }
 
