@@ -36,14 +36,18 @@ async function getServiceToken(userId: string, email: string, businessId: string
 }
 
 export async function POST(req: NextRequest) {
+  console.log("[WA TEST] POST called — backendUrl:", BACKEND || "(not set)");
+
   const session = await auth();
   if (!session?.user) {
+    console.warn("[WA TEST] no session → 401");
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const user       = session.user as any;
   const userId     = user.id    as string;
   const userEmail  = user.email as string;
+  console.log("[WA TEST] userId:", userId, "email:", userEmail);
 
   let body: any = {};
   try {
@@ -54,14 +58,19 @@ export async function POST(req: NextRequest) {
   }
 
   const { integrationId, businessId: bodyBusinessId } = body;
+  const businessId = bodyBusinessId ?? req.cookies.get("current_business")?.value ?? null;
+  console.log("[WA TEST] integrationId:", integrationId, "businessId:", businessId);
+
   if (!integrationId) {
+    console.error("[WA TEST] missing integrationId in body");
     return NextResponse.json({ success: false, error: "integrationId is required" }, { status: 400 });
   }
 
-  const businessId   = bodyBusinessId ?? req.cookies.get("current_business")?.value ?? null;
   const serviceToken = await getServiceToken(userId, userEmail, businessId);
+  console.log("[WA TEST] serviceToken obtained:", !!serviceToken);
 
   if (!serviceToken) {
+    console.error("[WA TEST] no service token — check BACKEND_SERVICE_SECRET on Vercel");
     return NextResponse.json(
       { success: false, error: "Backend auth error — check BACKEND_SERVICE_SECRET on Vercel" },
       { status: 500 },
@@ -69,6 +78,7 @@ export async function POST(req: NextRequest) {
   }
 
   const nestUrl = `${BACKEND}/integrations/whatsapp/${integrationId}/test`;
+  console.log("[WA TEST] → NestJS POST", nestUrl);
 
   let nestRes: Response;
   try {
@@ -85,11 +95,13 @@ export async function POST(req: NextRequest) {
   }
 
   const nestRaw = await nestRes.text();
+  console.log("[WA TEST] ← NestJS", nestRes.status, nestRaw.slice(0, 400));
 
   if (!nestRes.ok) {
     let nestErr: any = {};
     try { nestErr = JSON.parse(nestRaw); } catch {}
     const errMsg = nestErr.message ?? nestErr.error ?? "Test failed";
+    console.error("[WA TEST] NestJS returned", nestRes.status, "—", errMsg);
     return NextResponse.json({ success: false, error: errMsg }, { status: nestRes.status });
   }
 
