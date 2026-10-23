@@ -35,7 +35,7 @@ export default function LoginPage() {
       <p className="mt-6 text-center text-sm text-slate-500">
         New here?{" "}
         <Link href="/register" className="font-medium text-emerald-600 transition hover:text-emerald-700 hover:underline">
-          Create a workspace
+          Create an account
         </Link>
       </p>
     </div>
@@ -63,10 +63,42 @@ function SignInForm() {
 
   async function onSubmit(values: LoginInput) {
     setError("");
+
+    // First check how many workspaces this email belongs to
+    let workspaces: Array<{ tenantSlug: string; tenantName: string; accountType: string; role: string }> = [];
+    try {
+      const wRes = await fetch("/api/auth/workspaces", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: values.email, password: values.password }),
+      });
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        workspaces = wData.workspaces ?? [];
+      } else if (wRes.status === 401) {
+        setError("Invalid email or password");
+        return;
+      }
+    } catch { /* network error — fall through to normal signIn */ }
+
+    // Multiple workspaces → go to selector
+    if (workspaces.length > 1) {
+      try {
+        sessionStorage.setItem("wa_ws_select", JSON.stringify({
+          email: values.email, password: values.password, workspaces,
+        }));
+      } catch { /* sessionStorage blocked */ }
+      router.push("/select-workspace");
+      return;
+    }
+
+    // Single workspace (or no workspaces check — fall back to normal signIn)
+    const tenantSlug = workspaces[0]?.tenantSlug;
     const result = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
+      email:      values.email,
+      password:   values.password,
+      tenantSlug: tenantSlug ?? "",
+      redirect:   false,
     });
     if (result?.error) {
       const msg = result.error.includes("EMAIL_NOT_VERIFIED")

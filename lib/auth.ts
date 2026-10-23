@@ -68,8 +68,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: "credentials",
       credentials: {
-        email:    { label: "Email",    type: "email"    },
-        password: { label: "Password", type: "password" },
+        email:      { label: "Email",     type: "email"    },
+        password:   { label: "Password",  type: "password" },
+        tenantSlug: { label: "Workspace", type: "text"     },
       },
       async authorize(credentials) {
         console.log("[auth] authorize: called with email:", (credentials as any)?.email);
@@ -91,10 +92,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         let res: Response;
         try {
+          const tenantSlug = (credentials as any)?.tenantSlug;
           res = await fetch(loginUrl, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ email: parsed.data.email, password: parsed.data.password }),
+            body:    JSON.stringify({
+              email:      parsed.data.email,
+              password:   parsed.data.password,
+              ...(tenantSlug ? { tenantSlug } : {}),
+            }),
             cache:   "no-store",
           });
         } catch (err) {
