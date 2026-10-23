@@ -4,403 +4,174 @@
 // ROUTE  : /api/messages
 //
 // METHODS
-// POST   - Send an agent-authored message to a contact, or record an internal note
-//
-// ACCESS
-// POST   - Authenticated. Scoped to session.user.tenantId; a conversation belonging
-//          to another workspace is indistinguishable from one that does not exist.
+// POST   - Proxy to NestJS POST /messages, which handles the WhatsApp send,
+//          DB write and conversation update.  Billing and Pusher remain here
+//          so they run in the same runtime that owns the session.
 // ============================================================================
-//
-// This route is the outbound counterpart to the WhatsApp webhook: the webhook is the only producer
-// of INBOUND messages, this is the only producer of agent-authored OUTBOUND ones. It handles TEXT
-// only — media and template sends are separate concerns and are rejected here rather than silently
-// coerced into something the caller did not ask for.
 
 import { NextRequest, NextResponse } from "next/server";
-import { MessageDirection, MessageStatus, MessageType } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
-import type { Contact, Conversation, Message } from "@prisma/client";
+import type { Message } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { guardLimit } from "@/lib/billing/guard";
-import { prisma } from "@/lib/prisma";
 import { pusher, tenantChannel, PusherEvent } from "@/lib/pusher";
-import { sendTextMessage, sendInteractiveMessage, sendMediaByUrl, sendMediaMessage, WASendError, type WAMediaType } from "@/lib/whatsapp";
-import { resolveConversationWhatsAppCreds } from "@/lib/business";
 import { sendMessageSchema } from "@/lib/validators/message";
 
-/**
- * Longest snippet the inbox list renders per conversation before truncating.
- *
- * Mirrors the webhook's own limit: both writers feed the same `Conversation.lastMessagePreview`
- * column, and a preview truncated to two different lengths would make the list render
- * inconsistently depending on who spoke last.
- */
-const PREVIEW_MAX_LENGTH = 120;
+const BACKEND = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 
-/** A conversation with the contact needed to address a WhatsApp message to. */
-type ConversationWithContact = Conversation & { contact: Contact };
+// ── Service-token cache (same logic as /api/nest/[...path]) ──────────────────
+const svcTokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-/**
- * Load the conversation and, in the same query, the contact it belongs to.
- *
- * The send path needs the contact's phone number, so joining it here rather than issuing a second
- * lookup keeps the whole resolution to one round trip.
- *
- * Scoping by `tenantId` is what makes this a lookup rather than a vulnerability: `conversationId`
- * is caller-supplied, and without the tenant predicate any authenticated user of any workspace
- * could address a message into any other workspace's thread. A conversation belonging to another
- * tenant must be indistinguishable from one that does not exist, which is why the miss is a plain
- * null rather than a distinct "forbidden" signal.
- */
-async function resolveConversation(
-  tenantId: string,
-  conversationId: string
-): Promise<ConversationWithContact | null> {
-  return prisma.conversation.findFirst({
-    where: { id: conversationId, tenantId },
-    include: { contact: true },
-  });
-}
+async function getServiceToken(
+  userId: string,
+  email: string,
+  businessId: string | null,
+): Promise<string | null> {
+  const key = `${userId}:${businessId ?? ""}`;
+  const hit = svcTokenCache.get(key);
+  if (hit && hit.expiresAt > Date.now() + 60_000) return hit.token;
 
-/**
- * Record an internal note.
- *
- * A note is a message in the schema but not a message on the wire: it is an agent writing to their
- * own team about a customer, and it must never reach WhatsApp. It is therefore stored with
- * `isNote: true` and no `waMessageId` — there is no Meta message to correlate it with, and leaving
- * that column null is what keeps delivery-receipt matching in the webhook from ever binding a
- * receipt to a note.
- *
- * The conversation's preview and `lastMessageAt` are deliberately *not* advanced. Those columns
- * describe the customer-facing thread; letting private commentary rewrite the inbox preview would
- * show agents a summary of a conversation the customer never had.
- *
- * Status is SENT rather than the schema's PENDING default. Delivery state describes a journey to
- * Meta that a note never takes — left PENDING it would sit in the inbox behind a permanent
- * "sending" indicator, waiting on a receipt that cannot arrive.
- *
- * A single create is atomic on its own; no transaction is needed precisely because nothing else is
- * being written alongside it.
- */
-async function saveNote(
-  tenantId: string,
-  conversationId: string,
-  sentById: string,
-  content: string
-): Promise<Message> {
-  return prisma.message.create({
-    data: {
-      tenantId,
-      conversationId,
-      sentById,
-      direction: MessageDirection.OUTBOUND,
-      type: MessageType.TEXT,
-      status: MessageStatus.SENT,
-      isNote: true,
-      content,
-    },
-  });
-}
-
-/**
- * Persist a message that WhatsApp has already accepted, and move the thread forward with it.
- *
- * The message row and the conversation's denormalised columns are one fact expressed in two tables,
- * so they commit together. The inbox list *sorts* on `lastMessageAt` and *renders*
- * `lastMessagePreview`; a message written without them would sit correctly in the database and be
- * invisible in the product, and a crash between two separate writes would leave the thread
- * permanently disagreeing with its own last message. The transaction boundary is drawn around
- * exactly those two writes and nothing else.
- *
- * The Meta call deliberately happens *outside* this transaction. Holding a database transaction
- * open across a network call to a third party would pin a connection for the duration of Meta's
- * latency — and on a Meta timeout, roll back a message the customer has already received.
- *
- * `unreadCount` is untouched: it counts what the *agent* has not read, and the agent's own
- * workspace authored this.
- *
- * Status is SENT because Meta has acknowledged the message by the time we are called. The webhook's
- * receipt handler remains the sole writer of everything after that — DELIVERED, READ, FAILED.
- */
-async function saveOutboundMessage(
-  tenantId: string,
-  conversationId: string,
-  sentById: string,
-  content: string,
-  waMessageId: string | null,
-  opts?: {
-    type?: MessageType;
-    replyToId?: string;
-    metadata?: Prisma.InputJsonObject;
-    mediaUrl?: string;
-    mediaMimeType?: string;
-    mediaSize?: number;
+  const secret = process.env.BACKEND_SERVICE_SECRET ?? process.env.SERVICE_SECRET;
+  if (!secret) {
+    console.error("[MESSAGES] BACKEND_SERVICE_SECRET not set — cannot get service token");
+    return null;
   }
-): Promise<Message> {
-  const type = opts?.type ?? MessageType.TEXT;
-  return prisma.$transaction(async (tx) => {
-    const saved = await tx.message.create({
-      data: {
-        tenantId,
-        conversationId,
-        sentById,
-        waMessageId,
-        direction: MessageDirection.OUTBOUND,
-        type,
-        status: MessageStatus.SENT,
-        content: content || null,
-        ...(opts?.replyToId ? { replyToId: opts.replyToId } : {}),
-        ...(opts?.metadata ? { metadata: opts.metadata } : {}),
-        ...(opts?.mediaUrl ? { mediaUrl: opts.mediaUrl } : {}),
-        ...(opts?.mediaMimeType ? { mediaMimeType: opts.mediaMimeType } : {}),
-        ...(opts?.mediaSize ? { mediaSize: opts.mediaSize } : {}),
-      },
-    });
+  if (!BACKEND) {
+    console.error("[MESSAGES] BACKEND_INTERNAL_URL / NEXT_PUBLIC_BACKEND_URL not set — cannot reach NestJS");
+    return null;
+  }
 
-    const preview = content?.slice(0, PREVIEW_MAX_LENGTH) || `[${type.toLowerCase()}]`;
-    await tx.conversation.update({
-      where: { id: conversationId },
-      data: { lastMessageAt: saved.createdAt, lastMessagePreview: preview },
-    });
-
-    return saved;
-  });
-}
-
-/**
- * Push a persisted message to every agent watching this tenant's inbox.
- *
- * Realtime is a notification layer over a database that already holds the truth, so this never
- * throws: the sender already has the message in the HTTP response, and any other agent will see it
- * on their next fetch. Failing the request because a socket fan-out failed would report a send that
- * demonstrably succeeded as an error.
- *
- * It runs after the commit, never before — broadcasting a message that a rolled-back transaction
- * never persisted would put a phantom into every agent's inbox.
- */
-async function broadcastMessage(
-  tenantId: string,
-  message: Message
-): Promise<void> {
-  if (!pusher) return;
-
+  const url = `${BACKEND}/auth/service-token`;
+  console.log("[MESSAGES] getServiceToken → POST", url, { userId, email, businessId });
   try {
-    await pusher.trigger(
-      tenantChannel(tenantId),
-      PusherEvent.NEW_MESSAGE,
-      message
-    );
-  } catch (error) {
-    console.error(
-      `[MESSAGES] Failed to broadcast message ${message.id} to tenant ${tenantId}:`,
-      error
-    );
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, email, secret, businessId }),
+    });
+    const raw = await res.text();
+    console.log("[MESSAGES] service-token response:", res.status, raw.slice(0, 300));
+    if (!res.ok) return null;
+    const json = JSON.parse(raw);
+    const payload = json.data ?? json;
+    svcTokenCache.set(key, { token: payload.token, expiresAt: Date.now() + (payload.expiresIn ?? 3600) * 1000 });
+    return payload.token;
+  } catch (err) {
+    console.error("[MESSAGES] getServiceToken threw:", err);
+    return null;
   }
 }
 
-/**
- * Send an agent-authored message, or record an internal note.
- *
- * The handler orchestrates and does not decide: validation, resolution, persistence and fan-out
- * each live in a helper above, and the flow reads as the sequence of steps it is.
- *
- * Ordering is load-bearing on the send path. WhatsApp is called *before* the message is persisted,
- * because the only unrecoverable outcome is a message the customer received but we have no record
- * of. Persisting first and sending second would invert that: a Meta failure would leave the agent
- * looking at a message in their thread that never left the building.
- */
+// ── Pusher fan-out (fire-and-forget) ─────────────────────────────────────────
+async function broadcastMessage(tenantId: string, message: Message): Promise<void> {
+  if (!pusher) return;
+  try {
+    await pusher.trigger(tenantChannel(tenantId), PusherEvent.NEW_MESSAGE, message);
+  } catch (err) {
+    console.error("[MESSAGES] Pusher broadcast failed for message", message.id, err);
+  }
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  // ── 1. Auth ─────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 }
-    );
+    console.warn("[MESSAGES] POST — no session, returning 401");
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tenantId, id: userId } = session.user;
+  const user      = session.user as any;
+  const tenantId  = user.tenantId  as string;
+  const userId    = user.id        as string;
+  const userEmail = user.email     as string;
 
+  console.log("[MESSAGES] POST — userId:", userId, "tenantId:", tenantId, "backendUrl:", BACKEND || "(not set)");
+
+  // ── 2. Parse + validate ──────────────────────────────────────────────────────
+  let rawBody: unknown;
   try {
-    const rawBody = await req.json();
-    console.log("[MESSAGES] POST received — type:", rawBody?.type, "mediaId:", rawBody?.mediaId ?? "(none)", "mediaUrl:", rawBody?.mediaUrl ?? "(none)");
-    const parsed = sendMessageSchema.safeParse(rawBody);
-    if (!parsed.success) {
-      console.error("[MESSAGES] Validation failed:", parsed.error.issues);
-      return NextResponse.json(
-        { success: false, error: parsed.error.issues[0].message },
-        { status: 400 }
-      );
-    }
+    rawBody = await req.json();
+  } catch (err) {
+    console.error("[MESSAGES] Body parse failed:", err);
+    return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 });
+  }
 
-    const { conversationId, type, content, isNote, interactive, replyToId, mediaUrl, mediaId, mediaMimeType, mediaSize } = parsed.data;
+  console.log("[MESSAGES] raw body:", JSON.stringify({
+    ...(rawBody as any),
+    content: (rawBody as any)?.content?.slice(0, 80),
+  }));
 
-    const body = content?.trim();
-    const MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT"] as const;
-    type MediaMsgType = (typeof MEDIA_TYPES)[number];
-    const isMedia = (MEDIA_TYPES as readonly string[]).includes(type);
+  const parsed = sendMessageSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    console.error("[MESSAGES] Zod validation failed:", parsed.error.issues);
+    return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 });
+  }
 
-    if (type === "TEXT" && !body) {
-      return NextResponse.json({ success: false, error: "Message content is required" }, { status: 400 });
-    }
-    if (type === "INTERACTIVE" && !interactive) {
-      return NextResponse.json({ success: false, error: "interactive payload is required for INTERACTIVE messages" }, { status: 400 });
-    }
-    if (isMedia && !mediaUrl) {
-      return NextResponse.json({ success: false, error: "mediaUrl is required for media messages" }, { status: 400 });
-    }
-    if (!["TEXT", "INTERACTIVE", ...MEDIA_TYPES].includes(type)) {
-      return NextResponse.json({ success: false, error: `Unsupported message type: ${type}` }, { status: 400 });
-    }
+  const { conversationId, isNote } = parsed.data;
 
-    const conversation = await resolveConversation(tenantId, conversationId);
-    if (!conversation) {
-      return NextResponse.json(
-        { success: false, error: "Conversation not found" },
-        { status: 404 }
-      );
-    }
-
-    if (isNote) {
-      const note = await saveNote(tenantId, conversationId, userId, body ?? "");
-      await broadcastMessage(tenantId, note);
-      return NextResponse.json({ success: true, data: note }, { status: 201 });
-    }
-
-    // Throughput caps, checked only on the path that actually reaches WhatsApp —
-    // the note branch above has already returned. Both windows are asserted
-    // before the send rather than after, so a refusal costs the tenant nothing:
-    // no Meta conversation is opened and no Message row is written.
+  // ── 3. Billing (notes are free; only real sends count) ──────────────────────
+  if (!isNote) {
     for (const window of ["messagesPerHour", "messagesPerDay"] as const) {
       const overLimit = await guardLimit(tenantId, window);
-      if (overLimit) return overLimit;
+      if (overLimit) {
+        console.log("[MESSAGES] Billing limit hit:", window);
+        return overLimit;
+      }
     }
-
-    // The thread's own WhatsApp number — the customer must get the reply from the number
-    // they wrote to. A disconnected number is refused, never swapped for another one.
-    const creds = await resolveConversationWhatsAppCreds(conversation);
-    if (!creds.phoneNumberId || !creds.apiKey) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: creds.unavailableReason ?? "WhatsApp is not connected for this workspace",
-        },
-        { status: 409 }
-      );
-    }
-
-    // Resolve the waMessageId of the quoted message so we can pass context to Meta.
-    let contextWaMessageId: string | undefined;
-    if (replyToId) {
-      const quoted = await prisma.message.findFirst({
-        where: { id: replyToId, tenantId },
-        select: { waMessageId: true },
-      });
-      contextWaMessageId = quoted?.waMessageId ?? undefined;
-    }
-
-    let waMessageId: string | null = null;
-
-    if (type === "INTERACTIVE" && interactive) {
-      const sent = await sendInteractiveMessage(
-        creds.phoneNumberId,
-        creds.apiKey,
-        conversation.contact.phone,
-        interactive as Record<string, unknown>,
-        contextWaMessageId,
-        conversation.contact.waId ?? undefined
-      );
-      waMessageId = sent.messages?.[0]?.id ?? null;
-      const interactiveBody = interactive.type === "button"
-        ? interactive.body.text
-        : interactive.body.text;
-      const message = await saveOutboundMessage(
-        tenantId, conversationId, userId, interactiveBody, waMessageId,
-        { type: MessageType.INTERACTIVE, replyToId, metadata: { interactive } as Prisma.InputJsonObject }
-      );
-      await broadcastMessage(tenantId, message);
-      return NextResponse.json({ success: true, data: message }, { status: 201 });
-    }
-
-    if (isMedia && (mediaId || mediaUrl)) {
-      const waType = type.toLowerCase() as WAMediaType;
-      // Prefer media_id (uploaded to Meta's servers) over URL-based sending.
-      // URL-based sending requires Meta to fetch from our server, which is unreliable
-      // on serverless runtimes and requires a publicly accessible, unauthenticated URL.
-      console.log("[MESSAGES] Media send:", {
-        type,
-        waType,
-        sendMethod: mediaId ? "media_id" : "url",
-        mediaId: mediaId ?? "(none)",
-        mediaUrl: mediaUrl ?? "(none)",
-        to: conversation.contact.phone,
-        phoneNumberId: creds.phoneNumberId,
-      });
-      const bsuid = conversation.contact.waId ?? undefined;
-      const sent = mediaId
-        ? await sendMediaMessage(
-            creds.phoneNumberId,
-            creds.apiKey,
-            conversation.contact.phone,
-            waType,
-            mediaId,
-            body || undefined,
-            bsuid
-          )
-        : await sendMediaByUrl(
-            creds.phoneNumberId,
-            creds.apiKey,
-            conversation.contact.phone,
-            waType,
-            mediaUrl!,
-            body || undefined,
-            waType === "document" ? mediaUrl!.split("/").pop()?.split("?")[0] : undefined,
-            bsuid
-          );
-      waMessageId = sent.messages?.[0]?.id ?? null;
-      console.log("[MESSAGES] Media send result — waMessageId:", waMessageId, "raw:", JSON.stringify(sent));
-      const message = await saveOutboundMessage(
-        tenantId, conversationId, userId, body ?? "", waMessageId,
-        {
-          type: type as MessageType,
-          replyToId,
-          mediaUrl,
-          mediaMimeType: mediaMimeType ?? undefined,
-          mediaSize: mediaSize ?? undefined,
-        }
-      );
-      await broadcastMessage(tenantId, message);
-      return NextResponse.json({ success: true, data: message }, { status: 201 });
-    }
-
-    const sent = await sendTextMessage(
-      creds.phoneNumberId,
-      creds.apiKey,
-      conversation.contact.phone,
-      body!,
-      contextWaMessageId,
-      conversation.contact.waId ?? undefined
-    );
-    waMessageId = sent.messages?.[0]?.id ?? null;
-
-    const message = await saveOutboundMessage(
-      tenantId, conversationId, userId, body!, waMessageId,
-      { replyToId }
-    );
-
-    await broadcastMessage(tenantId, message);
-
-    return NextResponse.json({ success: true, data: message }, { status: 201 });
-  } catch (error) {
-    if (error instanceof WASendError) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 400 }
-      );
-    }
-    console.error("[MESSAGES]", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to send message" },
-      { status: 500 }
-    );
   }
+
+  // ── 4. Service token for NestJS ──────────────────────────────────────────────
+  const businessId   = req.cookies.get("current_business")?.value ?? null;
+  const serviceToken = await getServiceToken(userId, userEmail, businessId);
+
+  if (!serviceToken) {
+    console.error("[MESSAGES] Could not obtain NestJS service token — BACKEND_SERVICE_SECRET or backend URL missing");
+    return NextResponse.json({ success: false, error: "Backend auth error — check BACKEND_SERVICE_SECRET on Vercel" }, { status: 500 });
+  }
+
+  // ── 5. Proxy to NestJS POST /messages ────────────────────────────────────────
+  const nestUrl = `${BACKEND}/messages`;
+  console.log("[MESSAGES] → NestJS POST", nestUrl, "conversationId:", conversationId, "type:", parsed.data.type);
+
+  let nestRes: Response;
+  try {
+    nestRes = await fetch(nestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceToken}`,
+      },
+      body: JSON.stringify(parsed.data),
+    });
+  } catch (err) {
+    console.error("[MESSAGES] NestJS fetch threw:", err);
+    return NextResponse.json({ success: false, error: "Could not reach NestJS backend" }, { status: 502 });
+  }
+
+  const nestRaw = await nestRes.text();
+  console.log("[MESSAGES] ← NestJS", nestRes.status, nestRaw.slice(0, 600));
+
+  // ── 6. Handle NestJS error ───────────────────────────────────────────────────
+  if (!nestRes.ok) {
+    let nestErr: any = {};
+    try { nestErr = JSON.parse(nestRaw); } catch {}
+    // NestJS error shape: { statusCode, message, error }
+    // Map to our shape: { success: false, error: <human message> }
+    const errMsg: string = nestErr.message ?? nestErr.error ?? "Failed to send message";
+    console.error("[MESSAGES] NestJS returned", nestRes.status, "message:", errMsg);
+    return NextResponse.json({ success: false, error: errMsg }, { status: nestRes.status });
+  }
+
+  // ── 7. Parse NestJS success + Pusher broadcast ───────────────────────────────
+  let nestJson: any = {};
+  try { nestJson = JSON.parse(nestRaw); } catch {}
+  // TransformInterceptor wraps: { success: true, data: Message }
+  const message: Message = nestJson.data ?? nestJson;
+
+  console.log("[MESSAGES] success — messageId:", (message as any)?.id, "waMessageId:", (message as any)?.waMessageId);
+
+  // Broadcast to inbox watchers (fire-and-forget)
+  void broadcastMessage(tenantId, message);
+
+  return NextResponse.json({ success: true, data: message }, { status: 201 });
 }
