@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateV1, unauthorized } from "@/lib/v1auth";
 import { resolveWhatsAppCreds } from "@/lib/business";
 import { sendTextMessage, sendTemplateMessage } from "@/lib/whatsapp";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const TextSchema = z.object({
@@ -61,24 +62,86 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const data = parsed.data;
+  const phone = data.to.replace(/\D/g, "");
+
   try {
-    const data = parsed.data;
     let result;
     if (data.type === "text") {
-      result = await sendTextMessage(creds.phoneNumberId, creds.apiKey, data.to, data.text);
+      result = await sendTextMessage(creds.phoneNumberId, creds.apiKey, phone, data.text);
     } else {
       result = await sendTemplateMessage(
         creds.phoneNumberId,
         creds.apiKey,
-        data.to,
+        phone,
         data.template,
         data.language,
         data.components as never[],
       );
     }
-    return NextResponse.json({ success: true, messageId: result.messages?.[0]?.id });
+
+    const waMessageId = result.messages?.[0]?.id ?? null;
+
+    // Persist sent message to inbox (best-effort — never fail the API response)
+    persistMessage({
+      tenantId: scope.tenantId,
+      businessId: scope.businessId,
+      phone,
+      waMessageId,
+      type: data.type === "text" ? "TEXT" : "TEMPLATE",
+      preview: data.type === "text" ? data.text : data.template,
+    }).catch(() => {});
+
+    return NextResponse.json({ success: true, messageId: waMessageId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to send message";
     return NextResponse.json({ success: false, error: message }, { status: 502 });
   }
+}
+
+async function persistMessage(opts: {
+  tenantId: string;
+  businessId: string;
+  phone: string;
+  waMessageId: string | null;
+  type: "TEXT" | "TEMPLATE";
+  preview: string;
+}) {
+  const { tenantId, businessId, phone, waMessageId, type, preview } = opts;
+
+  const contact = await prisma.contact.upsert({
+    where: { phone_businessId: { phone, businessId } },
+    create: { tenantId, businessId, phone, waId: phone, name: "" },
+    update: {},
+  });
+
+  let conversation = await prisma.conversation.findFirst({
+    where: { tenantId, businessId, contactId: contact.id },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!conversation) {
+    conversation = await prisma.conversation.create({
+      data: { tenantId, businessId, contactId: contact.id, status: "OPEN" },
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.message.create({
+      data: {
+        tenantId,
+        businessId,
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        type,
+        content: preview,
+        status: "SENT",
+        waMessageId,
+        isAiGenerated: false,
+      },
+    }),
+    prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageAt: new Date(), lastMessagePreview: preview.slice(0, 100) },
+    }),
+  ]);
 }
