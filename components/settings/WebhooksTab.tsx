@@ -470,31 +470,37 @@ export function WebhooksTab() {
       </section>
 
       <section className="rounded-lg border border-slate-200 p-5">
-        <h3 className="mb-2 font-semibold text-slate-800">Incoming API Reference</h3>
-        <div className="space-y-3 text-sm">
+        <h3 className="mb-3 font-semibold text-slate-800">Incoming API Reference</h3>
+        <div className="space-y-4 text-sm">
           <div>
-            <p className="font-medium text-slate-700">Send a message</p>
-            <code className="mt-1 block rounded bg-slate-50 p-2 text-xs text-slate-600">
-              POST /api/v1/messages<br />
-              Authorization: Bearer &lt;api_key&gt;<br />
-              {"{"} "to": "+919876543210", "type": "text", "text": "Hello!" {"}"}
-            </code>
+            <p className="mb-1 font-medium text-slate-700">Send a text message</p>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /api/v1/messages
+Authorization: Bearer <api_key>
+
+{ "to": "+919876543210", "type": "text", "text": "Hello!" }`}</pre>
           </div>
           <div>
-            <p className="font-medium text-slate-700">Create / list contacts</p>
-            <code className="mt-1 block rounded bg-slate-50 p-2 text-xs text-slate-600">
-              GET  /api/v1/contacts?search=rahul&amp;page=1<br />
-              POST /api/v1/contacts<br />
-              Authorization: Bearer &lt;api_key&gt;<br />
-              {"{"} "name": "Rahul", "phone": "+919876543210" {"}"}
-            </code>
+            <p className="mb-1 font-medium text-slate-700">Send a template message</p>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /api/v1/messages
+Authorization: Bearer <api_key>
+
+{ "to": "+919876543210", "type": "template",
+  "template": "order_confirmed", "language": "en_US",
+  "components": [{ "type": "body",
+    "parameters": [{ "type": "text", "text": "ORD-123" }] }] }`}</pre>
           </div>
           <div>
-            <p className="font-medium text-slate-700">List approved templates</p>
-            <code className="mt-1 block rounded bg-slate-50 p-2 text-xs text-slate-600">
-              GET /api/v1/templates?search=order&amp;page=1<br />
-              Authorization: Bearer &lt;api_key&gt;
-            </code>
+            <p className="mb-1 font-medium text-slate-700">Create / list contacts</p>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET  /api/v1/contacts?search=rahul&page=1
+POST /api/v1/contacts
+Authorization: Bearer <api_key>
+
+{ "name": "Rahul", "phone": "+919876543210" }`}</pre>
+          </div>
+          <div>
+            <p className="mb-1 font-medium text-slate-700">List approved templates</p>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET /api/v1/templates?search=order
+Authorization: Bearer <api_key>`}</pre>
           </div>
         </div>
       </section>
