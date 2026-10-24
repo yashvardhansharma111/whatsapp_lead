@@ -349,6 +349,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const [manualToken, setManualToken] = useState("");
   const [manualPhoneId, setManualPhoneId] = useState("");
   const [manualWabaId, setManualWabaId] = useState("");
+  const [manualAppSecret, setManualAppSecret] = useState("");
   // The number being renamed, and the draft label. Only our own label is editable
   // here — Meta's identifiers and every credential are refused by the endpoint.
   const [renaming, setRenaming] = useState<WhatsAppIntegrationDTO | null>(null);
@@ -550,7 +551,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
     setNotice(null);
     setWarnings([]);
     manualConnect.mutate(
-      { accessToken: token, phoneNumberId: phoneId, wabaId, businessId: target?.id },
+      { accessToken: token, phoneNumberId: phoneId, wabaId, businessId: target?.id, appSecret: manualAppSecret.trim() || undefined },
       {
         onSuccess: (result) => {
           const number =
@@ -564,6 +565,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
           setManualToken("");
           setManualPhoneId("");
           setManualWabaId("");
+          setManualAppSecret("");
           setManualOpen(false);
         },
         onError: (err) => {
@@ -818,6 +820,17 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
                   placeholder="0987654321"
                   autoComplete="off"
                   required
+                />
+              </Field>
+
+              <Field label="App Secret (optional — needed to receive inbound messages)">
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={manualAppSecret}
+                  onChange={(e) => setManualAppSecret(e.target.value)}
+                  placeholder="Meta app → Settings → Basic → App Secret"
+                  autoComplete="off"
                 />
               </Field>
 

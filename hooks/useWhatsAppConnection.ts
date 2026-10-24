@@ -221,6 +221,7 @@ export interface ManualConnectInput {
   phoneNumberId: string;
   wabaId: string;
   businessId?: string;
+  appSecret?: string;
 }
 
 export interface ManualConnectResult {

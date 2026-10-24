@@ -32,6 +32,7 @@ const manualConnectSchema = z.object({
   phoneNumberId: z.string().min(1, "Phone Number ID is required"),
   wabaId: z.string().min(1, "WhatsApp Business Account ID is required"),
   businessId: z.string().optional(),
+  appSecret: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const { accessToken: rawToken, phoneNumberId, wabaId, businessId } = parsed.data;
+  const { accessToken: rawToken, phoneNumberId, wabaId, businessId, appSecret } = parsed.data;
 
   const sanitized = sanitizeWhatsAppToken(rawToken);
   if (!sanitized || !isMetaAccessToken(sanitized)) {
@@ -137,6 +138,7 @@ export async function POST(req: NextRequest) {
       phoneNumberId: resolvedPhoneNumberId,
       whatsappBusinessId: wabaId,
       encryptedToken: encryptSecret(token),
+      appSecret: appSecret ? encryptSecret(appSecret) : undefined,
       displayName,
       phoneNumber: displayPhoneNumber,
       qualityRating,
