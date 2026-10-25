@@ -96,6 +96,7 @@ interface BroadcastPayload {
   headerMediaId?: string;
   headerMediaUrl?: string;
   whatsappIntegrationId?: string;
+  ttlSeconds?: number;
   dryRun?: boolean;
 }
 
@@ -259,6 +260,7 @@ export default function BroadcastPage() {
   // 4. Send
   const [scheduling, setScheduling] = useState(false);
   const [schedule, setSchedule] = useState("");
+  const [ttlHours, setTtlHours] = useState<number | "">("");
   const [confirm, setConfirm] = useState<{ payload: BroadcastPayload; review: DryRunResult } | null>(null);
   const [launch, setLaunch] = useState<LaunchResult | null>(null);
 
@@ -412,6 +414,7 @@ export default function BroadcastPage() {
       ...(media.mediaId && { headerMediaId: media.mediaId }),
       ...(!media.mediaId && media.mediaUrl.trim() && { headerMediaUrl: media.mediaUrl.trim() }),
       ...(selectedIntegrationId && { whatsappIntegrationId: selectedIntegrationId }),
+      ...(ttlHours && Number(ttlHours) > 0 && { ttlSeconds: Number(ttlHours) * 3600 }),
     };
     if (audienceMode === "segment") {
       review.mutate({ ...basePayload, segmentId: selectedSegmentId });
@@ -912,6 +915,25 @@ export default function BroadcastPage() {
               </button>
             </div>
           )}
+
+          <div className="mb-4">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Message expiry (TTL)
+            </label>
+            <select
+              value={ttlHours}
+              onChange={(e) => setTtlHours(e.target.value === "" ? "" : Number(e.target.value))}
+              className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="">No expiry (default 30 days)</option>
+              <option value="1">1 hour</option>
+              <option value="6">6 hours</option>
+              <option value="24">24 hours</option>
+              <option value="72">3 days</option>
+              <option value="168">7 days</option>
+            </select>
+            <p className="mt-1 text-[11px] text-slate-400">If the recipient is offline, WhatsApp will stop retrying after this time.</p>
+          </div>
 
           {integrations.length > 1 && (
             <div className="mb-4">

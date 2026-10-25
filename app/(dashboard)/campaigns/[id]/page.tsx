@@ -36,7 +36,9 @@ interface CampaignDetail {
   deliveredCount: number;
   readCount: number;
   repliedCount: number;
+  clickedCount: number;
   failedCount: number;
+  costMinor: number;
   metadata: unknown;
   createdAt: string;
 }
@@ -164,8 +166,8 @@ export default function CampaignReportPage() {
           <Skeleton className="h-7 w-52" />
           <Skeleton className="ml-auto h-6 w-20 rounded-md" />
         </div>
-        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
@@ -223,12 +225,13 @@ export default function CampaignReportPage() {
       />
 
       {/* Stats row */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <StatCard label="Total"     value={total}                   total={total} barColor="bg-slate-400" />
-        <StatCard label="Sent"      value={campaign.sentCount}      total={total} barColor="bg-blue-500" />
-        <StatCard label="Delivered" value={campaign.deliveredCount} total={total} barColor="bg-emerald-500" />
-        <StatCard label="Read"      value={campaign.readCount}      total={total} barColor="bg-violet-500" />
-        <StatCard label="Failed"    value={campaign.failedCount}    total={total} barColor="bg-rose-500" />
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCard label="Total"     value={total}                    total={total} barColor="bg-slate-400" />
+        <StatCard label="Sent"      value={campaign.sentCount}       total={total} barColor="bg-blue-500" />
+        <StatCard label="Delivered" value={campaign.deliveredCount}  total={total} barColor="bg-emerald-500" />
+        <StatCard label="Read"      value={campaign.readCount}       total={total} barColor="bg-violet-500" />
+        <StatCard label="Clicked"   value={campaign.clickedCount}    total={total} barColor="bg-amber-500" />
+        <StatCard label="Failed"    value={campaign.failedCount}     total={total} barColor="bg-rose-500" />
       </div>
 
       {/* Recipients table */}
