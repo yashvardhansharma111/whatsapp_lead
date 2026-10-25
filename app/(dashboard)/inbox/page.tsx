@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import PusherClient from "pusher-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useConversation, useConversations, useMarkConversationRead } from "@/hooks/useMessages";
@@ -41,25 +40,28 @@ export default function InboxPage() {
   const queryClient = useQueryClient();
   const { mutate: markConversationRead } = useMarkConversationRead();
 
-  // Pusher real-time subscription: invalidate conversations when a new message arrives.
-  // Falls back to the 30s poll in useConversations when Pusher is not configured.
+  // SSE real-time subscription: invalidate conversations when a new message arrives.
+  // EventSource auto-reconnects; on each (re)connect we refetch to catch any gap.
+  // Falls back to the 30s poll in useConversations when SSE is unavailable.
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-    if (!key || !cluster || !tenantId) return;
+    if (!tenantId) return;
 
-    const client = new PusherClient(key, { cluster });
-    const channel = client.subscribe(`tenant-${tenantId}`);
+    const es = new EventSource("/api/events");
 
-    channel.bind("new-message", () => {
+    es.onopen = () => {
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    });
-
-    return () => {
-      channel.unbind_all();
-      client.unsubscribe(`tenant-${tenantId}`);
-      client.disconnect();
     };
+
+    es.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data as string);
+        if (payload?.event === "new-message") {
+          void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        }
+      } catch { /* ignore */ }
+    };
+
+    return () => es.close();
   }, [tenantId, queryClient]);
 
   const [tab, setTab] = useState<InboxTab>("all");

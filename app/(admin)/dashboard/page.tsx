@@ -78,7 +78,7 @@ interface AdminStats {
 interface HealthData {
   api: { latencyMs: number; status: string };
   database: { latencyMs: number; status: string };
-  pusher: { configured: boolean; status: string };
+  realtime: { configured: boolean; status: string };
   whatsapp: { configured: boolean; status: string };
   checkedAt: string;
 }
@@ -420,10 +420,10 @@ export default function AdminDashboardPage() {
               />
               <HealthRow
                 icon={Webhook}
-                label="Pusher realtime"
-                value={health.pusher.configured ? "Configured" : "Not configured"}
-                tone={health.pusher.configured ? "emerald" : "amber"}
-                chip={health.pusher.configured ? "Active" : "Missing"}
+                label="SSE realtime"
+                value={health.realtime.configured ? "Configured" : "Not configured"}
+                tone={health.realtime.configured ? "emerald" : "amber"}
+                chip={health.realtime.configured ? "Active" : "Missing"}
               />
               <HealthRow
                 icon={MessageSquare}
