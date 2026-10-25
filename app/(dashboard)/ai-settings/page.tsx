@@ -201,7 +201,7 @@ export default function AISettingsPage() {
   const { data: aiData } = useQuery({
     queryKey: ["settings-ai"],
     queryFn: async () => {
-      const r = await fetch("/api/settings/ai");
+      const r = await fetch("/api/nest/settings/ai");
       const j = await r.json();
       return j.data as {
         aiEnabled: boolean; aiModel: string; autoReply: boolean;
@@ -218,7 +218,7 @@ export default function AISettingsPage() {
   const { data: generalData } = useQuery({
     queryKey: ["settings-general-hours"],
     queryFn: async () => {
-      const r = await fetch("/api/settings");
+      const r = await fetch("/api/nest/settings");
       const j = await r.json();
       const d = j.data as Record<string, unknown> | undefined;
       return {
@@ -359,23 +359,23 @@ export default function AISettingsPage() {
         businessHoursEnd: form.endTime,
         businessDays: form.businessDays,
       };
-      console.log("[AI-SETTINGS] PATCH /api/settings/ai payload:", JSON.stringify(aiPayload));
-      console.log("[AI-SETTINGS] PATCH /api/settings payload:", JSON.stringify(hoursPayload));
+      console.log("[AI-SETTINGS] PATCH /api/nest/settings/ai payload:", JSON.stringify(aiPayload));
+      console.log("[AI-SETTINGS] PATCH /api/nest/settings payload:", JSON.stringify(hoursPayload));
       const [r1, r2] = await Promise.all([
-        fetch("/api/settings/ai", {
+        fetch("/api/nest/settings/ai", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(aiPayload),
         }),
-        fetch("/api/settings", {
+        fetch("/api/nest/settings", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(hoursPayload),
         }),
       ]);
-      console.log("[AI-SETTINGS] /api/settings/ai status:", r1.status, "| /api/settings status:", r2.status);
-      if (!r1.ok) { const j = await r1.json(); console.error("[AI-SETTINGS] /api/settings/ai error:", j); throw new Error(j.error ?? "Save failed"); }
-      if (!r2.ok) { const j = await r2.json(); console.error("[AI-SETTINGS] /api/settings error:", j); throw new Error(j.error ?? "Failed to save business hours"); }
+      console.log("[AI-SETTINGS] /api/nest/settings/ai status:", r1.status, "| /api/nest/settings status:", r2.status);
+      if (!r1.ok) { const j = await r1.json(); console.error("[AI-SETTINGS] /api/nest/settings/ai error:", j); throw new Error(j.message ?? j.error ?? "Save failed"); }
+      if (!r2.ok) { const j = await r2.json(); console.error("[AI-SETTINGS] /api/nest/settings error:", j); throw new Error(j.message ?? j.error ?? "Failed to save business hours"); }
       console.log("[AI-SETTINGS] save success");
     },
     onSuccess: () => {
