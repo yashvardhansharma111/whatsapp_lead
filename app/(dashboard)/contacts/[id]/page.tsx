@@ -10,13 +10,16 @@ import {
   Ban,
   MessageSquare,
   Pencil,
+  Plus,
+  Tag as TagIcon,
   TrendingUp,
   Trash2,
   UserX,
+  X,
 } from "lucide-react";
 type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useBulkContactAction, useContact, useDeleteContact } from "@/hooks/useContacts";
+import { useBulkContactAction, useContact, useContactTags, useDeleteContact } from "@/hooks/useContacts";
 import { Avatar, Badge, Button, Card, EmptyState, Modal, Skeleton } from "@/components/ui";
 import { EditContactModal } from "@/components/contacts/EditContactModal";
 import {
@@ -385,6 +388,46 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 }
 
 function OverviewTab({ contact }: { contact: ContactDetail }) {
+  const queryClient = useQueryClient();
+  const { data: allTags = [] } = useContactTags();
+  const [selectedTagId, setSelectedTagId] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
+
+  const currentTags = contactTags(contact.tags);
+  const currentTagNames = currentTags.map((t) => t.name);
+  const availableToAdd = allTags.filter((t) => !currentTagNames.includes(t.name));
+
+  const updateTags = useMutation({
+    mutationFn: async (tagNames: string[]) => {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: tagNames }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to update tags");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts", contact.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setTagError(null);
+    },
+    onError: (err: Error) => setTagError(err.message),
+  });
+
+  const handleRemoveTag = (tagName: string) => {
+    updateTags.mutate(currentTagNames.filter((n) => n !== tagName));
+  };
+
+  const handleAddTag = () => {
+    if (!selectedTagId) return;
+    const tag = allTags.find((t) => t.id === selectedTagId);
+    if (!tag || currentTagNames.includes(tag.name)) return;
+    updateTags.mutate([...currentTagNames, tag.name]);
+    setSelectedTagId("");
+  };
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <Card className="p-5 lg:col-span-2">
@@ -417,16 +460,85 @@ function OverviewTab({ contact }: { contact: ContactDetail }) {
         </dl>
       </Card>
 
-      <Card className="p-5">
-        <h2 className="mb-2 text-sm font-semibold text-slate-900">Notes</h2>
-        {contact.notes ? (
-          <p className="whitespace-pre-wrap wrap-anywhere text-sm leading-relaxed text-slate-600">
-            {contact.notes}
-          </p>
-        ) : (
-          <p className="text-sm text-slate-400">No notes for this contact yet.</p>
-        )}
-      </Card>
+      <div className="space-y-4">
+        <Card className="p-5">
+          <h2 className="mb-2 text-sm font-semibold text-slate-900">Notes</h2>
+          {contact.notes ? (
+            <p className="whitespace-pre-wrap wrap-anywhere text-sm leading-relaxed text-slate-600">
+              {contact.notes}
+            </p>
+          ) : (
+            <p className="text-sm text-slate-400">No notes for this contact yet.</p>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <TagIcon className="h-4 w-4 text-slate-500" />
+            <h2 className="text-sm font-semibold text-slate-900">Tags</h2>
+          </div>
+
+          {tagError && (
+            <p className="mb-2 text-xs text-rose-600">{tagError}</p>
+          )}
+
+          {currentTags.length > 0 ? (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {currentTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset"
+                  style={{
+                    backgroundColor: `${tag.color}18`,
+                    color: tag.color,
+                    borderColor: `${tag.color}40`,
+                  }}
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    disabled={updateTags.isPending}
+                    onClick={() => handleRemoveTag(tag.name)}
+                    className="ml-0.5 rounded-full hover:opacity-70 disabled:opacity-40"
+                    aria-label={`Remove tag ${tag.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mb-3 text-xs text-slate-400">No tags yet.</p>
+          )}
+
+          {availableToAdd.length > 0 && (
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedTagId}
+                onChange={(e) => setSelectedTagId(e.target.value)}
+                className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                aria-label="Select tag to add"
+              >
+                <option value="">Add a tag…</option>
+                {availableToAdd.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!selectedTagId || updateTags.isPending}
+                onClick={handleAddTag}
+                className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

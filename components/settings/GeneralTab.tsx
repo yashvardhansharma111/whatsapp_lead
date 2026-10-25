@@ -11,9 +11,18 @@ const TIMEZONES = [
   "Europe/London", "America/New_York", "America/Los_Angeles",
 ];
 
+type SocialLinks = {
+  facebook:  string;
+  instagram: string;
+  twitter:   string;
+  linkedin:  string;
+  website:   string;
+};
+
 type SettingsData = {
   tenant: { name: string; slug: string; logo?: string; domain?: string };
   timezone: string;
+  socialLinks?: SocialLinks;
 };
 
 type CategoryData = {
@@ -48,6 +57,13 @@ export function GeneralTab() {
   const [confirm, setConfirm] = useState("");
   const [saved, setSaved] = useState(false);
 
+  // Social links
+  const [facebook,  setFacebook]  = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [twitter,   setTwitter]   = useState("");
+  const [linkedin,  setLinkedin]  = useState("");
+  const [website,   setWebsite]   = useState("");
+
   // Seeded from the server during render rather than in an effect. An effect
   // re-ran on every refetch, so a background refresh silently discarded whatever
   // the user had typed and not yet saved; the sentinel seeds once, and the three
@@ -58,6 +74,11 @@ export function GeneralTab() {
     setName(data.tenant?.name ?? "");
     setDomain(data.tenant?.domain ?? "");
     setTimezone(data.timezone ?? "Asia/Kolkata");
+    setFacebook(data.socialLinks?.facebook   ?? "");
+    setInstagram(data.socialLinks?.instagram ?? "");
+    setTwitter(data.socialLinks?.twitter     ?? "");
+    setLinkedin(data.socialLinks?.linkedin   ?? "");
+    setWebsite(data.socialLinks?.website     ?? "");
   }
   const [categorySeeded, setCategorySeeded] = useState(false);
   if (categoryData && !categorySeeded) {
@@ -78,7 +99,12 @@ export function GeneralTab() {
       const r = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantName: name, domain: domain || undefined, timezone }),
+        body: JSON.stringify({
+          tenantName: name,
+          domain: domain || undefined,
+          timezone,
+          socialLinks: { facebook, instagram, twitter, linkedin, website },
+        }),
       });
       if (!r.ok) { const j = await r.json(); throw new Error(j.error ?? "Save failed"); }
       if (categoryData && categoryId !== (categoryData.category?.id ?? "")) {
@@ -178,6 +204,72 @@ export function GeneralTab() {
             <Save className="h-4 w-4" />
             {save.isPending ? "Saving…" : saved ? "Saved!" : "Save Changes"}
           </Button>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="font-semibold text-slate-900">Social Media Links</h2>
+        <p className="mt-0.5 text-sm text-slate-500">
+          Public social profiles for your business. These are displayed to your team and can be shared with contacts.
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="Facebook" htmlFor="sl-facebook">
+            <input
+              id="sl-facebook"
+              type="url"
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              className={inputClass}
+              placeholder="https://facebook.com/yourbusiness"
+            />
+          </Field>
+
+          <Field label="Instagram" htmlFor="sl-instagram">
+            <input
+              id="sl-instagram"
+              type="url"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              className={inputClass}
+              placeholder="https://instagram.com/yourbusiness"
+            />
+          </Field>
+
+          <Field label="Twitter / X" htmlFor="sl-twitter">
+            <input
+              id="sl-twitter"
+              type="url"
+              value={twitter}
+              onChange={(e) => setTwitter(e.target.value)}
+              className={inputClass}
+              placeholder="https://x.com/yourbusiness"
+            />
+          </Field>
+
+          <Field label="LinkedIn" htmlFor="sl-linkedin">
+            <input
+              id="sl-linkedin"
+              type="url"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              className={inputClass}
+              placeholder="https://linkedin.com/company/yourbusiness"
+            />
+          </Field>
+
+          <div className="sm:col-span-2">
+            <Field label="Website" htmlFor="sl-website">
+              <input
+                id="sl-website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className={inputClass}
+                placeholder="https://yourbusiness.com"
+              />
+            </Field>
+          </div>
         </div>
       </Card>
 
