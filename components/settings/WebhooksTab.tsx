@@ -84,14 +84,16 @@ function ApiKeySection() {
         <Key className="h-4 w-4 text-slate-500" />
         <h3 className="font-semibold text-slate-800">Incoming API Key</h3>
       </div>
-      <p className="mb-4 text-sm text-slate-500">
-        Use this key to authenticate requests to{" "}
-        <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">/api/v1/*</code> from your CRM or
-        external systems.
-        <br />
-        Pass it as{" "}
-        <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">Authorization: Bearer &lt;key&gt;</code>.
+      <p className="mb-3 text-sm text-slate-500">
+        Use this key to call the public REST API from your CRM or external systems.
+        Pass it as the <code className="rounded bg-slate-100 px-1 py-0.5 text-xs font-mono">X-Api-Key</code> request header.
       </p>
+      <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-600 space-y-1">
+        <div><span className="text-slate-400">GET</span>  /v1/templates</div>
+        <div><span className="text-slate-400">GET</span>  /v1/contacts?page=1&amp;limit=50&amp;search=</div>
+        <div><span className="text-slate-400">POST</span> /v1/contacts  <span className="text-slate-400">{"{ phone, name, email? }"}</span></div>
+        <div><span className="text-slate-400">POST</span> /v1/messages  <span className="text-slate-400">{"{ to, templateName, variables: { body: [\"val1\"] } }"}</span></div>
+      </div>
 
       {displayKey ? (
         <div className="mb-3 flex items-center gap-2">
