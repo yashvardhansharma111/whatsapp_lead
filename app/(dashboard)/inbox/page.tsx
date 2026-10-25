@@ -105,9 +105,9 @@ export default function InboxPage() {
   }, []);
   /** Optimistically "sent" messages, per conversation, cleared when server confirms. */
   const [outbox, setOutbox] = useState<Record<string, InboxMessage[]>>({});
-  // Track the last seen server message count per conversation so we can detect
-  // when new messages land from the server and clear the matching optimistic copies.
-  const serverMsgCount = useRef<Record<string, number>>({});
+  // Track the ID of the last server message per conversation. Comparing IDs (not array
+  // length) correctly detects new messages when the server returns a fixed-size page.
+  const lastServerMsgId = useRef<Record<string, string>>({});
 
   const handleSend = useCallback((conversationId: string, message: InboxMessage) => {
     setOutbox((prev) => ({
@@ -178,13 +178,15 @@ export default function InboxPage() {
     return toArray<InboxMessage>(detail?.messages ?? unwrap<unknown>(detailData));
   }, [detailData]);
 
-  // When the server delivers new messages for this conversation, clear any optimistic
-  // outbox entries — they are now superseded by the real persisted messages.
+  // When the server delivers new messages, clear optimistic outbox entries.
+  // Compare the LAST message ID (not array length) so this works correctly when
+  // the server always returns a fixed page size (e.g. newest 50).
   useEffect(() => {
     if (!selectedId || messages.length === 0) return;
-    const prev = serverMsgCount.current[selectedId] ?? 0;
-    if (messages.length > prev) {
-      serverMsgCount.current[selectedId] = messages.length;
+    const lastId = messages[messages.length - 1]?.id;
+    if (!lastId) return;
+    if (lastId !== lastServerMsgId.current[selectedId]) {
+      lastServerMsgId.current[selectedId] = lastId;
       setOutbox((o) => (o[selectedId]?.length ? { ...o, [selectedId]: [] } : o));
     }
   }, [messages, selectedId]);
