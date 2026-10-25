@@ -201,6 +201,22 @@ export function ChatWindow({
     if (!content || !conversationId || sendMessage.isPending) return;
     setSendError(null);
 
+    // Optimistic: show the message immediately before the server round-trip.
+    onSend(conversationId, {
+      id: `opt-${Date.now()}`,
+      direction: "OUTBOUND",
+      type: "TEXT",
+      content,
+      status: "PENDING",
+      isNote: isNote ?? null,
+      replyToId: replyTo?.id ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    setDraft("");
+    setAiSources([]);
+    setShowEmoji(false);
+    setReplyTo(null);
+
     try {
       await sendMessage.mutateAsync({
         conversationId,
@@ -211,12 +227,7 @@ export function ChatWindow({
       });
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Failed to send message");
-      return;
     }
-    setDraft("");
-    setAiSources([]);
-    setShowEmoji(false);
-    setReplyTo(null);
   }
 
   async function handleSendInteractive() {
@@ -250,6 +261,18 @@ export function ChatWindow({
       };
     }
 
+    onSend(conversationId, {
+      id: `opt-${Date.now()}`,
+      direction: "OUTBOUND",
+      type: "INTERACTIVE",
+      content: body,
+      status: "PENDING",
+      replyToId: replyTo?.id ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    setShowInteractive(false);
+    setInteractiveBody("");
+
     try {
       await sendMessage.mutateAsync({
         conversationId,
@@ -259,10 +282,7 @@ export function ChatWindow({
       });
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Failed to send interactive message");
-      return;
     }
-    setShowInteractive(false);
-    setInteractiveBody("");
     setInteractiveButtons(["", ""]);
     setInteractiveRows([{ title: "", description: "" }]);
     setReplyTo(null);
