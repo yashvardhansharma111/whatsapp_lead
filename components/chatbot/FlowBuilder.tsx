@@ -44,7 +44,20 @@ import {
   type FlowDocument,
   type NodeKind,
 } from "@/lib/chatbot/types";
-import type { ChatbotFlow } from "@prisma/client";
+type ChatbotFlow = {
+  id: string;
+  tenantId: string;
+  businessId: string | null;
+  name: string;
+  description?: string | null;
+  trigger: string;
+  keywords: string[];
+  nodes: unknown;
+  edges: unknown;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 import { validateFlow, type ValidationResult } from "@/lib/chatbot/validation";
 import { useAutosaveFlow, useDraftFlow, useFlow, usePublishFlow, useValidateFlow } from "@/hooks/useFlows";
 import { nodeTypes } from "./FlowNodes";

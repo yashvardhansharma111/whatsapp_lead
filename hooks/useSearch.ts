@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type {
-  ConversationStatus,
-  MessageDirection,
-  CampaignStatus,
-} from "@prisma/client";
+type ConversationStatus = string;
+type MessageDirection = string;
+type CampaignStatus = string;
 
 export interface SearchResults {
   contacts: Array<{

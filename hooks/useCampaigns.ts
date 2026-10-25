@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CampaignStatus } from "@prisma/client";
+type CampaignStatus = string;
 
 interface CampaignFilters {
   status?: CampaignStatus;

@@ -20,7 +20,7 @@
 // the reverse.
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Message } from "@prisma/client";
+type Message = Record<string, unknown>;
 import type { InteractivePayload } from "@/lib/validators/message";
 
 /** The envelope every route in this project returns. Discriminated, so a failure cannot be read. */

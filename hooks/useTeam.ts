@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { UserRole } from "@prisma/client";
+type UserRole = "AGENT" | "MANAGER" | "ADMIN" | "MARKETING_USER";
 
 interface InviteMemberInput {
   name: string;

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { LeadScoreLabel } from "@prisma/client";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
 import type { ImportMode, ImportResult } from "@/lib/import";
 import type { ImportLeadPayload } from "@/lib/leadsImport";
 

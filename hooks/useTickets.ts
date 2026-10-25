@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { TicketStatus, TicketPriority } from "@prisma/client";
+type TicketStatus = string;
+type TicketPriority = string;
 
 interface TicketFilters {
   status?: TicketStatus;

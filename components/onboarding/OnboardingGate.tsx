@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import type { UserRole } from "@prisma/client";
+type UserRole = "AGENT" | "MANAGER" | "ADMIN" | "MARKETING_USER";
 import {
   MessageSquare,
   Users,

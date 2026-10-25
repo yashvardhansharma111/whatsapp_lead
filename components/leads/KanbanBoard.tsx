@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Inbox } from "lucide-react";
-import type { LeadScoreLabel } from "@prisma/client";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
 import { Button, EmptyState, Skeleton } from "@/components/ui";
 import { cn, formatCurrency, scoreLabelFor } from "@/lib/utils";
 import { useLeadStages } from "@/hooks/useLeadStages";

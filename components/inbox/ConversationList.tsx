@@ -1,13 +1,11 @@
 "use client";
 
 import { MessageSquare, Search, SearchX, WifiOff } from "lucide-react";
-import type {
-  ConversationStatus,
-  LeadScoreLabel,
-  MessageDirection,
-  MessageStatus,
-  MessageType,
-} from "@prisma/client";
+type ConversationStatus = string;
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
+type MessageDirection = string;
+type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
+type MessageType = string;
 import { Avatar, EmptyState, Skeleton } from "@/components/ui";
 import { cn, timeAgo } from "@/lib/utils";
 

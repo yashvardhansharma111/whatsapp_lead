@@ -35,7 +35,7 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-import type { KnowledgeDoc } from "@prisma/client";
+type KnowledgeDoc = { id: string; name: string; metadata: unknown; updatedAt: string | Date };
 import { Badge, Button, Card, EmptyState, Modal, PageHeader, Skeleton } from "@/components/ui";
 import { readFaqState, type DocFaq, type FaqStyle } from "@/lib/knowledgeFaq";
 import { cn } from "@/lib/utils";

@@ -15,7 +15,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertCircle, Check, FileStack, FileText, Loader2 } from "lucide-react";
-import type { KnowledgeDoc } from "@prisma/client";
+type KnowledgeDoc = { id: string; name: string; metadata: unknown; updatedAt: string | Date };
 import { readFaqState } from "@/lib/knowledgeFaq";
 import { useFaqSets } from "@/components/knowledge/faqSets";
 import { postJson } from "@/components/knowledge/api";

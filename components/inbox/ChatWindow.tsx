@@ -26,7 +26,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import type { MessageStatus } from "@prisma/client";
+type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel, formatTime } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT, formatBytes } from "@/lib/attachments";

@@ -1,7 +1,19 @@
 "use client";
 
 import { Clock, Loader2 } from "lucide-react";
-import type { Lead, LeadScoreLabel } from "@prisma/client";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
+type Lead = {
+  id: string;
+  tenantId: string;
+  businessId: string | null;
+  title: string;
+  value: number | null;
+  currency: string | null;
+  scoreLabel: LeadScoreLabel;
+  stageId: string | null;
+  updatedAt: Date;
+  createdAt: Date;
+};
 import { Avatar, Badge } from "@/components/ui";
 import { cn, formatCurrency, SCORE_STYLE, daysBetween } from "@/lib/utils";
 
