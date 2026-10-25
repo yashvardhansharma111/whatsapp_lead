@@ -238,6 +238,7 @@ export default function AISettingsPage() {
   // the form exactly once; everything after that is the user's to edit.
   const [seededAi, setSeededAi] = useState(false);
   if (aiData && !seededAi) {
+    console.log("[AI-SETTINGS] seeding AI data from server:", JSON.stringify({ autoReply: aiData.autoReply, aiEnabled: aiData.aiEnabled, hasInstructions: !!aiData.aiInstructions }));
     setSeededAi(true);
     setForm((f) => ({
       ...f,
@@ -259,6 +260,7 @@ export default function AISettingsPage() {
 
   const [seededHours, setSeededHours] = useState(false);
   if (generalData && !seededHours) {
+    console.log("[AI-SETTINGS] seeding general/hours data from server:", JSON.stringify(generalData));
     setSeededHours(true);
     setForm((f) => ({
       ...f,
@@ -329,6 +331,7 @@ export default function AISettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      console.log("[AI-SETTINGS] save triggered — dirty:", dirty, "instructionsValid:", instructionsValid, "instructionErrors:", instructionErrors);
       if (!instructionsValid) {
         const names = (Object.keys(instructionErrors) as (keyof AiInstructions)[])
           .map((k) => FIELD_LABELS[k])
@@ -338,36 +341,42 @@ export default function AISettingsPage() {
       // Two parallel PATCHes — AI model/personality settings go to /api/settings/ai
       // (which saves to TenantSettings + Business); business-hours go to /api/settings
       // (which saves to TenantSettings). Both endpoints are idempotent.
+      const aiPayload = {
+        aiEnabled: form.aiEnabled,
+        aiModel: form.model,
+        autoReply: form.autoReply,
+        autoReplyDelay: form.replyDelay,
+        aiPersonality: form.personality,
+        aiTemperature: form.temperature,
+        aiMaxTokens: form.maxTokens,
+        aiSystemPrompt: form.systemPrompt,
+        aiInstructions: form.instructions,
+        offHoursMessage: form.offHoursMessage,
+      };
+      const hoursPayload = {
+        timezone: form.timezone,
+        businessHoursStart: form.startTime,
+        businessHoursEnd: form.endTime,
+        businessDays: form.businessDays,
+      };
+      console.log("[AI-SETTINGS] PATCH /api/settings/ai payload:", JSON.stringify(aiPayload));
+      console.log("[AI-SETTINGS] PATCH /api/settings payload:", JSON.stringify(hoursPayload));
       const [r1, r2] = await Promise.all([
         fetch("/api/settings/ai", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            aiEnabled: form.aiEnabled,
-            aiModel: form.model,
-            autoReply: form.autoReply,
-            autoReplyDelay: form.replyDelay,
-            aiPersonality: form.personality,
-            aiTemperature: form.temperature,
-            aiMaxTokens: form.maxTokens,
-            aiSystemPrompt: form.systemPrompt,
-            aiInstructions: form.instructions,
-            offHoursMessage: form.offHoursMessage,
-          }),
+          body: JSON.stringify(aiPayload),
         }),
         fetch("/api/settings", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            timezone: form.timezone,
-            businessHoursStart: form.startTime,
-            businessHoursEnd: form.endTime,
-            businessDays: form.businessDays,
-          }),
+          body: JSON.stringify(hoursPayload),
         }),
       ]);
-      if (!r1.ok) { const j = await r1.json(); throw new Error(j.error ?? "Save failed"); }
-      if (!r2.ok) { const j = await r2.json(); throw new Error(j.error ?? "Failed to save business hours"); }
+      console.log("[AI-SETTINGS] /api/settings/ai status:", r1.status, "| /api/settings status:", r2.status);
+      if (!r1.ok) { const j = await r1.json(); console.error("[AI-SETTINGS] /api/settings/ai error:", j); throw new Error(j.error ?? "Save failed"); }
+      if (!r2.ok) { const j = await r2.json(); console.error("[AI-SETTINGS] /api/settings error:", j); throw new Error(j.error ?? "Failed to save business hours"); }
+      console.log("[AI-SETTINGS] save success");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["settings-ai"] });
@@ -855,7 +864,10 @@ export default function AISettingsPage() {
             </Button>
             <Button
               disabled={!dirty || !instructionsValid || saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
+              onClick={() => {
+                console.log("[AI-SETTINGS] Save button clicked — disabled check: dirty=", dirty, "instructionsValid=", instructionsValid, "isPending=", saveMutation.isPending);
+                saveMutation.mutate();
+              }}
             >
               <Save className="h-4 w-4" />
               Save Changes

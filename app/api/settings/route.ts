@@ -38,6 +38,9 @@ export async function GET() {
       update: {},
     });
 
+    console.log("[SETTINGS GET] tenant_settings row keys:", Object.keys(settings));
+    console.log("[SETTINGS GET] businessHoursStart:", (settings as any).businessHoursStart, "| businessDays:", (settings as any).businessDays, "| timezone:", (settings as any).timezone);
+
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true, slug: true, logo: true, domain: true },
@@ -50,7 +53,7 @@ export async function GET() {
       data: publicTenantSettings(settings, tenant),
     });
   } catch (error) {
-    console.error("[SETTINGS GET]", error);
+    console.error("[SETTINGS GET] ERROR:", error);
     return NextResponse.json({ success: false, error: "Failed to fetch settings" }, { status: 500 });
   }
 }
@@ -68,10 +71,15 @@ export async function PATCH(req: NextRequest) {
     let body: unknown;
     try { body = await req.json(); } catch { return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 }); }
 
+    console.log("[SETTINGS PATCH] body:", JSON.stringify(body));
     const parsed = patchSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 });
+    if (!parsed.success) {
+      console.error("[SETTINGS PATCH] validation error:", parsed.error.issues);
+      return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 });
+    }
 
     const data = { ...parsed.data };
+    console.log("[SETTINGS PATCH] parsed data keys:", Object.keys(data));
 
     // A blank secret means "leave the stored one alone", never "erase it". The browser is
     // no longer sent these values (see GET above), so a form that renders them can only
@@ -110,11 +118,13 @@ export async function PATCH(req: NextRequest) {
       select: { waPhoneNumberId: true },
     });
 
+    console.log("[SETTINGS PATCH] upserting tenant_settings with:", JSON.stringify({ timezone: data.timezone, businessHoursStart: data.businessHoursStart, businessHoursEnd: data.businessHoursEnd, businessDays: data.businessDays }));
     const settings = await prisma.tenantSettings.upsert({
       where: { tenantId },
       create: { tenantId, ...data },
       update: data,
     });
+    console.log("[SETTINGS PATCH] upsert success, row businessHoursStart:", (settings as any).businessHoursStart);
 
     // Only when something the cache actually depends on has moved. `waWebhookVerifyToken` is
     // deliberately absent: it is used during Meta's subscription handshake and appears in neither
@@ -218,7 +228,7 @@ export async function PATCH(req: NextRequest) {
     // allowlist closed on load.
     return NextResponse.json({ success: true, data: publicTenantSettings(settings, null) });
   } catch (error) {
-    console.error("[SETTINGS PATCH]", error);
+    console.error("[SETTINGS PATCH] ERROR:", error);
     return NextResponse.json({ success: false, error: "Failed to update settings" }, { status: 500 });
   }
 }

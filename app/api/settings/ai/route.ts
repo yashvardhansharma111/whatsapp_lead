@@ -44,6 +44,9 @@ export async function GET() {
       }),
     ]);
 
+    console.log("[SETTINGS AI GET] tenantSettings:", JSON.stringify(settings));
+    console.log("[SETTINGS AI GET] business aiInstructions present:", !!(business as any)?.aiInstructions);
+
     // `name` is lifted out to `businessName` — the settings page shows it in the
     // instructions preview, and leaving it as a bare `name` on an AI-settings
     // payload reads like a name for the settings themselves.
@@ -54,7 +57,7 @@ export async function GET() {
       data: { ...settings, ...businessSettings, businessName, ...aiProviderInfo() },
     });
   } catch (error) {
-    console.error("[SETTINGS AI GET]", error);
+    console.error("[SETTINGS AI GET] ERROR:", error);
     return NextResponse.json({ success: false, error: "Failed to fetch AI settings" }, { status: 500 });
   }
 }
@@ -107,6 +110,9 @@ export async function PATCH(req: NextRequest) {
       Object.entries({ aiTemperature, aiMaxTokens, aiSystemPrompt, aiInstructions, aiResponseTone, offHoursMessage }).filter(([, v]) => v !== undefined)
     );
 
+    console.log("[SETTINGS AI PATCH] tenantData:", JSON.stringify(tenantData));
+    console.log("[SETTINGS AI PATCH] businessData keys:", Object.keys(businessData));
+
     const [settings, business] = await Promise.all([
       Object.keys(tenantData).length > 0
         ? prisma.tenantSettings.upsert({ where: { tenantId }, create: { tenantId, ...tenantData }, update: tenantData, select: { aiEnabled: true, aiModel: true, autoReply: true, autoReplyDelay: true, aiPersonality: true } })
@@ -116,9 +122,10 @@ export async function PATCH(req: NextRequest) {
         : prisma.business.findUnique({ where: { id: businessId }, select: { aiTemperature: true, aiMaxTokens: true, aiSystemPrompt: true, aiInstructions: true, aiResponseTone: true, offHoursMessage: true } }),
     ]);
 
+    console.log("[SETTINGS AI PATCH] success, autoReply saved:", (settings as any)?.autoReply);
     return NextResponse.json({ success: true, data: { ...(settings ?? {}), ...(business ?? {}) } });
   } catch (error) {
-    console.error("[SETTINGS AI PATCH]", error);
+    console.error("[SETTINGS AI PATCH] ERROR:", error);
     return NextResponse.json({ success: false, error: "Failed to update AI settings" }, { status: 500 });
   }
 }
