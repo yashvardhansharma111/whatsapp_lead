@@ -1,131 +1,57 @@
+// Thin proxy: /api/settings/ai → NestJS /settings/ai
+// All DB access is handled by NestJS; this route only forwards with auth.
+
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { aiProviderInfo } from "@/lib/ai";
-import { aiInstructionsSchema } from "@/lib/aiInstructions";
-import { guardFeature } from "@/lib/billing/guard";
-import { modelAllowed, resolveTenantPlan } from "@/lib/billing/usage";
-import { getBusinessScope } from "@/lib/business";
+import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
 
-const patchSchema = z.object({
-  // TenantSettings fields
-  aiEnabled: z.boolean().optional(),
-  aiModel: z.string().optional(),
-  autoReply: z.boolean().optional(),
-  autoReplyDelay: z.number().min(0).max(60).optional(),
-  aiPersonality: z.string().optional(),
-  // Business-level fields
-  aiTemperature: z.number().min(0).max(2).optional(),
-  aiMaxTokens: z.number().int().min(1).max(4096).optional(),
-  aiSystemPrompt: z.string().optional(),
-  // Every field inside is required — a partial object is rejected rather than
-  // merged, so the stored set can never be half-configured. See lib/aiInstructions.ts.
-  aiInstructions: aiInstructionsSchema.optional(),
-  aiResponseTone: z.string().optional(),
-  offHoursMessage: z.string().optional(),
-});
+const BACKEND = process.env.BACKEND_INTERNAL_URL ?? "http://localhost:4000";
+const _cache  = new Map<string, { token: string; expiresAt: number }>();
 
-export async function GET() {
-  const scope = await getBusinessScope();
-  if (!scope) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  const { tenantId, businessId } = scope;
-
+async function nestToken(userId: string, email: string, businessId: string | null): Promise<string | null> {
+  const k = `${userId}:${businessId ?? ""}`;
+  const hit = _cache.get(k);
+  if (hit && hit.expiresAt > Date.now() + 60_000) return hit.token;
+  const secret = process.env.BACKEND_SERVICE_SECRET;
+  if (!secret) return null;
   try {
-    const [settings, business] = await Promise.all([
-      prisma.tenantSettings.upsert({
-        where: { tenantId },
-        create: { tenantId },
-        update: {},
-        select: { aiEnabled: true, aiModel: true, autoReply: true, autoReplyDelay: true, aiPersonality: true },
-      }),
-      prisma.business.findUnique({
-        where: { id: businessId },
-        select: { aiTemperature: true, aiMaxTokens: true, aiSystemPrompt: true, aiInstructions: true, aiResponseTone: true, offHoursMessage: true, name: true },
-      }),
-    ]);
-
-    console.log("[SETTINGS AI GET] tenantSettings:", JSON.stringify(settings));
-    console.log("[SETTINGS AI GET] business aiInstructions present:", !!(business as any)?.aiInstructions);
-
-    // `name` is lifted out to `businessName` — the settings page shows it in the
-    // instructions preview, and leaving it as a bare `name` on an AI-settings
-    // payload reads like a name for the settings themselves.
-    const { name: businessName, ...businessSettings } = business ?? { name: null };
-
-    return NextResponse.json({
-      success: true,
-      data: { ...settings, ...businessSettings, businessName, ...aiProviderInfo() },
+    const res = await fetch(`${BACKEND}/auth/service-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, email, secret, businessId }),
     });
-  } catch (error) {
-    console.error("[SETTINGS AI GET] ERROR:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch AI settings" }, { status: 500 });
-  }
+    if (!res.ok) return null;
+    const j = await res.json();
+    const { token, expiresIn } = j.data ?? j;
+    _cache.set(k, { token, expiresAt: Date.now() + (expiresIn ?? 3600) * 1000 });
+    return token;
+  } catch { return null; }
 }
 
-export async function PATCH(req: NextRequest) {
-  const scope = await getBusinessScope();
-  if (!scope) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  const { tenantId, businessId, role } = scope;
+async function handler(req: NextRequest): Promise<NextResponse> {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"].includes(role)) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
+  const cookieStore = await cookies();
+  const businessId  = cookieStore.get("current_business")?.value ?? null;
+  const token       = await nestToken((session.user as any).id ?? "", (session.user as any).email ?? "", businessId);
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  let body: string | undefined;
+  if (req.method !== "GET" && req.method !== "HEAD") body = await req.text();
+
+  let upstream: Response;
   try {
-    let body: unknown;
-    try { body = await req.json(); } catch { return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 }); }
-
-    const parsed = patchSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 });
-
-    const { aiEnabled, aiModel, autoReply, autoReplyDelay, aiPersonality, aiTemperature, aiMaxTokens, aiSystemPrompt, aiInstructions, aiResponseTone, offHoursMessage } = parsed.data;
-
-    // Switching AI on at all requires the plan to include it, otherwise the flag
-    // is written, ignored by resolveAutoReplyConfig, and the settings page shows
-    // a toggle that is on while nothing happens.
-    if (aiEnabled === true) {
-      const denied = await guardFeature(tenantId, "aiEnabled");
-      if (denied) return denied;
-    }
-
-    // The model is the direct cost lever — this column is free text, so without
-    // this a tenant on the cheapest tier can point at the priciest model.
-    if (aiModel) {
-      const { grants, planName } = await resolveTenantPlan(tenantId);
-      if (!modelAllowed(grants, aiModel)) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `The ${planName} plan cannot use "${aiModel}". Available models: ${grants.allowedAiModels.join(", ")}.`,
-          },
-          { status: 403 },
-        );
-      }
-    }
-
-    const tenantData = Object.fromEntries(
-      Object.entries({ aiEnabled, aiModel, autoReply, autoReplyDelay, aiPersonality }).filter(([, v]) => v !== undefined)
-    );
-    const businessData = Object.fromEntries(
-      Object.entries({ aiTemperature, aiMaxTokens, aiSystemPrompt, aiInstructions, aiResponseTone, offHoursMessage }).filter(([, v]) => v !== undefined)
-    );
-
-    console.log("[SETTINGS AI PATCH] tenantData:", JSON.stringify(tenantData));
-    console.log("[SETTINGS AI PATCH] businessData keys:", Object.keys(businessData));
-
-    const [settings, business] = await Promise.all([
-      Object.keys(tenantData).length > 0
-        ? prisma.tenantSettings.upsert({ where: { tenantId }, create: { tenantId, ...tenantData }, update: tenantData, select: { aiEnabled: true, aiModel: true, autoReply: true, autoReplyDelay: true, aiPersonality: true } })
-        : prisma.tenantSettings.findUnique({ where: { tenantId }, select: { aiEnabled: true, aiModel: true, autoReply: true, autoReplyDelay: true, aiPersonality: true } }),
-      Object.keys(businessData).length > 0
-        ? prisma.business.update({ where: { id: businessId }, data: businessData, select: { aiTemperature: true, aiMaxTokens: true, aiSystemPrompt: true, aiInstructions: true, aiResponseTone: true, offHoursMessage: true } })
-        : prisma.business.findUnique({ where: { id: businessId }, select: { aiTemperature: true, aiMaxTokens: true, aiSystemPrompt: true, aiInstructions: true, aiResponseTone: true, offHoursMessage: true } }),
-    ]);
-
-    console.log("[SETTINGS AI PATCH] success, autoReply saved:", (settings as any)?.autoReply);
-    return NextResponse.json({ success: true, data: { ...(settings ?? {}), ...(business ?? {}) } });
-  } catch (error) {
-    console.error("[SETTINGS AI PATCH] ERROR:", error);
-    return NextResponse.json({ success: false, error: "Failed to update AI settings" }, { status: 500 });
+    upstream = await fetch(`${BACKEND}/settings/ai`, { method: req.method, headers, body });
+  } catch {
+    return NextResponse.json({ success: false, error: "Backend unreachable" }, { status: 502 });
   }
+
+  const data = await upstream.json();
+  return NextResponse.json(data, { status: upstream.status });
 }
+
+export const GET   = handler;
+export const PATCH = handler;
