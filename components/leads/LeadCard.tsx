@@ -11,6 +11,7 @@ type Lead = {
   currency: string | null;
   scoreLabel: LeadScoreLabel;
   stageId: string | null;
+  assignedToId: string | null;
   updatedAt: Date;
   createdAt: Date;
 };
