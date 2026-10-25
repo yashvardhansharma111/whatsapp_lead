@@ -301,10 +301,10 @@ function LeadDrawerPanel({
               type="range"
               min={0}
               max={100}
-              value={full.score}
+              value={full.score ?? 0}
               readOnly
               disabled
-              aria-label={`Lead score ${full.score} of 100`}
+              aria-label={`Lead score ${full.score ?? 0} of 100`}
               className="w-full accent-emerald-600 disabled:opacity-100"
             />
             <p className="mt-1 text-[11px] text-slate-400">

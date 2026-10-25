@@ -75,7 +75,7 @@ function groupByStage(leads: PipelineLead[], stageIds: string[]): Record<string,
   const board: Record<string, PipelineLead[]> = {};
   for (const id of stageIds) board[id] = [];
   for (const lead of leads) {
-    if (board[lead.stageId]) board[lead.stageId].push(lead);
+    if (lead.stageId && board[lead.stageId]) board[lead.stageId].push(lead);
   }
   return board;
 }

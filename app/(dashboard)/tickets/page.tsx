@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ticket as TicketIcon, Plus, AlertTriangle, Clock, X, Search } from "lucide-react";
 type TicketStatus = "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-type Ticket = { id: string; tenantId: string; conversationId?: string | null; assignedToId?: string | null; subject: string; status: TicketStatus; priority: TicketPriority; createdAt: string; updatedAt: string; [key: string]: unknown; };
+type Ticket = { id: string; tenantId: string; conversationId?: string | null; assignedToId?: string | null; subject: string; status: TicketStatus; priority: TicketPriority; department?: string | null; slaDeadline?: string | null; createdAt: string; updatedAt: string; };
 import {
   Avatar,
   Badge,
@@ -312,7 +312,7 @@ export default function TicketsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <SlaCell deadline={t.slaDeadline} status={t.status} now={now} />
+                        <SlaCell deadline={t.slaDeadline ?? null} status={t.status} now={now} />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-slate-500">
                         {formatDate(t.createdAt)}

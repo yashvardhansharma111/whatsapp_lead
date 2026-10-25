@@ -35,7 +35,7 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-type KnowledgeDoc = { id: string; name: string; metadata: unknown; updatedAt: string | Date };
+type KnowledgeDoc = { id: string; name: string; metadata: unknown; updatedAt: string | Date; isIndexed?: boolean };
 import { Badge, Button, Card, EmptyState, Modal, PageHeader, Skeleton } from "@/components/ui";
 import { readFaqState, type DocFaq, type FaqStyle } from "@/lib/knowledgeFaq";
 import { cn } from "@/lib/utils";
@@ -273,7 +273,7 @@ export function FaqWorkbench() {
 
       <CreateSetModal
         open={creating}
-        documents={indexed.map((d) => ({ id: d.id, name: d.name, isIndexed: d.isIndexed }))}
+        documents={indexed.map((d) => ({ id: d.id, name: d.name, isIndexed: d.isIndexed ?? false }))}
         onClose={() => setCreating(false)}
         onCreated={(set) => router.replace(`/knowledge-base/faqs?set=${set.id}`, { scroll: false })}
       />

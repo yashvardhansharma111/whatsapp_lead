@@ -12,6 +12,12 @@ type Lead = {
   scoreLabel: LeadScoreLabel;
   stageId: string | null;
   assignedToId: string | null;
+  score?: number | null;
+  notes?: string | null;
+  budget?: string | null;
+  authority?: string | null;
+  requirement?: string | null;
+  timeline?: string | null;
   updatedAt: Date;
   createdAt: Date;
 };

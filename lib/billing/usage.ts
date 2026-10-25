@@ -26,16 +26,16 @@ export interface Usage {
 
 export interface AgentAiBudget { limit: number | null; used: number; periodStart: Date | null }
 
-const NOT_IMPL = () => { throw new Error("Usage checks run in NestJS, not Next.js"); };
+const NOT_IMPL = (): never => { throw new Error("Usage checks run in NestJS, not Next.js"); };
 
-export async function resolveTenantPlan(_tenantId: string): Promise<ResolvedPlan> { NOT_IMPL(); }
-export async function assertFeature(_tenantId: string, _feature: PlanFeature): Promise<void> { NOT_IMPL(); }
-export async function assertWithinLimit(_tenantId: string, _resource: LimitResource, _increment?: number): Promise<void> { NOT_IMPL(); }
-export async function assertAgentAiCredits(_tenantId: string, _userId: string, _increment?: number): Promise<void> { NOT_IMPL(); }
-export function assertBelowCeiling(_resource: LimitResource, _value: number, _limit: number, _planName: string): void { NOT_IMPL(); }
-export async function planAllows(_tenantId: string, _feature: PlanFeature): Promise<boolean> { NOT_IMPL(); }
-export async function hasCapacity(_tenantId: string, _resource: LimitResource, _increment?: number): Promise<boolean> { NOT_IMPL(); }
-export async function getUsage(_tenantId: string): Promise<Usage> { NOT_IMPL(); }
-export async function incrementAiUsage(_tenantId: string, _amount?: number, _userId?: string | null): Promise<void> { NOT_IMPL(); }
-export async function resolveAgentAiBudget(_tenantId: string, _userId: string): Promise<AgentAiBudget> { NOT_IMPL(); }
-export function modelAllowed(_grants: Record<string, unknown>, _model?: string | null): boolean { NOT_IMPL(); }
+export async function resolveTenantPlan(_tenantId: string): Promise<ResolvedPlan> { return NOT_IMPL(); }
+export async function assertFeature(_tenantId: string, _feature: PlanFeature): Promise<void> { return NOT_IMPL(); }
+export async function assertWithinLimit(_tenantId: string, _resource: LimitResource, _increment?: number): Promise<void> { return NOT_IMPL(); }
+export async function assertAgentAiCredits(_tenantId: string, _userId: string, _increment?: number): Promise<void> { return NOT_IMPL(); }
+export function assertBelowCeiling(_resource: LimitResource, _value: number, _limit: number, _planName: string): void { return NOT_IMPL(); }
+export async function planAllows(_tenantId: string, _feature: PlanFeature): Promise<boolean> { return NOT_IMPL(); }
+export async function hasCapacity(_tenantId: string, _resource: LimitResource, _increment?: number): Promise<boolean> { return NOT_IMPL(); }
+export async function getUsage(_tenantId: string): Promise<Usage> { return NOT_IMPL(); }
+export async function incrementAiUsage(_tenantId: string, _amount?: number, _userId?: string | null): Promise<void> { return NOT_IMPL(); }
+export async function resolveAgentAiBudget(_tenantId: string, _userId: string): Promise<AgentAiBudget> { return NOT_IMPL(); }
+export function modelAllowed(_grants: Record<string, unknown>, _model?: string | null): boolean { return NOT_IMPL(); }
