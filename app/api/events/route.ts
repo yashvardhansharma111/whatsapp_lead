@@ -43,15 +43,26 @@ async function getNestToken(
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
+    console.warn("[events] SSE request rejected: no session");
     return new Response("Unauthorized", { status: 401 });
   }
 
+  const userId     = (session.user as any).id   ?? "(unknown)";
+  const tenantId   = (session.user as any).tenantId ?? "(unknown)";
   const businessId = req.cookies.get("current_business")?.value ?? null;
+  console.log(`[events] SSE connect userId=${userId} tenantId=${tenantId} businessId=${businessId}`);
+
   const nestToken = await getNestToken(
-    (session.user as any).id ?? "",
+    userId,
     (session.user as any).email ?? "",
     businessId,
   );
+
+  if (!nestToken) {
+    console.error("[events] Failed to obtain NestJS service token — BACKEND_SERVICE_SECRET missing or /auth/service-token failed");
+  } else {
+    console.log("[events] NestJS service token obtained OK");
+  }
 
   const headers: Record<string, string> = {
     Accept: "text/event-stream",
@@ -59,17 +70,22 @@ export async function GET(req: NextRequest) {
   };
   if (nestToken) headers["Authorization"] = `Bearer ${nestToken}`;
 
+  console.log(`[events] Connecting to upstream ${BACKEND}/events`);
   let upstream: Response;
   try {
     upstream = await fetch(`${BACKEND}/events`, { headers });
-  } catch {
+  } catch (err: any) {
+    console.error(`[events] Upstream fetch threw: ${err?.message}`);
     return new Response("Backend unreachable", { status: 502 });
   }
 
+  console.log(`[events] Upstream response status=${upstream.status} ok=${upstream.ok} hasBody=${!!upstream.body}`);
   if (!upstream.ok || !upstream.body) {
+    console.error(`[events] Upstream not OK: status=${upstream.status}`);
     return new Response("Stream unavailable", { status: 502 });
   }
 
+  console.log("[events] Streaming SSE to browser");
   return new Response(upstream.body, {
     headers: {
       "Content-Type": "text/event-stream",

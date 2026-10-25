@@ -46,22 +46,36 @@ export default function InboxPage() {
   useEffect(() => {
     if (!tenantId) return;
 
+    console.log("[inbox] SSE: opening /api/events tenantId=", tenantId);
     const es = new EventSource("/api/events");
 
     es.onopen = () => {
+      console.log("[inbox] SSE: connected (readyState=OPEN)");
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
     es.onmessage = (e) => {
+      console.log("[inbox] SSE raw message:", e.data);
       try {
         const payload = JSON.parse(e.data as string);
+        console.log("[inbox] SSE event:", payload?.event, payload);
         if (payload?.event === "new-message") {
+          console.log("[inbox] SSE new-message → invalidating conversations conversationId=", payload?.conversationId);
           void queryClient.invalidateQueries({ queryKey: ["conversations"] });
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.warn("[inbox] SSE parse error:", err, "raw:", e.data);
+      }
     };
 
-    return () => es.close();
+    es.onerror = (err) => {
+      console.error("[inbox] SSE error (will auto-reconnect):", err, "readyState=", es.readyState);
+    };
+
+    return () => {
+      console.log("[inbox] SSE: closing connection");
+      es.close();
+    };
   }, [tenantId, queryClient]);
 
   const [tab, setTab] = useState<InboxTab>("all");
