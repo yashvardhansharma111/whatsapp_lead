@@ -40,6 +40,10 @@ export default function InboxPage() {
   const queryClient = useQueryClient();
   const { mutate: markConversationRead } = useMarkConversationRead();
 
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+
   // SSE real-time subscription: invalidate conversations when a new message arrives.
   // EventSource auto-reconnects; on each (re)connect we refetch to catch any gap.
   // Falls back to the 30s poll in useConversations when SSE is unavailable.
@@ -52,6 +56,9 @@ export default function InboxPage() {
     es.onopen = () => {
       console.log("[inbox] SSE: connected (readyState=OPEN)");
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      // Reconnect after timeout — also refresh the open conversation detail
+      const openId = selectedIdRef.current;
+      if (openId) void queryClient.invalidateQueries({ queryKey: ["conversations", openId] });
     };
 
     es.onmessage = (e) => {
@@ -62,6 +69,13 @@ export default function InboxPage() {
         if (payload?.event === "new-message") {
           console.log("[inbox] SSE new-message → invalidating conversations conversationId=", payload?.conversationId);
           void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          if (payload?.conversationId) {
+            void queryClient.invalidateQueries({ queryKey: ["conversations", payload.conversationId] });
+          }
+        } else if (payload?.event === "status-update") {
+          // Status changed (PENDING→SENT→DELIVERED→READ) — refresh the open conversation
+          const openId = selectedIdRef.current;
+          if (openId) void queryClient.invalidateQueries({ queryKey: ["conversations", openId] });
         }
       } catch (err) {
         console.warn("[inbox] SSE parse error:", err, "raw:", e.data);
@@ -80,7 +94,6 @@ export default function InboxPage() {
 
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */
   const [panelOpen, setPanelOpen] = useState(false);
 
