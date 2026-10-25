@@ -15,6 +15,9 @@ import {
   Check,
   X,
   Minus,
+  Trash2,
+  Copy,
+  ClipboardCheck,
 } from "lucide-react";
 type UserRole = "SUPER_ADMIN" | "TENANT_OWNER" | "ADMIN" | "MANAGER" | "AGENT" | "MARKETING_USER";
 type User = { id: string; tenantId: string; name: string; email: string; role: UserRole; avatar?: string | null; phone?: string | null; isActive: boolean; lastLoginAt?: string | null; createdAt?: string; updatedAt?: string; aiCreditLimit: number | null; aiCreditsUsed: number; };
@@ -103,6 +106,22 @@ export default function TeamPage() {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [permsMember, setPermsMember] = useState<Member | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<Member | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<Member | null>(null);
+
+  const removeMutation = useMutation({
+    mutationFn: async (member: Member) => {
+      const res = await fetch(`/api/team/${member.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to remove member");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team"] });
+      setConfirmRemove(null);
+      showToast("Member removed.", "success");
+    },
+    onError: (err: Error) => showToast(err.message, "error"),
+  });
 
   const toggleMutation = useMutation({
     mutationFn: async (member: Member) => {
@@ -232,6 +251,12 @@ export default function TeamPage() {
                       Customize permissions
                     </Button>
                   )}
+                  {m.role !== "TENANT_OWNER" && (
+                    <Button variant="secondary" className="col-span-2 h-10 text-rose-600 hover:bg-rose-50" onClick={() => setConfirmRemove(m)}>
+                      <Trash2 className="h-4 w-4" />
+                      Remove member
+                    </Button>
+                  )}
                 </div>
               </li>
             ))}
@@ -316,6 +341,17 @@ export default function TeamPage() {
                             </>
                           )}
                         </Button>
+                        {m.role !== "TENANT_OWNER" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-600 hover:bg-rose-50"
+                            onClick={() => setConfirmRemove(m)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Remove
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -330,6 +366,27 @@ export default function TeamPage() {
       <InviteModal open={open} onClose={() => setOpen(false)} />
       <ChangeRoleModal member={editingMember} onClose={() => setEditingMember(null)} />
       <UserPermissionsModal member={permsMember} onClose={() => setPermsMember(null)} />
+
+      {/* Remove member confirmation */}
+      <Modal
+        open={!!confirmRemove}
+        onClose={() => { if (!removeMutation.isPending) setConfirmRemove(null); }}
+        title="Remove member?"
+        description={`${confirmRemove?.name} will be permanently removed from this workspace and lose all access.`}
+      >
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end max-sm:[&>button]:h-10 max-sm:[&>button]:w-full">
+          <Button variant="secondary" onClick={() => setConfirmRemove(null)} disabled={removeMutation.isPending}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={removeMutation.isPending}
+            onClick={() => confirmRemove && removeMutation.mutate(confirmRemove)}
+          >
+            {removeMutation.isPending ? "Removing…" : "Remove"}
+          </Button>
+        </div>
+      </Modal>
 
       {/* Activate / Deactivate confirmation */}
       <Modal
@@ -371,6 +428,8 @@ function InviteModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("AGENT");
+  const [created, setCreated] = useState<{ name: string; email: string; tempPassword: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const invite = useMutation({
     mutationFn: async (data: { name: string; email: string; role: UserRole }) => {
@@ -386,92 +445,143 @@ function InviteModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     onSuccess: (json) => {
       queryClient.invalidateQueries({ queryKey: ["team"] });
       const pwd = json.data?.tempPassword as string | undefined;
-      const emailSent = json.data?.emailSent === true;
-      const emailError = json.data?.emailError as string | undefined;
-      if (pwd && emailSent) {
-        showToast(`Invited! Email sent. Temporary password (shown once): ${pwd}`, "success");
-      } else if (pwd) {
-        showToast(
-          `Member created, but invite email failed${emailError ? `: ${emailError}` : ""}. Share this temporary password now (shown once): ${pwd}`,
-          "success",
-        );
+      if (pwd) {
+        setCreated({ name, email, tempPassword: pwd });
       } else {
-        showToast(emailSent ? "Member invited successfully." : "Member created, but invite email failed.", "success");
+        showToast("Member invited successfully.", "success");
+        close();
       }
-      setName(""); setEmail(""); setRole("AGENT");
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
-  const close = () => { setName(""); setEmail(""); onClose(); };
+  const close = () => {
+    setName(""); setEmail(""); setRole("AGENT");
+    setCreated(null); setCopied(false);
+    onClose();
+  };
+
+  const copyPassword = () => {
+    if (!created) return;
+    navigator.clipboard.writeText(created.tempPassword).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title="Invite Member"
-      description="Add a teammate to this workspace. They can log in with the temporary password."
+      title={created ? "Member Created" : "Invite Member"}
+      description={
+        created
+          ? `Share the temporary password with ${created.name} — they'll use it to log in.`
+          : "Add a teammate to this workspace. They can log in with the temporary password."
+      }
     >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          invite.mutate({ name, email, role });
-        }}
-      >
-        <Field label="Full name" htmlFor="invite-name" required>
-          <input
-            id="invite-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputClass}
-            placeholder="Jane Smith"
-          />
-        </Field>
+      {created ? (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span className="font-medium">Name</span>
+              <span>{created.name}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span className="font-medium">Email</span>
+              <span>{created.email}</span>
+            </div>
+          </div>
 
-        <Field label="Email address" htmlFor="invite-email" required>
-          <input
-            id="invite-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-            placeholder="teammate@company.com"
-          />
-        </Field>
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-slate-700">Temporary password</p>
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+              <code className="flex-1 font-mono text-base font-semibold tracking-widest text-emerald-800 select-all">
+                {created.tempPassword}
+              </code>
+              <button
+                type="button"
+                onClick={copyPassword}
+                className="flex shrink-0 items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 transition"
+              >
+                {copied ? (
+                  <><ClipboardCheck className="h-3.5 w-3.5 text-emerald-600" /> Copied!</>
+                ) : (
+                  <><Copy className="h-3.5 w-3.5" /> Copy</>
+                )}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500">
+              This password will not be shown again. Copy it before closing.
+            </p>
+          </div>
 
-        <Field label="Role" htmlFor="invite-role" required>
-          <select
-            id="invite-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
-            className={inputClass}
-          >
-            {INVITABLE_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABEL[r]}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1.5 text-xs text-slate-500">
-            {role === "ADMIN" && "Full access to every workspace setting except billing."}
-            {role === "MANAGER" && "Can see all conversations, leads and reports for the team."}
-            {role === "AGENT" && "Handles conversations assigned to them and their own leads."}
-            {role === "MARKETING_USER" && "Access to campaigns, templates and analytics only."}
-          </p>
-        </Field>
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end max-sm:[&>button]:h-10 max-sm:[&>button]:w-full pt-2">
-          <Button type="button" variant="secondary" onClick={close}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!name.trim() || !email.trim() || invite.isPending}>
-            <UserPlus className="h-4 w-4" />
-            {invite.isPending ? "Inviting…" : "Invite Member"}
-          </Button>
+          <div className="flex justify-end pt-2">
+            <Button onClick={close}>Done</Button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            invite.mutate({ name, email, role });
+          }}
+        >
+          <Field label="Full name" htmlFor="invite-name" required>
+            <input
+              id="invite-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputClass}
+              placeholder="Jane Smith"
+            />
+          </Field>
+
+          <Field label="Email address" htmlFor="invite-email" required>
+            <input
+              id="invite-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputClass}
+              placeholder="teammate@company.com"
+            />
+          </Field>
+
+          <Field label="Role" htmlFor="invite-role" required>
+            <select
+              id="invite-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className={inputClass}
+            >
+              {INVITABLE_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABEL[r]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              {role === "ADMIN" && "Full access to every workspace setting except billing."}
+              {role === "MANAGER" && "Can see all conversations, leads and reports for the team."}
+              {role === "AGENT" && "Handles conversations assigned to them and their own leads."}
+              {role === "MARKETING_USER" && "Access to campaigns, templates and analytics only."}
+            </p>
+          </Field>
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end max-sm:[&>button]:h-10 max-sm:[&>button]:w-full pt-2">
+            <Button type="button" variant="secondary" onClick={close}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!name.trim() || !email.trim() || invite.isPending}>
+              <UserPlus className="h-4 w-4" />
+              {invite.isPending ? "Inviting…" : "Invite Member"}
+            </Button>
+          </div>
+        </form>
+      )}
     </Modal>
   );
 }
