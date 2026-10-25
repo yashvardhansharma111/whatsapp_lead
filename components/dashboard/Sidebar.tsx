@@ -30,6 +30,7 @@ import {
   Filter,
   ChevronRight,
   FileBarChart2,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -42,6 +43,7 @@ const NAV = [
     items: [
       { href: "/inbox", label: "Inbox", icon: MessageSquare, roles: null },
       { href: "/contacts", label: "Contacts", icon: Users, roles: null },
+      { href: "/tags", label: "Tags", icon: Tag, roles: null },
       { href: "/leads", label: "Leads", icon: Target, roles: null },
     ],
   },
