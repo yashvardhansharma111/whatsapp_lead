@@ -33,7 +33,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
-import type { CampaignStatus } from "@prisma/client";
+type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
 import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";

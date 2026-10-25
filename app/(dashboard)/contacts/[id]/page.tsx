@@ -14,7 +14,7 @@ import {
   Trash2,
   UserX,
 } from "lucide-react";
-import type { LeadScoreLabel } from "@prisma/client";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBulkContactAction, useContact, useDeleteContact } from "@/hooks/useContacts";
 import { Avatar, Badge, Button, Card, EmptyState, Modal, Skeleton } from "@/components/ui";

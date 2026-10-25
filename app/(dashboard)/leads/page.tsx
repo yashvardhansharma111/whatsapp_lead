@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
-import type { LeadScoreLabel } from "@prisma/client";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
 import { ExportButton } from "@/components/ExportButton";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadStages } from "@/hooks/useLeadStages";

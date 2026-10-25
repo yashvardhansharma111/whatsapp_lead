@@ -32,7 +32,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import type { KnowledgeDoc } from "@prisma/client";
+type KnowledgeDoc = { id: string; tenantId: string; businessId: string; name: string; type: string; url?: string | null; content?: string | null; vectorIds: string[]; chunkCount: number; isIndexed: boolean; metadata?: unknown; createdAt: string; updatedAt: string; };
 import { Badge, Button, Card, EmptyState, Field, inputClass, Modal, PageHeader, Skeleton } from "@/components/ui";
 import { readFaqState } from "@/lib/knowledgeFaq";
 import { UploadModal } from "@/components/knowledge/UploadModal";

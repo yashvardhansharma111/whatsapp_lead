@@ -4,29 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:queue": "npx --yes @upstash/qstash-cli@latest dev",
-    "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "seed": "tsx prisma/seed.ts",
-    "seed:demo": "tsx scripts/seed-test-accounts.ts",
-    "db:studio": "prisma studio",
-    "db:generate": "prisma generate",
-    "db:backfill-whatsapp": "tsx scripts/backfill-whatsapp-integrations.ts",
-    "db:dedupe-contacts": "tsx scripts/dedupe-contacts.ts",
-    "test:rag": "tsx scripts/test-rag.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.2",
     "@hookform/resolvers": "^5.4.0",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.9.0",
     "@qdrant/js-client-rest": "^1.18.0",
     "@tanstack/react-query": "^5.101.2",
     "@types/bcryptjs": "^2.4.6",
@@ -50,8 +33,6 @@
     "nodemailer": "^7.0.13",
     "openai": "^6.48.0",
     "pdf-parse": "^2.4.5",
-    "pg": "^8.22.0",
-    "prisma": "^7.9.0",
     "pusher": "^5.3.4",
     "pusher-js": "^8.5.0",
     "razorpay": "^2.9.8",

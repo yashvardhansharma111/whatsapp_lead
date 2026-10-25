@@ -14,9 +14,7 @@ import {
   ArrowRight, BarChart3, Bot, Check, Globe, Inbox, Mail, MapPin, Megaphone, Phone,
   ShieldCheck, Target, UploadCloud, Users,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { getRequestBrand } from "@/lib/branding";
-import { BASE_PLAN_WHERE } from "@/lib/reseller";
 import { Container, GridBackdrop, Reveal, SectionHeading, Spotlight } from "@/components/marketing/home/primitives";
 import { PageCta, Section } from "@/components/marketing/PageShell";
 
@@ -47,14 +45,11 @@ export default async function BrandLandingPage() {
   if (!brand.isWhiteLabel) redirect("/login");
   if (!brand.landingEnabled) redirect("/login");
 
-  const own = await prisma.plan.findMany({
-    where: { resellerId: brand.resellerId, isActive: true },
-    orderBy: { priceMonthly: "asc" },
-    take: 4,
-  });
-  const plans = own.length
-    ? own
-    : await prisma.plan.findMany({ where: BASE_PLAN_WHERE, orderBy: [{ sortOrder: "asc" }, { priceMonthly: "asc" }], take: 4 });
+  const BACKEND = process.env.BACKEND_INTERNAL_URL ?? "http://localhost:4000";
+  const qs = brand.resellerId ? `?resellerId=${encodeURIComponent(brand.resellerId)}` : "";
+  const plansRes = await fetch(`${BACKEND}/billing/plans/public${qs}`, { cache: "no-store" }).catch(() => null);
+  const plansJson = plansRes?.ok ? await plansRes.json() : null;
+  const plans: any[] = plansJson?.data?.plans ?? [];
 
   const title = brand.landingTitle || brand.loginHeadline;
   const subtitle = brand.landingSubtitle || brand.loginSubtext;

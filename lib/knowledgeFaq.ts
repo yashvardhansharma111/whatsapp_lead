@@ -14,8 +14,9 @@
 // lives in `knowledgeFaq.server.ts` — it calls the model, so importing it from
 // the browser bundle would drag the OpenAI client along with it.
 
-import type { Prisma } from "@prisma/client";
 import { INTENT_POINTS, readIntent, type IntentWeight } from "@/lib/intent";
+
+type InputJsonValue = string | number | boolean | null | InputJsonValue[] | { [key: string]: InputJsonValue };
 
 export interface DocFaq {
   question: string;
@@ -130,7 +131,7 @@ export function mergeFaqMetadata(
     truncated?: boolean;
     style?: FaqStyle;
   },
-): Prisma.InputJsonValue {
+): InputJsonValue {
   const base = isRecord(metadata) ? { ...metadata } : {};
 
   // Written whenever it is supplied, including on a save that changes nothing
@@ -151,7 +152,7 @@ export function mergeFaqMetadata(
     base.faqsError = result.error;
   }
 
-  return base as Prisma.InputJsonValue;
+  return base as InputJsonValue;
 }
 
 /**
@@ -266,7 +267,7 @@ export function parseAnswerResponse(raw: string): { answer: string; source?: str
  * passed through, which also keeps a cleared citation from being stored as a
  * null that later reads back as a source.
  */
-export function toJsonFaqs(faqs: DocFaq[]): Prisma.InputJsonValue {
+export function toJsonFaqs(faqs: DocFaq[]): InputJsonValue {
   return faqs.map((faq) => ({
     question: faq.question,
     answer: faq.answer,
@@ -380,7 +381,7 @@ export function faqStyleInstructions(style: FaqStyle): string[] {
  * `InputJsonObject` to TypeScript, which requires an index signature. Spelling
  * the object out satisfies that and drops anything not part of the shape.
  */
-export function toJsonStyle(style: FaqStyle): Prisma.InputJsonValue {
+export function toJsonStyle(style: FaqStyle): InputJsonValue {
   return {
     length: style.length,
     tone: style.tone,

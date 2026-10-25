@@ -20,7 +20,8 @@ import {
   Send,
   Filter,
 } from "lucide-react";
-import type { Campaign, CampaignStatus } from "@prisma/client";
+type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
+type Campaign = { id: string; name: string; status: CampaignStatus; scheduledAt?: string | null; createdAt: string; totalCount: number; sentCount: number; deliveredCount: number; readCount: number; repliedCount: number; failedCount: number; [key: string]: unknown; };
 import {
   Badge,
   Button,

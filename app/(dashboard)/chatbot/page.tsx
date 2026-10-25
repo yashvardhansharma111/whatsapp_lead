@@ -12,7 +12,7 @@ import {
   MoreHorizontal,
   WifiOff,
 } from "lucide-react";
-import type { ChatbotFlow } from "@prisma/client";
+type ChatbotFlow = { id: string; tenantId: string; businessId: string; name: string; description?: string | null; trigger: string; keywords: string[]; nodes: unknown; edges: unknown; isActive: boolean; createdAt: string; updatedAt: string; };
 import {
   Badge,
   Button,

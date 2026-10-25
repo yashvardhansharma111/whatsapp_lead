@@ -1,6 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { StageOutcome, LeadScoreLabel, TicketStatus, TicketPriority } from "@prisma/client";
+type StageOutcome = "OPEN" | "WON" | "LOST";
+type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
+type TicketStatus = "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

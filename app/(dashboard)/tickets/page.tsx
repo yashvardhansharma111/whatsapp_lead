@@ -3,7 +3,9 @@
 import { useState, useSyncExternalStore, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ticket as TicketIcon, Plus, AlertTriangle, Clock, X, Search } from "lucide-react";
-import type { Ticket, TicketPriority, TicketStatus } from "@prisma/client";
+type TicketStatus = "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+type Ticket = { id: string; tenantId: string; conversationId?: string | null; assignedToId?: string | null; subject: string; status: TicketStatus; priority: TicketPriority; createdAt: string; updatedAt: string; [key: string]: unknown; };
 import {
   Avatar,
   Badge,

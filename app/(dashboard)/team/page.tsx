@@ -16,7 +16,8 @@ import {
   X,
   Minus,
 } from "lucide-react";
-import type { User, UserRole } from "@prisma/client";
+type UserRole = "SUPER_ADMIN" | "TENANT_OWNER" | "ADMIN" | "MANAGER" | "AGENT" | "MARKETING_USER";
+type User = { id: string; tenantId: string; name: string; email: string; role: UserRole; avatar?: string | null; phone?: string | null; isActive: boolean; lastLoginAt?: string | null; createdAt?: string; updatedAt?: string; };
 import {
   Avatar,
   Badge,
