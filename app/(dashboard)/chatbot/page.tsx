@@ -65,7 +65,7 @@ export default function ChatbotPage() {
   }
 
   function openLocalBuilder(input?: { name?: string; description?: string; keywords?: string[] }) {
-    const now = new Date();
+    const now = new Date().toISOString();
     const flow = {
       id: `local-${Date.now()}`,
       tenantId: "local",
