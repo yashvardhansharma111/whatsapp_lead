@@ -236,7 +236,7 @@ export default function ChatbotPage() {
                 )}
                 {(f.trigger === "KEYWORD" || !f.trigger) && (
                   <>
-                    {(f.keywords ?? []).slice(0, 4).map((k) => (
+                    {(f.keywords ?? [] as string[]).slice(0, 4).map((k: string) => (
                       <Badge key={k} className="bg-emerald-50 text-emerald-700 ring-emerald-600/20">
                         {k}
                       </Badge>
