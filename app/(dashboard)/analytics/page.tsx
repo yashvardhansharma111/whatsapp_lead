@@ -10,10 +10,11 @@ import {
   MessageSquare,
   Percent,
   Send,
+  Smartphone,
   Target,
   Trophy,
 } from "lucide-react";
-import { Button, PageHeader } from "@/components/ui";
+import { Button, Card, PageHeader } from "@/components/ui";
 import { KpiCard } from "@/components/analytics/KpiCard";
 import {
   AgentPerformanceTable,
@@ -83,9 +84,35 @@ const mins = (v?: number | null) => {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+interface PerMobileRow {
+  integrationId: string;
+  phone: string;
+  displayName: string | null;
+  isDefault: boolean;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  campaignsSent: number;
+}
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const { data, isLoading, isFetching } = useAnalytics(period);
+
+  const { data: perMobileData } = useQuery<{ rows: PerMobileRow[] }>({
+    queryKey: ["analytics-per-mobile", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/analytics/per-mobile?period=${period}`);
+      if (!res.ok) throw new Error("Failed to fetch per-mobile report");
+      const json = await res.json();
+      return (json?.data ?? json) as { rows: PerMobileRow[] };
+    },
+    retry: false,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const mobileRows = perMobileData?.rows ?? [];
 
   const d = data?.deltas;
 
@@ -236,6 +263,47 @@ export default function AnalyticsPage() {
         </div>
 
         <AgentPerformanceTable data={data?.agentPerformance} loading={isLoading} />
+
+        {/* Per-mobile report */}
+        {mobileRows.length > 0 && (
+          <Card className="overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+              <Smartphone className="h-4 w-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-slate-700">Per WhatsApp Number</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <th className="px-4 py-2 text-left">Number</th>
+                    <th className="px-4 py-2 text-right">Sent</th>
+                    <th className="px-4 py-2 text-right">Delivered</th>
+                    <th className="px-4 py-2 text-right">Read</th>
+                    <th className="px-4 py-2 text-right">Failed</th>
+                    <th className="px-4 py-2 text-right">Campaign</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {mobileRows.map((row) => (
+                    <tr key={row.integrationId} className="hover:bg-slate-50">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium text-slate-900">{row.phone}</div>
+                        {row.displayName && (
+                          <div className="text-xs text-slate-400">{row.displayName}{row.isDefault ? " · Default" : ""}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-700">{row.sent.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-emerald-600">{row.delivered.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-violet-600">{row.read.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-rose-500">{row.failed.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{row.campaignsSent.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
