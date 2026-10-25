@@ -21,7 +21,7 @@ import {
   Filter,
 } from "lucide-react";
 type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
-type Campaign = { id: string; name: string; status: CampaignStatus; scheduledAt?: string | null; createdAt: string; totalCount: number; sentCount: number; deliveredCount: number; readCount: number; repliedCount: number; failedCount: number; [key: string]: unknown; };
+type Campaign = { id: string; name: string; status: CampaignStatus; scheduledAt?: string | null; createdAt: string; totalCount: number; sentCount: number; deliveredCount: number; readCount: number; clickedCount?: number; repliedCount: number; failedCount: number; [key: string]: unknown; };
 import {
   Badge,
   Button,
@@ -408,7 +408,7 @@ function CampaignsPageInner() {
                       ["Delivered", c.deliveredCount ?? 0],
                       ["Read", c.readCount ?? 0],
                       ["Clicked", c.clickedCount ?? 0],
-                    ] as const
+                    ] as [string, number][]
                   ).map(([label, value]) => (
                     <div key={label}>
                       <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
