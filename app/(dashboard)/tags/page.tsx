@@ -29,9 +29,16 @@ export default function TagsPage() {
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [confirmDelete, setConfirmDelete] = useState<TagItem | null>(null);
 
-  const { data, isLoading } = useQuery<{ tags: TagItem[] }>({
+  const { data, isLoading, error } = useQuery<{ tags: TagItem[] }>({
     queryKey: ["tags"],
-    queryFn: () => fetch("/api/tags").then((r) => r.json()).then((j) => j.data ?? { tags: [] }),
+    queryFn: async () => {
+      const r = await fetch("/api/tags");
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message ?? j.error ?? "Failed to load tags");
+      const payload = j?.data ?? j;
+      return { tags: Array.isArray(payload?.tags) ? payload.tags : [] };
+    },
+    retry: 1,
   });
   const tags = data?.tags ?? [];
 
@@ -64,7 +71,7 @@ export default function TagsPage() {
         body: JSON.stringify({ name: name.trim(), color }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to save tag");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to save tag");
       return json;
     },
     onSuccess: () => {
@@ -79,7 +86,7 @@ export default function TagsPage() {
     mutationFn: async (tag: TagItem) => {
       const res = await fetch(`/api/tags/${tag.id}`, { method: "DELETE" });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to delete tag");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to delete tag");
       return json;
     },
     onSuccess: () => {
@@ -108,6 +115,10 @@ export default function TagsPage() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-100" />
           ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {(error as Error).message}
         </div>
       ) : tags.length === 0 ? (
         <EmptyState
