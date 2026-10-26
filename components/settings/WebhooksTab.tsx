@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Copy, RefreshCw, Webhook, Key, ChevronDown, ChevronUp, CheckCircle2, XCircle, Circle } from "lucide-react";
+import { Plus, Trash2, Copy, RefreshCw, Webhook, Key, ChevronDown, ChevronUp, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 const WEBHOOK_EVENTS = [
@@ -480,7 +480,17 @@ export function WebhooksTab() {
       </section>
 
       <section className="rounded-lg border border-slate-200 p-5">
-        <h3 className="mb-3 font-semibold text-slate-800">Incoming API Reference</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-slate-800">Incoming API Reference</h3>
+          <a
+            href="/api-docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
+          >
+            Full docs <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
         <div className="space-y-4 text-sm">
           <div>
             <p className="mb-1 font-medium text-slate-700">Send a text message</p>

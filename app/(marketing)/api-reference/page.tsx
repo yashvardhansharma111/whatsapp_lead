@@ -326,12 +326,12 @@ export default function ApiReferencePage() {
         title="Every endpoint, in one page"
         description="Eight resource groups covering messages, conversations, contacts, leads, campaigns, tickets, the knowledge base and analytics. Authentication and webhooks are covered in the docs."
         primaryCta={{ label: "Read the docs", href: "/api-docs" }}
-        secondaryCta={{ label: "Request a key", href: "/contact" }}
+        secondaryCta={{ label: "Generate your key", href: "/login" }}
       >
         <div className="mx-auto mt-7 max-w-xl overflow-x-auto rounded-2xl bg-slate-900 p-4 text-left shadow-lg shadow-slate-900/20 ring-1 ring-inset ring-white/10">
           <pre className="font-mono text-[12px] leading-relaxed text-slate-300">
-            <code>{`Authorization: Bearer $WHATSCRM_API_KEY
-Base URL:      https://api.whatscrm.in/v1`}</code>
+            <code>{`X-Api-Key: $WABOXA_API_KEY
+Base URL:  https://api.waboxa.com/v1`}</code>
           </pre>
         </div>
       </PageHero>

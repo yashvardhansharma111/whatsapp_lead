@@ -65,16 +65,16 @@ const CONCEPTS: { Icon: LucideIcon; title: string; body: string }[] = [
 
 const QUICKSTART = [
   {
-    title: "Get a key",
-    body: "Write to the team with your workspace name. Keys are issued per workspace and can be scoped read-only.",
+    title: "Generate a key",
+    body: "Go to Settings → Webhooks & API inside your workspace. Click Generate Key — it's shown once, so copy it immediately.",
   },
   {
-    title: "Call the API",
-    body: "Send the key as a bearer token. Every response is JSON; every error carries a machine-readable code.",
+    title: "Add the header",
+    body: "Pass your key as X-Api-Key on every request. Every response is JSON; every error carries a machine-readable message.",
   },
   {
     title: "Receive webhooks",
-    body: "Register an HTTPS endpoint, verify the signature header, and acknowledge with a 2xx within ten seconds.",
+    body: "Register an HTTPS endpoint in the same tab, verify the X-Webhook-Signature header, and acknowledge with 2xx within ten seconds.",
   },
 ];
 
@@ -82,26 +82,24 @@ const SNIPPETS: { label: string; language: string; code: string }[] = [
   {
     label: "Send a text message",
     language: "curl",
-    code: `curl -X POST https://api.whatscrm.in/v1/messages \\
-  -H "Authorization: Bearer $WHATSCRM_API_KEY" \\
+    code: `curl -X POST https://api.waboxa.com/v1/messages \\
+  -H "X-Api-Key: $WABOXA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: 7f1c0e2a" \\
   -d '{
     "to": "+919876543210",
-    "type": "text",
-    "text": { "body": "Your order has been dispatched." }
+    "text": "Your order has been dispatched."
   }'`,
   },
   {
-    label: "Create a contact",
+    label: "Send a template message",
     language: "curl",
-    code: `curl -X POST https://api.whatscrm.in/v1/contacts \\
-  -H "Authorization: Bearer $WHATSCRM_API_KEY" \\
+    code: `curl -X POST https://api.waboxa.com/v1/messages \\
+  -H "X-Api-Key: $WABOXA_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "name": "Rahul Kumar",
-    "phone": "+919876543210",
-    "tags": ["website", "pricing-enquiry"]
+    "to": "+919876543210",
+    "templateName": "order_confirmed",
+    "variables": { "body": ["ORD-4521", "₹1,200"] }
   }'`,
   },
   {
@@ -175,7 +173,7 @@ export default function ApiDocsPage() {
         title="Build WhatsApp into whatever you already run"
         description="A REST API over the same workspace your team uses: send messages, sync contacts and leads, read analytics, and receive every event as a signed webhook."
         primaryCta={{ label: "Browse the reference", href: "/api-reference" }}
-        secondaryCta={{ label: "Request a key", href: "/contact" }}
+        secondaryCta={{ label: "Generate your key", href: "/login" }}
       >
         <div className="mx-auto mt-7 max-w-xl rounded-2xl bg-white/80 p-4 text-left shadow-sm ring-1 ring-inset ring-emerald-600/15 backdrop-blur">
           <p className="flex items-start gap-2 text-xs leading-relaxed text-slate-600">
