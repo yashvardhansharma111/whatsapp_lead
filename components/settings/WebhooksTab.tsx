@@ -40,7 +40,7 @@ function ApiKeySection() {
   const qc = useQueryClient();
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
-  const { data } = useQuery<{ hasKey: boolean; maskedKey: string | null }>({
+  const { data } = useQuery<{ hasKey: boolean; maskedKey: string | null; planAllows: boolean }>({
     queryKey: ["webhooks-apikey"],
     queryFn: () => fetch("/api/webhooks/apikey").then((r) => r.json()),
   });
@@ -85,9 +85,16 @@ function ApiKeySection() {
         <h3 className="font-semibold text-slate-800">Incoming API Key</h3>
       </div>
       <p className="mb-3 text-sm text-slate-500">
-        Use this key to call the public REST API from your CRM or external systems.
+        Use this key to call the public REST API from your CRM or external tools.
         Pass it as the <code className="rounded bg-slate-100 px-1 py-0.5 text-xs font-mono">X-Api-Key</code> request header.
       </p>
+
+      {data && !data.planAllows && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          API access is not included in your current plan. Upgrade to a plan with the <strong>API Access</strong> feature to generate and use API keys.
+        </div>
+      )}
+
       <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-600 space-y-1">
         <div><span className="text-slate-400">GET</span>  /v1/templates</div>
         <div><span className="text-slate-400">GET</span>  /v1/contacts?page=1&amp;limit=50&amp;search=</div>
@@ -121,8 +128,9 @@ function ApiKeySection() {
       <div className="flex gap-2">
         <button
           onClick={() => generate.mutate()}
-          disabled={generate.isPending}
-          className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:opacity-60"
+          disabled={generate.isPending || data?.planAllows === false}
+          title={data?.planAllows === false ? "Upgrade your plan to use API access" : undefined}
+          className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${generate.isPending ? "animate-spin" : ""}`} />
           {data?.hasKey ? "Regenerate" : "Generate Key"}
@@ -156,7 +164,7 @@ function EndpointRow({
   const [open, setOpen] = useState(false);
   const { data: detail } = useQuery<{ deliveries: Delivery[] }>({
     queryKey: ["webhook-deliveries", ep.id],
-    queryFn: () => fetch(`/api/webhooks/${ep.id}`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/webhooks/${ep.id}/deliveries`).then((r) => r.json()),
     enabled: open,
   });
 
@@ -476,33 +484,33 @@ export function WebhooksTab() {
         <div className="space-y-4 text-sm">
           <div>
             <p className="mb-1 font-medium text-slate-700">Send a text message</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /api/v1/messages
-Authorization: Bearer <api_key>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /v1/messages
+X-Api-Key: <your_api_key>
 
-{ "to": "+919876543210", "type": "text", "text": "Hello!" }`}</pre>
+{ "to": "+919876543210", "text": "Hello!" }`}</pre>
           </div>
           <div>
             <p className="mb-1 font-medium text-slate-700">Send a template message</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /api/v1/messages
-Authorization: Bearer <api_key>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /v1/messages
+X-Api-Key: <your_api_key>
 
-{ "to": "+919876543210", "type": "template",
-  "template": "order_confirmed", "language": "en_US",
-  "components": [{ "type": "body",
-    "parameters": [{ "type": "text", "text": "ORD-123" }] }] }`}</pre>
+{ "to": "+919876543210",
+  "templateName": "order_confirmed",
+  "variables": { "body": ["ORD-123", "₹500"] } }`}</pre>
           </div>
           <div>
             <p className="mb-1 font-medium text-slate-700">Create / list contacts</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET  /api/v1/contacts?search=rahul&page=1
-POST /api/v1/contacts
-Authorization: Bearer <api_key>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET  /v1/contacts?search=rahul&page=1
+X-Api-Key: <your_api_key>
 
+POST /v1/contacts
+X-Api-Key: <your_api_key>
 { "name": "Rahul", "phone": "+919876543210" }`}</pre>
           </div>
           <div>
             <p className="mb-1 font-medium text-slate-700">List approved templates</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET /api/v1/templates?search=order
-Authorization: Bearer <api_key>`}</pre>
+            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET /v1/templates?search=order
+X-Api-Key: <your_api_key>`}</pre>
           </div>
         </div>
       </section>
