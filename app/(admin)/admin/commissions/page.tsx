@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IndianRupee } from "lucide-react";
+import { IndianRupee, Info } from "lucide-react";
 import {
   AdminBadge,
   AdminButton,
@@ -78,6 +78,18 @@ export default function AdminCommissionsPage() {
           </select>
         }
       />
+      {/* How commission rates work */}
+      <div className="mb-5 flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+        <span>
+          Commission rates are set per reseller.{" "}
+          <a href="/tenants" className="font-medium underline underline-offset-2 hover:text-blue-900">
+            Open a reseller&apos;s profile in Customers
+          </a>{" "}
+          → Account hierarchy → set their commission % (e.g. 20%). Records appear here automatically each time one of their clients pays.
+        </span>
+      </div>
+
       {mark.isError && <p className="mb-3 text-xs text-rose-700">{(mark.error as Error).message}</p>}
       {isLoading ? (
         <AdminSkeletonRows rows={6} />
