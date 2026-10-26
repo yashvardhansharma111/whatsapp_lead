@@ -40,7 +40,6 @@ import {
   AdminSkeletonRows,
   AdminTable,
   CHART,
-  PreviewBanner,
   StatTile,
   axisProps,
   planTone,
@@ -102,49 +101,18 @@ function useAdminStats() {
     queryKey: ["admin", "stats"],
     queryFn: async () => {
       const res = await fetch("/api/admin/stats");
-      if (!res.ok) {
-        const body = await res.text();
-        console.error("[admin/stats] HTTP", res.status, body);
-        throw new Error(`Failed to load stats (${res.status}): ${body}`);
-      }
+      if (!res.ok) throw new Error(`Failed to load stats (${res.status})`);
       const json = await res.json();
-      console.log("[admin/stats] response:", json);
       return (json.data ?? json) as AdminStats;
     },
     retry: false,
   });
 }
 
-/** TODO [SHALMON]: delete once /api/admin/stats is live. */
-const PREVIEW: AdminStats = {
-  totalTenants: 128,
-  activeTenants: 119,
-  totalUsers: 642,
-  totalMessages: 1_284_500,
-  mrr: 384_600,
-  arr: 4_615_200,
-  signupsThisMonth: 14,
-  churnRate: 2.4,
-  signupsLast30Days: Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
-    return {
-      date: d.toISOString().slice(0, 10),
-      count: [1, 0, 2, 3, 1, 4, 2, 5, 3, 2][i % 10],
-    };
-  }),
-  planBreakdown: [
-    { planName: "Starter", count: 68 },
-    { planName: "Growth", count: 43 },
-    { planName: "Enterprise", count: 17 },
-  ],
-  recentTenants: [
-    { id: "t1", name: "Nova Realty", slug: "nova-realty", plan: "Growth", users: 6, createdAt: new Date(Date.now() - 864e5).toISOString() },
-    { id: "t2", name: "EduSpark Academy", slug: "eduspark", plan: "Starter", users: 3, createdAt: new Date(Date.now() - 3 * 864e5).toISOString() },
-    { id: "t3", name: "Kirana Direct", slug: "kirana-direct", plan: "Starter", users: 2, createdAt: new Date(Date.now() - 5 * 864e5).toISOString() },
-    { id: "t4", name: "Vertex Motors", slug: "vertex-motors", plan: "Enterprise", users: 21, createdAt: new Date(Date.now() - 8 * 864e5).toISOString() },
-    { id: "t5", name: "Bloom Clinics", slug: "bloom-clinics", plan: "Growth", users: 9, createdAt: new Date(Date.now() - 11 * 864e5).toISOString() },
-  ],
+const EMPTY_STATS: AdminStats = {
+  totalTenants: 0, activeTenants: 0, totalUsers: 0, totalMessages: 0,
+  mrr: 0, signupsThisMonth: 0, churnRate: 0,
+  signupsLast30Days: [], planBreakdown: [], recentTenants: [],
 };
 
 const PIE_COLORS = [CHART.sky, CHART.violet, CHART.amber];
@@ -158,8 +126,8 @@ export default function AdminDashboardPage() {
   const { data, isLoading, isError } = useAdminStats();
   const { data: health, isLoading: healthLoading } = useAdminHealth();
 
-  const stats = data ?? PREVIEW;
-  const preview = isError || !data;
+  const stats = data ?? EMPTY_STATS;
+  const preview = isError && !data;
   const arr = stats.arr ?? stats.mrr * 12;
   const signups = stats.signupsLast30Days ?? [];
   const plans = stats.planBreakdown ?? [];
@@ -171,33 +139,34 @@ export default function AdminDashboardPage() {
         title="Platform Overview"
         description="Real-time stats across every workspace on Corescent."
         action={
-          <AdminBadge tone={preview ? "amber" : "emerald"}>
+          <AdminBadge tone={isError ? "rose" : isLoading ? "amber" : "emerald"}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            {preview ? "Preview mode" : "Live"}
+            {isError ? "Stats unavailable" : isLoading ? "Loading…" : "Live"}
           </AdminBadge>
         }
       />
 
-      {preview && !isLoading && <PreviewBanner endpoint="GET /api/admin/stats" />}
+      {preview && (
+        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          Could not load platform stats. Check the backend connection.
+        </div>
+      )}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatTile
-          label="Total Tenants"
+          label="Total Customers"
           value={formatCompact(stats.totalTenants)}
           icon={Building2}
           tone="violet"
-          delta="+8.2%"
-          deltaDirection="up"
-          deltaNote="vs last month"
           loading={isLoading}
         />
         <StatTile
-          label="Active Tenants"
+          label="Active Customers"
           value={formatCompact(stats.activeTenants)}
           icon={CheckCircle2}
           tone="emerald"
-          delta={`${stats.totalTenants ? Math.round((stats.activeTenants / stats.totalTenants) * 100) : 0}%`}
+          delta={stats.totalTenants ? `${Math.round((stats.activeTenants / stats.totalTenants) * 100)}%` : undefined}
           deltaDirection="flat"
           deltaNote="of all workspaces"
           loading={isLoading}
@@ -207,9 +176,6 @@ export default function AdminDashboardPage() {
           value={formatCurrency(stats.mrr)}
           icon={IndianRupee}
           tone="sky"
-          delta="+12.5%"
-          deltaDirection="up"
-          deltaNote="month over month"
           loading={isLoading}
         />
         <StatTile
@@ -217,8 +183,6 @@ export default function AdminDashboardPage() {
           value={formatCurrency(arr)}
           icon={CircleDollarSign}
           tone="amber"
-          delta="+11.1%"
-          deltaDirection="up"
           deltaNote="annualised run-rate"
           loading={isLoading}
         />
@@ -227,9 +191,7 @@ export default function AdminDashboardPage() {
           value={formatCompact(stats.totalUsers)}
           icon={Users}
           tone="violet"
-          delta="+4.7%"
-          deltaDirection="up"
-          deltaNote="across all tenants"
+          deltaNote="across all workspaces"
           loading={isLoading}
         />
         <StatTile
@@ -237,8 +199,6 @@ export default function AdminDashboardPage() {
           value={formatCompact(stats.totalMessages)}
           icon={MessageSquare}
           tone="emerald"
-          delta="+18.9%"
-          deltaDirection="up"
           deltaNote="inbound + outbound"
           loading={isLoading}
         />
@@ -247,9 +207,6 @@ export default function AdminDashboardPage() {
           value={formatCompact(stats.signupsThisMonth)}
           icon={UserPlus}
           tone="sky"
-          delta="+3"
-          deltaDirection="up"
-          deltaNote="vs same period"
           loading={isLoading}
         />
         <StatTile
@@ -257,8 +214,6 @@ export default function AdminDashboardPage() {
           value={`${(stats.churnRate ?? 0).toFixed(1)}%`}
           icon={TrendingDown}
           tone="rose"
-          delta="-0.6pt"
-          deltaDirection="down"
           deltaNote="lower is better"
           loading={isLoading}
         />

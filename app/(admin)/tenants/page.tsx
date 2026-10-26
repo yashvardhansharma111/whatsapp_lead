@@ -337,7 +337,7 @@ export default function AdminTenantsPage() {
   return (
     <>
       <AdminPageHeader
-        title="Tenants"
+        title="Customers"
         description="Every workspace account on the platform."
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -373,7 +373,7 @@ export default function AdminTenantsPage() {
         >
           <option value="">All plans</option>
           {planOptions.map((p) => (
-            <option key={p.id} value={p.name.toLowerCase()}>
+            <option key={p.id} value={p.id}>
               {p.displayName}
             </option>
           ))}
@@ -828,7 +828,7 @@ function ProvisionModal({ open, onClose }: { open: boolean; onClose: () => void 
             </div>
           </div>
           <p className="text-xs text-slate-500">
-            An invite email was sent to <strong>{result.user.email}</strong> with these credentials. The client should change their password after first login.
+            Share these credentials with the client. They should change their password after first login.
           </p>
           <div className="flex flex-col pt-1 sm:flex-row sm:justify-end">
             <button

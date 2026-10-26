@@ -16,6 +16,7 @@ import {
   thClass,
 } from "@/components/admin/ui";
 import { adminSelectClass } from "@/components/admin/ui";
+import { Modal } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 
 interface Row {
@@ -33,6 +34,8 @@ export default function AdminCommissionsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState("PENDING");
   const [page, setPage] = useState(1);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [reopenConfirm, setReopenConfirm] = useState<Row | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "commissions", status, page],
@@ -46,6 +49,7 @@ export default function AdminCommissionsPage() {
 
   const mark = useMutation({
     mutationFn: async (v: { id: string; status: Row["status"] }) => {
+      setPendingId(v.id);
       const res = await fetch(`/api/admin/commissions/${v.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -53,6 +57,7 @@ export default function AdminCommissionsPage() {
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Update failed");
     },
+    onSettled: () => setPendingId(null),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "commissions"] }),
   });
 
@@ -99,7 +104,7 @@ export default function AdminCommissionsPage() {
                 <td className={tdClass}>{r.client.name}</td>
                 <td className={tdClass}>
                   {money(r.baseMinor, r.currency)}
-                  <span className="block text-[11px] text-slate-400">{r.payment.provider} · {r.payment.purpose.replace("_", " ")}</span>
+                  <span className="block text-[11px] text-slate-400">{r.payment.provider} · {r.payment.purpose.replaceAll("_", " ")}</span>
                 </td>
                 <td className={cn(tdClass, "font-medium")}>{money(r.amountMinor, r.currency)} <span className="text-xs text-slate-400">({r.rate}%)</span></td>
                 <td className={tdClass}>
@@ -109,12 +114,12 @@ export default function AdminCommissionsPage() {
                 <td className={cn(tdClass, "text-right")}>
                   {r.status === "PENDING" && (
                     <span className="inline-flex gap-1">
-                      <AdminButton size="sm" disabled={mark.isPending} onClick={() => mark.mutate({ id: r.id, status: "PAID" })}>Mark paid</AdminButton>
-                      <AdminButton size="sm" variant="ghost" disabled={mark.isPending} onClick={() => mark.mutate({ id: r.id, status: "CANCELLED" })}>Cancel</AdminButton>
+                      <AdminButton size="sm" disabled={pendingId === r.id} onClick={() => mark.mutate({ id: r.id, status: "PAID" })}>Mark paid</AdminButton>
+                      <AdminButton size="sm" variant="ghost" disabled={pendingId === r.id} onClick={() => mark.mutate({ id: r.id, status: "CANCELLED" })}>Cancel</AdminButton>
                     </span>
                   )}
                   {r.status !== "PENDING" && (
-                    <AdminButton size="sm" variant="ghost" disabled={mark.isPending} onClick={() => mark.mutate({ id: r.id, status: "PENDING" })}>Reopen</AdminButton>
+                    <AdminButton size="sm" variant="ghost" disabled={pendingId === r.id} onClick={() => setReopenConfirm(r)}>Reopen</AdminButton>
                   )}
                 </td>
               </tr>
@@ -127,6 +132,33 @@ export default function AdminCommissionsPage() {
           <AdminButton size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</AdminButton>
           <AdminButton size="sm" variant="secondary" disabled={page >= data.pagination.totalPages} onClick={() => setPage(page + 1)}>Next</AdminButton>
         </div>
+      )}
+
+      {reopenConfirm && (
+        <Modal
+          open
+          onClose={() => setReopenConfirm(null)}
+          title="Reopen commission?"
+          description={`This will move the ${reopenConfirm.status === "PAID" ? "paid" : "cancelled"} commission back to Pending.`}
+        >
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <button
+              onClick={() => setReopenConfirm(null)}
+              className="min-h-10 rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 sm:min-h-0"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                mark.mutate({ id: reopenConfirm.id, status: "PENDING" });
+                setReopenConfirm(null);
+              }}
+              className="min-h-10 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 sm:min-h-0"
+            >
+              Reopen
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

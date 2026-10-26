@@ -18,6 +18,8 @@ const LABEL: Record<string, string> = {
 export default function AdminRatesPage() {
   const qc = useQueryClient();
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [savingCategory, setSavingCategory] = useState<string | null>(null);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "rates"],
@@ -30,22 +32,29 @@ export default function AdminRatesPage() {
 
   const save = useMutation({
     mutationFn: async (v: { category: string; priceMinor: number | null }) => {
+      setSavingCategory(v.category);
+      setRowErrors((e) => { const n = { ...e }; delete n[v.category]; return n; });
       const res = await fetch("/api/admin/rates", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(v),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Save failed");
+      return v.category;
     },
+    onSettled: () => setSavingCategory(null),
     onSuccess: (_d, v) => {
       setEdits((e) => { const n = { ...e }; delete n[v.category]; return n; });
       qc.invalidateQueries({ queryKey: ["admin", "rates"] });
+    },
+    onError: (err, v) => {
+      setRowErrors((e) => ({ ...e, [v.category]: (err as Error).message }));
     },
   });
 
   return (
     <>
-      <AdminPageHeader title="Message prices" description="What each message costs clients' wallets, in paise per unit (₹0.20 = 20)." />
+      <AdminPageHeader title="Message prices" description="What each message costs clients' wallets, in paise per unit (₹0.20 = 20 paise)." />
       <AdminPanel title="Platform prices" subtitle="Resellers can set higher prices for their own clients">
         {isLoading || !data ? (
           <AdminSkeletonRows rows={6} />
@@ -54,34 +63,39 @@ export default function AdminRatesPage() {
             {data.map((r) => {
               const value = edits[r.category] ?? (r.priceMinor === null ? "" : String(r.priceMinor));
               const dirty = r.category in edits;
+              const saving = savingCategory === r.category;
               return (
-                <div key={r.category} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <span className="text-sm text-slate-700 sm:w-72">{LABEL[r.category] ?? r.category}</span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={value}
-                      placeholder="Not set — free"
-                      onChange={(e) => setEdits((x) => ({ ...x, [r.category]: e.target.value }))}
-                      className="h-10 w-36 rounded-lg sm:h-9 sm:w-44 bg-white px-3 text-sm ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      aria-label={`Price for ${LABEL[r.category]}`}
-                    />
-                    <span className="text-xs text-slate-500">paise{value && ` = ₹${(Number(value) / 100).toFixed(2)}`}</span>
-                    {dirty && (
-                      <AdminButton
-                        size="sm"
-                        disabled={save.isPending}
-                        onClick={() => save.mutate({ category: r.category, priceMinor: value === "" ? null : Math.round(Number(value)) })}
-                      >
-                        Save
-                      </AdminButton>
-                    )}
+                <div key={r.category} className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <span className="text-sm text-slate-700 sm:w-72">{LABEL[r.category] ?? r.category}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={value}
+                        placeholder="Not set — free"
+                        onChange={(e) => setEdits((x) => ({ ...x, [r.category]: e.target.value }))}
+                        className="h-10 w-36 rounded-lg sm:h-9 sm:w-44 bg-white px-3 text-sm ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        aria-label={`Price for ${LABEL[r.category]}`}
+                      />
+                      <span className="text-xs text-slate-500">paise{value && ` = ₹${(Number(value) / 100).toFixed(2)}`}</span>
+                      {dirty && (
+                        <AdminButton
+                          size="sm"
+                          disabled={saving}
+                          onClick={() => save.mutate({ category: r.category, priceMinor: value === "" ? null : Math.round(Number(value)) })}
+                        >
+                          {saving ? "Saving…" : "Save"}
+                        </AdminButton>
+                      )}
+                    </div>
                   </div>
+                  {rowErrors[r.category] && (
+                    <p className="pl-0 sm:pl-72 text-xs text-rose-700">{rowErrors[r.category]}</p>
+                  )}
                 </div>
               );
             })}
-            {save.isError && <p className="text-xs text-rose-700">{(save.error as Error).message}</p>}
             <p className="flex items-start gap-1.5 pt-2 text-xs text-slate-500">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               Charged per WhatsApp template message sent by a campaign or broadcast; inbox replies are never charged.
