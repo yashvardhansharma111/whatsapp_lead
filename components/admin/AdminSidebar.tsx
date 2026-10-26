@@ -21,23 +21,47 @@ import {
   X,
   BarChart2,
   BookOpen,
+  Palette,
+  Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tenants", label: "Customers", icon: Building2 },
-  { href: "/plans", label: "Plans", icon: CreditCard },
-  { href: "/revenue", label: "Revenue", icon: IndianRupee },
-  { href: "/admin/reports",   label: "Reports",  icon: BarChart2 },
-  { href: "/admin/api-docs",  label: "API Docs", icon: BookOpen },
-  { href: "/admin/cms", label: "Website CMS", icon: PanelsTopLeft },
-  { href: "/admin/categories", label: "Categories", icon: Tags },
-  { href: "/admin/commissions", label: "Commissions", icon: HandCoins },
-  { href: "/admin/rates", label: "Message prices", icon: Receipt },
-  { href: "/admin/permissions", label: "Permissions", icon: KeyRound },
-  { href: "/audit-logs", label: "Audit Logs", icon: ScrollText },
+const NAV_GROUPS = [
+  {
+    label: "Platform",
+    items: [
+      { href: "/dashboard",    label: "Dashboard", icon: LayoutDashboard },
+      { href: "/tenants",      label: "Customers",  icon: Building2 },
+      { href: "/plans",        label: "Plans",      icon: CreditCard },
+      { href: "/revenue",      label: "Revenue",    icon: IndianRupee },
+    ],
+  },
+  {
+    label: "Resellers",
+    items: [
+      { href: "/admin/commissions",  label: "Commissions",    icon: HandCoins },
+      { href: "/admin/white-label",  label: "White Label",    icon: Palette },
+      { href: "/admin/rates",        label: "Message prices", icon: Receipt },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/reports",     label: "Reports",     icon: BarChart2 },
+      { href: "/admin/api-docs",    label: "API Docs",    icon: BookOpen },
+      { href: "/admin/cms",         label: "Website CMS", icon: PanelsTopLeft },
+      { href: "/admin/categories",  label: "Categories",  icon: Tags },
+    ],
+  },
+  {
+    label: "Security",
+    items: [
+      { href: "/admin/permissions", label: "Permissions", icon: KeyRound },
+      { href: "/admin/blacklist",   label: "Blacklist",   icon: Ban },
+      { href: "/audit-logs",        label: "Audit Logs",  icon: ScrollText },
+    ],
+  },
 ];
 
 export function AdminSidebar({ name, email }: { name?: string | null; email?: string | null }) {
@@ -63,30 +87,36 @@ export function AdminSidebar({ name, email }: { name?: string | null; email?: st
         </button>
       </div>
 
-      <nav className="scrollbar-slim flex-1 space-y-1 overflow-y-auto p-3">
-        <p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Platform
-        </p>
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMobileOpen(false)}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                active
-                  ? "bg-emerald-50 text-[#0B6E4F] ring-1 ring-inset ring-emerald-100"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <Icon className={cn("h-4.5 w-4.5 shrink-0", active ? "text-[#0B6E4F]" : "text-slate-400")} />
-              <span className="truncate">{label}</span>
-            </Link>
-          );
-        })}
+      <nav className="scrollbar-slim flex-1 overflow-y-auto p-3">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="mb-4">
+            <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
+                      active
+                        ? "bg-emerald-50 text-[#0B6E4F] ring-1 ring-inset ring-emerald-100"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                    )}
+                  >
+                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[#0B6E4F]" : "text-slate-400")} />
+                    <span className="truncate">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="shrink-0 border-t border-slate-200 p-3">
