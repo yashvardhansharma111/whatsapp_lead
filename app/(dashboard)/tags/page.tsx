@@ -16,7 +16,7 @@ interface TagItem {
   id: string;
   name: string;
   color: string;
-  _count?: { contactTags: number };
+  _count?: { contacts: number };
 }
 
 export default function TagsPage() {
@@ -160,7 +160,7 @@ export default function TagsPage() {
                 </div>
               </div>
               <p className="mt-2 text-xs text-slate-500">
-                {(tag._count?.contactTags ?? 0).toLocaleString()} contact{(tag._count?.contactTags ?? 0) !== 1 ? "s" : ""}
+                {(tag._count?.contacts ?? 0).toLocaleString()} contact{(tag._count?.contacts ?? 0) !== 1 ? "s" : ""}
               </p>
             </Card>
           ))}
