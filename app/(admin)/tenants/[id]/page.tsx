@@ -490,10 +490,10 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
 
       {/* Stat tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <StatTile icon={Users} label="Users" value={tenant._count.users} tone="violet" />
-        <StatTile icon={UserCheck} label="Contacts" value={tenant._count.contacts} tone="sky" />
-        <StatTile icon={TrendingUp} label="Leads" value={tenant._count.leads} tone="emerald" />
-        <StatTile icon={MessageSquare} label="Conversations" value={tenant._count.conversations} tone="amber" />
+        <StatTile icon={Users} label="Users" value={tenant._count?.users ?? 0} tone="violet" />
+        <StatTile icon={UserCheck} label="Contacts" value={tenant._count?.contacts ?? 0} tone="sky" />
+        <StatTile icon={TrendingUp} label="Leads" value={tenant._count?.leads ?? 0} tone="emerald" />
+        <StatTile icon={MessageSquare} label="Conversations" value={tenant._count?.conversations ?? 0} tone="amber" />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
