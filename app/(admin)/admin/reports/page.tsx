@@ -182,7 +182,7 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <StatCard
               icon={Building2}
-              label="Total Tenants"
+              label="Total Customers"
               value={data.tenants.total.toLocaleString()}
               sub={`+${data.tenants.new} new this period`}
               color="bg-blue-50 text-blue-600"
@@ -234,7 +234,7 @@ export default function ReportsPage() {
                   ? Math.round(data.messages.total / data.tenants.total).toLocaleString()
                   : "—"
               }
-              sub="average per tenant"
+              sub="average per customer"
               color="bg-sky-50 text-sky-600"
             />
           </div>
@@ -253,7 +253,7 @@ export default function ReportsPage() {
           {/* Top tenants by messages */}
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">Top Tenants by Messages</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Top Customers by Messages</h2>
               <span className="text-xs text-slate-500">top 10 in period</span>
             </div>
             {data.topTenants.length === 0 ? (
@@ -264,7 +264,7 @@ export default function ReportsPage() {
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-5 py-3 font-medium">#</th>
-                      <th className="px-5 py-3 font-medium">Tenant</th>
+                      <th className="px-5 py-3 font-medium">Customer</th>
                       <th className="px-5 py-3 font-medium">Slug</th>
                       <th className="px-5 py-3 font-medium text-right">Messages</th>
                       <th className="px-5 py-3 font-medium text-right">Share</th>
