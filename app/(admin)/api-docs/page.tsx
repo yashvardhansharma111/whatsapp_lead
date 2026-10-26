@@ -234,7 +234,7 @@ Content-Type: application/json
   }
 }`} />
               <p className="text-xs text-slate-500">
-                <code className="rounded bg-slate-100 px-1 font-mono">variables.body</code> — array of body variable substitutions in order ({{"{{"}}1{{"}}"}}, {{"{{"}}2{{"}}"}}, …).
+                <code className="rounded bg-slate-100 px-1 font-mono">variables.body</code> — array of body variable substitutions in order (&#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;, …).
               </p>
             </div>
             <div className="space-y-2">
