@@ -389,9 +389,9 @@ function WalletPanel({ tenantId }: { tenantId: string }) {
         </AdminButton>
       </div>
       {adjust.isError && <p className="mt-2 text-xs text-rose-700">{(adjust.error as Error).message}</p>}
-      {data && data.transactions.length > 0 && (
+      {data && (data.transactions?.length ?? 0) > 0 && (
         <ul className="mt-4 divide-y divide-slate-100 text-sm">
-          {data.transactions.map((t) => (
+          {(data.transactions ?? []).map((t) => (
             <li key={t.id} className="flex justify-between gap-3 py-1.5">
               <span className="min-w-0 truncate text-slate-600">
                 {formatDate(t.createdAt)} · {t.type.replace("_", " ").toLowerCase()} · {t.description ?? ""}
@@ -959,7 +959,7 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
     } catch { /* ignore */ }
   };
 
-  if (!tenant.users || tenant.users.length === 0) {
+  if (!tenant.users?.length) {
     return (
       <AdminPanel title="Users" subtitle="Accounts in this workspace">
         <p className="text-sm text-slate-500">No users found.</p>
@@ -994,7 +994,7 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
       )}
 
       <div className="space-y-3">
-        {tenant.users.map((u) => (
+        {(tenant.users ?? []).map((u) => (
           <div key={u.id} className="flex flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
