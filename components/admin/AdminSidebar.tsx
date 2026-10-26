@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   X,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -30,6 +31,7 @@ const NAV = [
   { href: "/tenants", label: "Tenants", icon: Building2 },
   { href: "/plans", label: "Plans", icon: CreditCard },
   { href: "/revenue", label: "Revenue", icon: IndianRupee },
+  { href: "/reports", label: "Reports", icon: BarChart2 },
   { href: "/admin/cms", label: "Website CMS", icon: PanelsTopLeft },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/blacklist", label: "Blacklist", icon: Ban },

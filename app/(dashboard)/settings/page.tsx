@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Building2, MessageSquare, CreditCard, Bell, KanbanSquare, UserCircle, Zap, Webhook, DollarSign } from "lucide-react";
+import { Building2, MessageSquare, CreditCard, Bell, KanbanSquare, UserCircle, Zap, Webhook, DollarSign, BellOff } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { AccountTab } from "@/components/settings/AccountTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
@@ -13,6 +13,7 @@ import { LeadStagesTab } from "@/components/settings/LeadStagesTab";
 import { QuickRepliesTab } from "@/components/settings/QuickRepliesTab";
 import { WebhooksTab } from "@/components/settings/WebhooksTab";
 import { MessageRatesTab } from "@/components/settings/MessageRatesTab";
+import { OptOutTab } from "@/components/settings/OptOutTab";
 import { cn } from "@/lib/utils";
 
 /** Managing pipeline stages / billing is an admin action — same allowlist as the backend guard. */
@@ -25,6 +26,7 @@ const TABS = [
   { key: "pipeline", label: "Lead Pipeline Stages", icon: KanbanSquare, adminOnly: true },
   { key: "whatsapp", label: "WhatsApp", icon: MessageSquare, adminOnly: false },
   { key: "quick-replies", label: "Quick Replies", icon: Zap, adminOnly: false },
+  { key: "opt-out", label: "Opt-out Manager", icon: BellOff, adminOnly: true },
   { key: "webhooks", label: "Webhooks & API", icon: Webhook, adminOnly: true },
   { key: "message-rates", label: "Message Rates", icon: DollarSign, adminOnly: true },
   { key: "billing", label: "Billing", icon: CreditCard, billingOnly: true },
@@ -89,6 +91,7 @@ export default function SettingsPage() {
         {activeTab === "whatsapp" && <WhatsAppTab />}
         {activeTab === "quick-replies" && <QuickRepliesTab />}
         {activeTab === "billing" && canSeeBilling && <BillingTab />}
+        {activeTab === "opt-out" && isStageAdmin && <OptOutTab />}
         {activeTab === "webhooks" && isStageAdmin && <WebhooksTab />}
         {activeTab === "message-rates" && isStageAdmin && <MessageRatesTab />}
         {activeTab === "notifications" && <NotificationsTab />}
