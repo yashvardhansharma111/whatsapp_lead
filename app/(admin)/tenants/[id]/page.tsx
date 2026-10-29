@@ -31,6 +31,7 @@ import {
   type AdminTone,
 } from "@/components/admin/ui";
 import { TenantContactsPanel } from "@/components/admin/TenantContactsPanel";
+import { TenantRatesPanel } from "@/components/admin/TenantRatesPanel";
 import { TenantWhatsAppPanel } from "@/components/admin/TenantWhatsAppPanel";
 import { ViewAsButton } from "@/components/admin/ViewAsButton";
 import { PlanFormModal, type AdminPlan, type PlanFormMode } from "@/components/admin/PlanFormModal";
@@ -545,6 +546,11 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
         </AdminPanel>
 
         <AssignPlanPanel tenant={tenant} />
+      </div>
+
+      {/* Message prices — this account's own price per category, or what it inherits. */}
+      <div className="mt-6">
+        <TenantRatesPanel tenantId={tenant.id} />
       </div>
 
       {/* WhatsApp — connected numbers per business, with live check / re-sync / disconnect.

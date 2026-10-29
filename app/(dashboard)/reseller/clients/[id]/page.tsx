@@ -10,6 +10,7 @@ import { AlertCircle, ArrowLeft, Loader2, Pause, Play } from "lucide-react";
 import { Badge, Button, Card, SkeletonRows, inputClass } from "@/components/ui";
 import { api, money, rupees, STATUS_TONE, Tile } from "@/components/reseller/shared";
 import { ClientReport } from "@/components/reseller/ClientReport";
+import { ClientRatesCard } from "@/components/reseller/ClientRatesCard";
 import { formatDate } from "@/lib/utils";
 
 interface Metric { used: number; limit: number }
@@ -150,6 +151,8 @@ export default function ResellerClientPage({ params }: { params: Promise<{ id: s
             {transfer.isError && <p className="mt-2 text-xs text-rose-700">{(transfer.error as Error).message}</p>}
           </Card>
         )}
+
+        <ClientRatesCard clientId={c.id} />
 
         <Card className="p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-slate-900">Users</h2>

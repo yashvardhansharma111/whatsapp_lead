@@ -9,6 +9,7 @@ import { AlertCircle, CheckCircle2, Download, Loader2, Plus, Wallet } from "luci
 import { Badge, Button, Card, EmptyState, PageHeader, SkeletonRows } from "@/components/ui";
 import { openRazorpay } from "@/components/billing/razorpayCheckout";
 import { api, money } from "@/components/reseller/shared";
+import type { RateSource } from "@/lib/billing/rates";
 import { cn, formatDate } from "@/lib/utils";
 
 interface Txn {
@@ -17,7 +18,7 @@ interface Txn {
 interface WalletData {
   balanceMinor: number;
   lowBalanceThresholdMinor: number;
-  rates: { category: string; priceMinor: number | null }[];
+  rates: { category: string; priceMinor: number | null; source?: RateSource }[];
   canTopUp: boolean;
   transactions: Txn[];
 }
@@ -29,6 +30,32 @@ const CATEGORY_LABEL: Record<string, string> = {
   WA_UTILITY: "WhatsApp — utility template",
   WA_AUTHENTICATION: "WhatsApp — authentication template",
 };
+
+/**
+ * Download the statement as CSV from what the page already has.
+ *
+ * The button used to link to `/api/wallet?format=csv`, which nothing implements — it
+ * downloaded the JSON payload. Built client-side from the loaded page instead.
+ */
+function downloadStatement(transactions: Txn[]) {
+  const header = ["Date", "Type", "Description", "Amount (₹)", "Balance after (₹)"];
+  const rows = transactions.map((t) => [
+    new Date(t.createdAt).toISOString(),
+    t.type,
+    t.description ?? "",
+    (t.amountMinor / 100).toFixed(2),
+    (t.balanceAfterMinor / 100).toFixed(2),
+  ]);
+  const csv = [header, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `wallet-statement-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const TYPE_TONE: Record<string, string> = {
   TOPUP: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
@@ -96,9 +123,14 @@ export default function WalletPage() {
         title="Wallet"
         description="Prepaid credit for messages. Each priced WhatsApp message is charged when it's sent."
         action={
-          <a href="/api/wallet?format=csv" className="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50">
+          <Button
+            variant="secondary"
+            className="h-9"
+            disabled={w.transactions.length === 0}
+            onClick={() => downloadStatement(w.transactions)}
+          >
             <Download className="h-4 w-4" /> Statement (CSV)
-          </a>
+          </Button>
         }
       />
 
@@ -179,15 +211,25 @@ export default function WalletPage() {
           <div>
             <p className="text-sm font-semibold text-slate-900">Your prices</p>
             <ul className="mt-2 space-y-1 text-sm">
-              {w.rates.map((r) => (
+              {(w.rates ?? []).map((r) => (
                 <li key={r.category} className="flex justify-between gap-3">
-                  <span className="text-slate-600">{CATEGORY_LABEL[r.category] ?? r.category}</span>
-                  <span className="shrink-0 tabular-nums text-slate-900">
-                    {r.priceMinor === null ? "Free" : money(r.priceMinor)}
+                  <span className="min-w-0 text-slate-600">{CATEGORY_LABEL[r.category] ?? r.category}</span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <span className="tabular-nums text-slate-900">
+                      {r.priceMinor === null ? "Free" : money(r.priceMinor)}
+                    </span>
+                    {r.source === "customer" && (
+                      <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        yours
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}
             </ul>
+            {(w.rates ?? []).length === 0 && (
+              <p className="mt-2 text-xs text-slate-400">No message prices set — campaign messages are free.</p>
+            )}
           </div>
         </Card>
       </div>
