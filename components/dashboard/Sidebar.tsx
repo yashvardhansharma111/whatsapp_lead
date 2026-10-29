@@ -14,6 +14,7 @@ import {
   BarChart2,
   BookOpen,
   Sparkles,
+  UserCheck,
   UserCog,
   Settings,
   LogOut,
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { BusinessSwitcher } from "@/components/dashboard/BusinessSwitcher";
 import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
+import { useHandoverWaiting } from "@/hooks/useHandovers";
 
 /** Grouped so eleven links don't read as one undifferentiated wall. */
 const NAV = [
@@ -66,6 +68,8 @@ const NAV = [
     section: "Manage",
     items: [
       { href: "/tickets", label: "Tickets", icon: Ticket, permission: "conversations.view" },
+      // The badge shows how many people are waiting on a person right now.
+      { href: "/handovers", label: "Handovers", icon: UserCheck, permission: "conversations.view", badge: "handovers" as const },
       { href: "/analytics", label: "Analytics", icon: BarChart2, permission: "reports.view" },
       { href: "/reports", label: "Reports", icon: FileBarChart2, permission: "reports.view" },
       { href: "/blacklist", label: "Blacklist", icon: Ban, permission: "blacklist.view" },
@@ -150,6 +154,8 @@ function prettyRole(role?: string | null) {
 export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBrand }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Only asked for when the person can see the queue at all.
+  const { data: waiting = 0 } = useHandoverWaiting();
   const isReseller = user.accountType === "RESELLER";
   const groups = isReseller
     ? RESELLER_NAV.map((g) => ({
@@ -193,7 +199,9 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
               </p>
             )}
             <div className="space-y-0.5">
-              {items.map(({ href, label, icon: Icon }) => {
+              {items.map((item) => {
+                const { href, label, icon: Icon } = item;
+                const count = "badge" in item && item.badge === "handovers" ? waiting : 0;
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link
@@ -219,6 +227,11 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
                       )}
                     />
                     <span className="truncate">{label}</span>
+                    {count > 0 && (
+                      <span className="ml-auto shrink-0 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

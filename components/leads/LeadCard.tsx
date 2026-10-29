@@ -18,6 +18,20 @@ type Lead = {
   authority?: string | null;
   requirement?: string | null;
   timeline?: string | null;
+  companySize?: string | null;
+  isDecisionMaker?: boolean | null;
+  closedAt?: string | Date | null;
+  // What the model concluded, kept beside the fields an agent can edit.
+  qualifiedBy?: string | null;
+  aiQualifiedAt?: string | Date | null;
+  aiScore?: number | null;
+  aiConfidence?: number | null;
+  aiSummary?: string | null;
+  aiIntent?: string | null;
+  aiNextStep?: string | null;
+  aiModel?: string | null;
+  aiBreakdown?: { scores?: Record<string, number>; weights?: Record<string, number> } | null;
+  aiConversationId?: string | null;
   updatedAt: Date;
   createdAt: Date;
 };

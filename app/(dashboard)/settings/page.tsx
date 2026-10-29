@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Building2, MessageSquare, CreditCard, Bell, KanbanSquare,
-  UserCircle, Zap, Webhook, DollarSign, BellOff, ScrollText, ChevronRight,
+  UserCircle, Zap, Webhook, DollarSign, BellOff, ScrollText, ChevronRight, Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { AccountTab } from "@/components/settings/AccountTab";
@@ -19,6 +19,7 @@ import { WebhooksTab } from "@/components/settings/WebhooksTab";
 import { MessageRatesTab } from "@/components/settings/MessageRatesTab";
 import { OptOutTab } from "@/components/settings/OptOutTab";
 import { ActivityTab } from "@/components/settings/ActivityTab";
+import { DepartmentsTab } from "@/components/settings/DepartmentsTab";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
     section: "Workspace",
     tabs: [
       { key: "pipeline",      label: "Lead Stages",   icon: KanbanSquare, permission: "settings.manage" },
+      { key: "departments",   label: "Departments",   icon: Users,        permission: "settings.manage" },
       { key: "notifications", label: "Notifications", icon: Bell },
     ],
   },
@@ -95,7 +97,7 @@ function SettingsPageInner() {
   const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");
 
   function canSee(t: TabDef): boolean {
-    if (isReseller && ["pipeline", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;
+    if (isReseller && ["pipeline", "departments", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;
     return t.permission ? can(t.permission) : true;
   }
 
@@ -175,6 +177,7 @@ function SettingsPageInner() {
           {activeTab === "account"       && <AccountTab />}
           {activeTab === "general"       && <GeneralTab />}
           {activeTab === "pipeline"      && <LeadStagesTab />}
+          {activeTab === "departments"   && <DepartmentsTab />}
           {activeTab === "whatsapp"      && <WhatsAppTab />}
           {activeTab === "quick-replies" && <QuickRepliesTab />}
           {activeTab === "billing"       && <BillingTab />}

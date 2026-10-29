@@ -2,7 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search, UserRound } from "lucide-react";
+import {
+  Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search,
+  Sparkles, UserCheck, UserRound,
+} from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { useMarkNotificationsRead, useNotificationList, useUnreadCount, type AppNotification } from "@/hooks/useNotifications";
@@ -21,6 +24,8 @@ const TYPE_ICON: Record<string, typeof Bell> = {
   CAMPAIGN_COMPLETED: Megaphone,
   CONVERSATION_ASSIGNED: UserRound,
   LEAD_ASSIGNED: UserRound,
+  HANDOVER_REQUESTED: UserCheck,
+  LEAD_QUALIFIED: Sparkles,
 };
 
 function NotificationBell() {

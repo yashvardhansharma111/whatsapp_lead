@@ -24,6 +24,7 @@ import {
   timeAgo,
 } from "@/lib/utils";
 import type { LeadActivityItem, PipelineLead } from "./LeadCard";
+import { AiVerdictPanel } from "./AiVerdictPanel";
 
 // ─── Detail merge (defensive) ─────────────────────────────────────────────────
 //
@@ -308,9 +309,12 @@ function LeadDrawerPanel({
               className="w-full accent-emerald-600 disabled:opacity-100"
             />
             <p className="mt-1 text-[11px] text-slate-400">
-              Set by AI qualification — read-only here.
+              {full.qualifiedBy === "AI" ? "Scored by AI from the conversation." : "Set when the lead was created."}
             </p>
           </section>
+
+          {/* What the model concluded, and the arithmetic behind the score. */}
+          <AiVerdictPanel lead={full} />
 
           {/* BANT */}
           <section>
@@ -333,7 +337,7 @@ function LeadDrawerPanel({
               ) : (
                 <Sparkles className="h-4 w-4 text-emerald-600" />
               )}
-              {qualify.isPending ? "Qualifying…" : "Qualify with AI"}
+              {qualify.isPending ? "Reading the conversation…" : full.aiQualifiedAt ? "Score again" : "Score with AI"}
             </Button>
           </section>
 

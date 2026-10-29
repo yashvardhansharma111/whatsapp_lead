@@ -28,6 +28,8 @@ import {
   selectClass,
 } from "@/components/ui";
 import { Toggle } from "@/components/ui/Toggle";
+import { HandoverSettingsCard } from "@/components/settings/HandoverSettingsCard";
+import { LeadQualificationCard } from "@/components/settings/LeadQualificationCard";
 import {
   DEFAULT_INSTRUCTIONS,
   FIELD_LABELS,
@@ -829,6 +831,10 @@ export default function AISettingsPage() {
             />
           </Field>
         </SettingsCard>
+
+        {/* These two save themselves, so they sit outside the sticky bar's remit. */}
+        <HandoverSettingsCard />
+        <LeadQualificationCard />
       </div>
 
       {/* ── Sticky save bar ────────────────────────────────────────────────── */}

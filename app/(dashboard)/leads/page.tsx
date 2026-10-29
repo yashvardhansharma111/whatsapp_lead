@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
+import { AlertTriangle, Download, LayoutGrid, List, Plus, Search, Upload, X } from "lucide-react";
 type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
-import { ExportButton } from "@/components/ExportButton";
+import { LeadExportModal } from "@/components/leads/LeadExportModal";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadStages } from "@/hooks/useLeadStages";
 import {
@@ -39,6 +39,7 @@ export default function LeadsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStageId, setModalStageId] = useState<string | undefined>(undefined);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   /**
@@ -151,7 +152,10 @@ export default function LeadsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
-            <ExportButton resource="leads" />
+            <Button variant="secondary" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
             <Button onClick={() => openAddModal(defaultStageId)} className="flex-1 sm:flex-none">
               <Plus className="h-4 w-4" />
               Add Lead
@@ -289,6 +293,7 @@ export default function LeadsPage() {
       />
 
       <ImportLeadsModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <LeadExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
 
       <LeadDrawer lead={selected} onClose={() => setSelectedId(null)} onStageChange={moveLead} />
     </div>
