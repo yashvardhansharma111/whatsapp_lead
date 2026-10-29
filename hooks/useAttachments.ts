@@ -4,12 +4,14 @@ import { useCallback, useRef, useState } from "react";
 
 /** Authoritative metadata returned by POST /api/media/upload, one per stored file. */
 export interface UploadedMedia {
-  url: string;
+  /** Public storage URL, or null when storage is private/unconfigured (the message endpoint serves it then). */
+  url: string | null;
+  storageKey?: string | null;
   filename: string;
   mimeType: string;
   size: number;
   category: string;
-  /** Meta media ID returned when the file was pre-uploaded to Meta's Upload API. */
+  /** Meta media ID — what the send call references. */
   mediaId?: string;
 }
 

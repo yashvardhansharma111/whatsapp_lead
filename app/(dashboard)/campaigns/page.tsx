@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCampaignsRealtime } from "@/hooks/useCampaignsRealtime";
 import {
   Megaphone,
   Plus,
@@ -205,6 +206,7 @@ export default function CampaignsPage() {
 
 function CampaignsPageInner() {
   const queryClient = useQueryClient();
+  useCampaignsRealtime();
   // Arriving from Segments → "Create campaign" (/campaigns?segment=<id>) opens the
   // create dialog with that segment as the audience.
   const initialSegmentId = useSearchParams().get("segment");

@@ -65,9 +65,10 @@ function measure(item: PendingAttachment): Promise<Partial<PendingAttachment>> {
 export interface AttachmentSendInput {
   conversationId: string;
   type: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
-  mediaUrl: string;
+  mediaUrl?: string;
   /** Meta media ID — when present, the send route uses id-based sending (no public URL needed). */
   mediaId?: string;
+  storageKey?: string;
   mediaMimeType?: string;
   mediaSize?: number;
   fileName?: string;
@@ -277,8 +278,9 @@ export function useAttachmentComposer({
           await sendFn({
             conversationId,
             type: msgType,
-            mediaUrl: media.url,
+            mediaUrl: media.url ?? undefined,
             mediaId: media.mediaId,
+            storageKey: media.storageKey ?? undefined,
             mediaMimeType: media.mimeType ?? undefined,
             mediaSize: media.size ?? undefined,
             fileName: media.filename ?? item.file.name,

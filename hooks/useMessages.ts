@@ -41,6 +41,7 @@ export interface SendMessageInput {
   mediaMimeType?: string;
   mediaSize?: number;
   fileName?: string;
+  storageKey?: string;
   /** Correlates the optimistic bubble with the server row; generated when omitted. */
   clientId?: string;
   /** Local object URL shown in the optimistic bubble until the server row carries a real URL. Never sent. */

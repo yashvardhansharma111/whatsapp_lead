@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, Megaphone, Users } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
+import { useCampaignsRealtime } from "@/hooks/useCampaignsRealtime";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,6 +132,7 @@ function StatCard({
 export default function CampaignReportPage() {
   const { id } = useParams<{ id: string }>();
   const [search, setSearch] = useState("");
+  useCampaignsRealtime(id);
 
   const { data, isLoading } = useQuery({
     queryKey: ["campaign", id],

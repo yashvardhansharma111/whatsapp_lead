@@ -945,11 +945,12 @@ function MessageBody({
   const outbound = tone === "outbound";
   const caption = message.content?.trim();
   const meta = message.metadata ?? {};
+  const src = mediaSrc(message);
 
   switch (message.type) {
     case "IMAGE":
     case "STICKER": {
-      const imgSrc = message.mediaUrl ?? (tone === "inbound" ? `/api/media/whatsapp-proxy?messageId=${message.id}` : null);
+      const imgSrc = src;
       return (
         <div className="space-y-1.5">
           {imgSrc ? (
@@ -963,7 +964,7 @@ function MessageBody({
     }
 
     case "VIDEO": {
-      const vidSrc = message.mediaUrl ?? (tone === "inbound" ? `/api/media/whatsapp-proxy?messageId=${message.id}` : null);
+      const vidSrc = src;
       return (
         <div className="space-y-1.5">
           {vidSrc ? (
@@ -981,18 +982,17 @@ function MessageBody({
     }
 
     case "AUDIO": {
-      const audSrc = message.mediaUrl ?? (tone === "inbound" ? `/api/media/whatsapp-proxy?messageId=${message.id}` : null);
-      return audSrc ? (
-        <audio src={audSrc} controls className="h-9 w-56 max-w-full" />
+      return src ? (
+        <audio src={src} controls preload="metadata" className="h-9 w-56 max-w-full" />
       ) : (
         <MediaChip icon={FileText} label="Voice message" outbound={outbound} />
       );
     }
 
     case "DOCUMENT": {
-      const filename = str(meta.filename) ?? caption ?? "Document";
+      const filename = str(meta.filename) ?? "Document";
       const size = message.mediaSize ? formatBytes(message.mediaSize) : null;
-      const docSrc = message.mediaUrl ?? (tone === "inbound" ? `/api/media/whatsapp-proxy?messageId=${message.id}` : null);
+      const docSrc = src ? (src.startsWith("/api/") ? `${src}?download=1` : src) : null;
       const chip = (
         <span
           className={cn(
@@ -1011,20 +1011,27 @@ function MessageBody({
           </span>
         </span>
       );
-      return docSrc ? (
-        <a href={docSrc} target="_blank" rel="noreferrer" className="block">
-          {chip}
-        </a>
-      ) : (
-        chip
+      return (
+        <div className="space-y-1.5">
+          {docSrc ? (
+            <a href={docSrc} target="_blank" rel="noreferrer" download={filename} className="block">
+              {chip}
+            </a>
+          ) : (
+            chip
+          )}
+          {caption && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{caption}</p>}
+        </div>
       );
     }
 
     case "LOCATION": {
-      const lat = num(meta.latitude);
-      const lng = num(meta.longitude);
+      const loc = (meta.location as Record<string, unknown> | undefined) ?? meta;
+      const lat = num(loc.latitude);
+      const lng = num(loc.longitude);
+      const place = [str(loc.name), str(loc.address)].filter(Boolean).join(" · ");
       const label =
-        caption || (lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : "Shared a location");
+        place || (lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : "Shared a location");
       const chip = <MediaChip icon={MapPin} label={label} outbound={outbound} />;
       return lat != null && lng != null ? (
         <a
@@ -1307,6 +1314,17 @@ function msTime(date?: string | Date | null) {
 
 function str(value: unknown) {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+/**
+ * Where a bubble loads its attachment from: the stored/public URL when the server has one, the
+ * local preview while a send is in flight, otherwise the backend's message-media endpoint which
+ * redirects to storage or streams from Meta.
+ */
+function mediaSrc(message: InboxMessage): string | null {
+  if (message.mediaUrl && !message.mediaUrl.includes("graph.facebook.com")) return message.mediaUrl;
+  if (message.id.startsWith("local-")) return message.mediaUrl ?? null;
+  return `/api/media/message/${message.id}`;
 }
 
 function num(value: unknown) {
