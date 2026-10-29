@@ -34,6 +34,7 @@ import {
 } from "@/components/ui";
 import { cn, formatCompact, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Member = User & { _count?: { assignedConvs?: number; assignedTickets?: number } | null };
 
@@ -58,7 +59,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
 /** Roles a workspace owner can hand out. SUPER_ADMIN and TENANT_OWNER aren't invitable. */
 const INVITABLE_ROLES: UserRole[] = ["ADMIN", "MANAGER", "AGENT", "MARKETING_USER"];
 
-function useTeam() {
+function useTeam(enabled: boolean) {
   return useQuery<Member[]>({
     queryKey: ["team"],
     queryFn: async () => {
@@ -68,6 +69,7 @@ function useTeam() {
       return Array.isArray(json) ? json : (json.data ?? []);
     },
     retry: false,
+    enabled,
   });
 }
 
@@ -97,7 +99,11 @@ function StatTile({
 
 export default function TeamPage() {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError, error } = useTeam();
+  // Managing members is a permission, not a role. Someone without it can reach this URL
+  // directly, so say so plainly instead of firing a request the server will refuse.
+  const { can, loaded } = usePermissions();
+  const canManage = can("users.manage");
+  const { data, isLoading, isError, error } = useTeam(canManage);
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -145,6 +151,21 @@ export default function TeamPage() {
     agents: members.filter((m) => m.role === "AGENT").length,
     admins: members.filter((m) => m.role === "ADMIN" || m.role === "TENANT_OWNER").length,
   };
+
+  if (loaded && !canManage) {
+    return (
+      <div>
+        <PageHeader title="Team" description="Invite teammates and control what each of them can do." />
+        <Card className="overflow-hidden">
+          <EmptyState
+            icon={ShieldOff}
+            title="You can't manage this team"
+            description="Managing members needs the Users permission in this workspace. Ask its owner if you need it."
+          />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>

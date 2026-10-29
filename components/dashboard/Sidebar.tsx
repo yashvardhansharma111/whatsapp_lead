@@ -71,7 +71,9 @@ const NAV = [
       { href: "/blacklist", label: "Blacklist", icon: Ban, permission: "blacklist.view" },
       { href: "/team", label: "Team", icon: UserCog, permission: "users.manage" },
       { href: "/billing", label: "Billing & Plan", icon: CreditCard, permission: "billing.manage" },
-      { href: "/settings", label: "Settings", icon: Settings, permission: "settings.manage" },
+      // Open to every member: the page always has their own account and notification
+      // preferences on it. Each tab inside gates itself.
+      { href: "/settings", label: "Settings", icon: Settings, permission: undefined },
     ],
   },
 ];
@@ -95,7 +97,7 @@ const RESELLER_NAV = [
     section: "Manage",
     items: [
       { href: "/team", label: "Team", icon: UserCog, permission: "users.manage" },
-      { href: "/settings", label: "Settings", icon: Settings, permission: "settings.manage" },
+      { href: "/settings", label: "Settings", icon: Settings, permission: undefined },
     ],
   },
 ];

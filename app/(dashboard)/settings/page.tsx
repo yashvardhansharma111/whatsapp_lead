@@ -23,12 +23,16 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
 
+/**
+ * `permission` is the one the tab's own endpoints require, so a tab is offered only when
+ * the server would answer it. Tabs without one are self-scoped — your profile, your
+ * notification preferences — and every member reaches them.
+ */
 type TabDef = {
   key: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
-  billingOnly?: boolean;
+  permission?: string;
 };
 
 const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
@@ -36,36 +40,36 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
     section: null,
     tabs: [
       { key: "account",  label: "Account",  icon: UserCircle },
-      { key: "general",  label: "General",  icon: Building2 },
+      { key: "general",  label: "General",  icon: Building2, permission: "settings.manage" },
     ],
   },
   {
     section: "Channel",
     tabs: [
-      { key: "whatsapp",      label: "WhatsApp",      icon: MessageSquare },
-      { key: "quick-replies", label: "Quick Replies",  icon: Zap },
-      { key: "opt-out",       label: "Opt-out Manager",icon: BellOff,  adminOnly: true },
+      { key: "whatsapp",      label: "WhatsApp",      icon: MessageSquare, permission: "settings.manage" },
+      { key: "quick-replies", label: "Quick Replies",  icon: Zap,          permission: "campaigns.view" },
+      { key: "opt-out",       label: "Opt-out Manager",icon: BellOff,      permission: "settings.manage" },
     ],
   },
   {
     section: "Workspace",
     tabs: [
-      { key: "pipeline",      label: "Lead Stages",   icon: KanbanSquare, adminOnly: true },
+      { key: "pipeline",      label: "Lead Stages",   icon: KanbanSquare, permission: "settings.manage" },
       { key: "notifications", label: "Notifications", icon: Bell },
     ],
   },
   {
     section: "Developer",
     tabs: [
-      { key: "webhooks",      label: "Webhooks & API",  icon: Webhook,  adminOnly: true },
-      { key: "message-rates", label: "Message Rates",   icon: DollarSign, adminOnly: true },
+      { key: "webhooks",      label: "Webhooks & API",  icon: Webhook,    permission: "settings.manage" },
+      { key: "message-rates", label: "Message Rates",   icon: DollarSign, permission: "settings.manage" },
     ],
   },
   {
     section: "Account",
     tabs: [
-      { key: "billing",  label: "Billing",      icon: CreditCard,  billingOnly: true },
-      { key: "activity", label: "Activity Log",  icon: ScrollText },
+      { key: "billing",  label: "Billing",      icon: CreditCard, permission: "billing.manage" },
+      { key: "activity", label: "Activity Log",  icon: ScrollText, permission: "reports.view" },
     ],
   },
 ];
@@ -86,17 +90,13 @@ function SettingsPageInner() {
   // Tabs follow the permission the server checks, not a role name — so a member granted
   // settings.manage in a workspace they were invited to sees exactly those tabs.
   const { can } = usePermissions();
-  const isStageAdmin  = can("settings.manage");
-  const canSeeBilling = can("billing.manage");
 
   // `/settings?tab=notifications` (from the bell) opens that tab directly.
   const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");
 
   function canSee(t: TabDef): boolean {
     if (isReseller && ["pipeline", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;
-    if (t.billingOnly) return canSeeBilling;
-    if (t.adminOnly)   return isStageAdmin;
-    return true;
+    return t.permission ? can(t.permission) : true;
   }
 
   const allVisible = TAB_GROUPS.flatMap((g) => g.tabs.filter(canSee));
@@ -171,15 +171,16 @@ function SettingsPageInner() {
 
         {/* ── Content ── */}
         <div className="min-w-0 flex-1 max-w-3xl">
+          {/* activeTab is always one of `allVisible`, so each panel is already permitted. */}
           {activeTab === "account"       && <AccountTab />}
           {activeTab === "general"       && <GeneralTab />}
-          {activeTab === "pipeline"      && isStageAdmin  && <LeadStagesTab />}
+          {activeTab === "pipeline"      && <LeadStagesTab />}
           {activeTab === "whatsapp"      && <WhatsAppTab />}
           {activeTab === "quick-replies" && <QuickRepliesTab />}
-          {activeTab === "billing"       && canSeeBilling && <BillingTab />}
-          {activeTab === "opt-out"       && isStageAdmin  && <OptOutTab />}
-          {activeTab === "webhooks"      && isStageAdmin  && <WebhooksTab />}
-          {activeTab === "message-rates" && isStageAdmin  && <MessageRatesTab />}
+          {activeTab === "billing"       && <BillingTab />}
+          {activeTab === "opt-out"       && <OptOutTab />}
+          {activeTab === "webhooks"      && <WebhooksTab />}
+          {activeTab === "message-rates" && <MessageRatesTab />}
           {activeTab === "notifications" && <NotificationsTab />}
           {activeTab === "activity"      && <ActivityTab />}
         </div>

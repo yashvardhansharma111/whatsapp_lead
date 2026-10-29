@@ -12,6 +12,7 @@ import {
   Loader2,
   TrendingUp,
   CalendarDays,
+  ShieldOff,
 } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
@@ -152,10 +153,10 @@ function SummaryStrip({ analytics, period }: { analytics?: AnalyticsData; period
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const { can } = usePermissions();
-  // Reports follow the reports.view grant rather than a role list.
+  // Two separate grants: reading the figures, and taking the data out of the workspace.
+  const { can, loaded } = usePermissions();
   const canViewReports = can("reports.view");
-  const isAgent = !canViewReports;
+  const canExport = can("contacts.export");
 
   const [period, setPeriod] = useState<Period>("30d");
   const { data: analytics } = useAnalyticsSummary(period);
@@ -209,15 +210,20 @@ export default function ReportsPage() {
     columns:     "agent, assigned, resolved, rate, avg_resolution_time",
   };
 
-  const myConvCard: ReportCardProps = {
-    resource:    "my-conversations",
-    icon:        MessageSquare,
-    title:       "My Conversations",
-    description: "Conversations assigned to you — contact, status, timestamps.",
-    count:       null,
-    period,
-    columns:     "id, contact, phone, status, opened, closed",
-  };
+  if (loaded && !canViewReports) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Reports" description="Workspace figures and CSV exports." />
+        <Card className="p-8 text-center">
+          <ShieldOff className="mx-auto h-6 w-6 text-slate-400" />
+          <p className="mt-3 text-sm font-medium text-slate-900">Reports aren&apos;t open to you here</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Reading workspace figures needs the Reports permission. Ask this workspace&apos;s owner if you need it.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -245,34 +251,26 @@ export default function ReportsPage() {
         }
       />
 
-      {/* Summary strip — only meaningful for admin+ */}
-      {canViewReports && (
-        <SummaryStrip analytics={analytics} period={period} />
+      <SummaryStrip analytics={analytics} period={period} />
+
+      {/* Taking data out of the workspace is its own grant, so the cards only appear
+          for someone who can actually download them. */}
+      {canExport && (
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-slate-400" />
+            <p className="text-sm font-medium text-slate-700">Export data</p>
+            <span className="text-xs text-slate-400">· max 10,000 rows per file</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {workspaceCards.map((card) => (
+              <ReportCard key={card.resource} {...card} />
+            ))}
+            <ReportCard {...managerCard} />
+          </div>
+        </div>
       )}
-
-      {/* Export cards */}
-      <div>
-        <div className="mb-3 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-slate-400" />
-          <p className="text-sm font-medium text-slate-700">Export data</p>
-          <span className="text-xs text-slate-400">· max 10,000 rows per file</span>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {isAgent ? (
-            <ReportCard {...myConvCard} />
-          ) : (
-            <>
-              {workspaceCards.map((card) => (
-                <ReportCard key={card.resource} {...card} />
-              ))}
-              {canViewReports && (
-                <ReportCard {...managerCard} />
-              )}
-            </>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
