@@ -271,6 +271,28 @@ export default function BroadcastPage() {
   const finalNumbers = analysis.valid.filter((p) => !removed.has(p));
   const overLimit = finalNumbers.length > BROADCAST_MAX_NUMBERS;
 
+  // Fetch WhatsApp messaging tier so we can warn if the broadcast approaches the daily cap.
+  const TIER_LIMITS: Record<string, number> = {
+    TIER_1K:        1_000,
+    TIER_10K:      10_000,
+    TIER_100K:    100_000,
+    TIER_UNLIMITED: Infinity,
+  };
+  const { data: waHealth } = useQuery<{ messagingLimitTier?: string }>({
+    queryKey: ["whatsapp-health-tier"],
+    queryFn: async () => {
+      const r = await fetch("/api/settings/whatsapp-health");
+      const j = await r.json();
+      // health endpoint returns an array (one per integration); use the first
+      const first = Array.isArray(j.data) ? j.data[0] : j.data;
+      return first ?? {};
+    },
+    staleTime: 5 * 60_000,
+  });
+  const tierLimit = waHealth?.messagingLimitTier ? (TIER_LIMITS[waHealth.messagingLimitTier] ?? Infinity) : Infinity;
+  const approachingTier = isFinite(tierLimit) && finalNumbers.length > tierLimit * 0.8;
+  const overTier        = isFinite(tierLimit) && finalNumbers.length > tierLimit;
+
   const { data: templatesData, isLoading: tplLoading } = useTemplates();
   const approved = (templatesData ?? []).filter((t) => t.status === "APPROVED");
   // In Meta's review: re-checked each time the list loads, listed here so a missing
@@ -639,6 +661,21 @@ export default function BroadcastPage() {
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               {finalNumbers.length.toLocaleString()} recipients — one broadcast can send to at most{" "}
               {BROADCAST_MAX_NUMBERS.toLocaleString()}. Split the list into several broadcasts.
+            </p>
+          )}
+          {!overLimit && overTier && (
+            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              Your WhatsApp number is on the <strong>{tierLimit.toLocaleString()}/day</strong> tier. This broadcast has{" "}
+              {finalNumbers.length.toLocaleString()} recipients — sending more than your daily limit may fail for the rest.
+            </p>
+          )}
+          {!overLimit && !overTier && approachingTier && (
+            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200">
+              <Info className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              Heads up: your WhatsApp number allows{" "}
+              <strong>{tierLimit.toLocaleString()}</strong> conversations/day. This broadcast uses{" "}
+              {finalNumbers.length.toLocaleString()} of that quota.
             </p>
           )}
 
