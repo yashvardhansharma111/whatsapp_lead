@@ -161,12 +161,25 @@ export function useRefreshTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      console.group(`%c[TemplateSync] Refresh status templateId=${id}`, "color:#6366f1;font-weight:bold");
+      console.time("[TemplateSync] refresh duration");
+      console.log(`→ POST /api/templates/${id}/refresh`);
       const res = await fetch(`/api/templates/${id}/refresh`, { method: "POST" });
+      console.log(`← HTTP ${res.status} ${res.statusText}`);
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to refresh template");
+        const raw = await res.text();
+        let err: { error?: string; message?: string } = {};
+        try { err = JSON.parse(raw); } catch { console.error("Non-JSON error body:", raw); }
+        console.error("Refresh failed:", err);
+        console.timeEnd("[TemplateSync] refresh duration");
+        console.groupEnd();
+        throw new Error(err.error ?? err.message ?? "Failed to refresh template");
       }
-      return res.json() as Promise<TemplateDTO>;
+      const data = await res.json() as TemplateDTO;
+      console.log(`Refresh result: status=${data.status} lastSyncedAt=${data.lastSyncedAt}`, data);
+      console.timeEnd("[TemplateSync] refresh duration");
+      console.groupEnd();
+      return data;
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -176,12 +189,23 @@ export function useSyncTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      console.group("%c[TemplateSync] Sync pending → Meta", "color:#f59e0b;font-weight:bold");
+      console.time("[TemplateSync] sync duration");
+      console.log("→ POST /api/templates/sync");
       const res = await fetch("/api/templates/sync", { method: "POST" });
+      console.log(`← HTTP ${res.status} ${res.statusText}`);
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to sync templates");
+        const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+        console.error("Sync failed:", err);
+        console.timeEnd("[TemplateSync] sync duration");
+        console.groupEnd();
+        throw new Error(err.error ?? err.message ?? "Failed to sync templates");
       }
-      return res.json();
+      const data = await res.json();
+      console.log("Sync result:", data);
+      console.timeEnd("[TemplateSync] sync duration");
+      console.groupEnd();
+      return data;
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -192,12 +216,25 @@ export function useImportTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      console.group("%c[TemplateSync] Import from Meta", "color:#10b981;font-weight:bold");
+      console.time("[TemplateSync] import duration");
+      console.log("→ POST /api/templates/import");
       const res = await fetch("/api/templates/import", { method: "POST" });
+      console.log(`← HTTP ${res.status} ${res.statusText}`);
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to import templates from Meta");
+        const raw = await res.text();
+        let err: { error?: string; message?: string } = {};
+        try { err = JSON.parse(raw); } catch { console.error("Non-JSON error body:", raw); }
+        console.error("Import failed:", err);
+        console.timeEnd("[TemplateSync] import duration");
+        console.groupEnd();
+        throw new Error(err.error ?? err.message ?? "Failed to import templates from Meta");
       }
-      return (await res.json()) as { success: boolean; created: number; updated: number };
+      const data = await res.json() as { success: boolean; created: number; updated: number };
+      console.log(`Import result: created=${data.created} updated=${data.updated}`, data);
+      console.timeEnd("[TemplateSync] import duration");
+      console.groupEnd();
+      return data;
     },
     onSuccess: () => invalidate(queryClient),
   });
