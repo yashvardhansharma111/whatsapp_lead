@@ -177,8 +177,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         console.log("[auth] jwt callback: refreshing claims via /auth/me");
         const claims = await loadClaims(token.nestToken ?? "");
         if (!claims) {
-          console.warn("[auth] jwt callback: loadClaims returned null — signing out");
-          return null;
+          // Backend unreachable — keep existing claims instead of killing the session.
+          // Reset timer so we retry after CLAIMS_TTL_MS, not on every request.
+          console.warn("[auth] jwt callback: loadClaims returned null — keeping existing token");
+          token.claimsAt = Date.now();
+          return token;
         }
         Object.assign(token, claims, { claimsAt: Date.now() });
       }
