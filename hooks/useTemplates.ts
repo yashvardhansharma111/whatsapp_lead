@@ -1,27 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  ParameterFormat, TemplateButtonDraft, TemplateCardDraft, TemplateType,
+} from "@/lib/templates/spec";
 
-export interface TemplateButton {
-  type: "QUICK_REPLY" | "URL" | "PHONE_NUMBER" | "OTP" | "COPY_CODE" | "VOICE_CALL";
-  text: string;
-  url?: string;
-  phone?: string;
-  urlType?: "STATIC" | "DYNAMIC";
-  urlExample?: string;
-  otpType?: "COPY_CODE";
-  offerCode?: string;
-}
+export type TemplateButton = TemplateButtonDraft;
+export type TemplateCard = TemplateCardDraft;
 
 export interface TemplateInput {
   name: string;
   category: "MARKETING" | "UTILITY" | "AUTHENTICATION";
   language?: string;
+  templateType?: TemplateType;
+  parameterFormat?: ParameterFormat;
   body: string;
-  headerType?: "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | null;
+  headerType?: "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | "LOCATION" | null;
   headerContent?: string | null;
   headerVariables?: string[];
-  footer?: string;
+  footer?: string | null;
   buttons?: TemplateButton[];
   variables?: string[];
+  cards?: TemplateCard[] | null;
+  ltoText?: string | null;
+  ltoHasExpiration?: boolean;
+  addSecurityRecommendation?: boolean;
+  codeExpirationMinutes?: number | null;
+  messageSendTtlSeconds?: number | null;
 }
 
 export interface TemplateDTO extends TemplateInput {
@@ -34,18 +37,27 @@ export interface TemplateDTO extends TemplateInput {
   updatedAt: string;
 }
 
+/** What a template media upload gives back: the approval handle, and a sendable URL. */
+export interface UploadedMedia {
+  handle: string;
+  url: string | null;
+}
+
 const invalidate = (qc: ReturnType<typeof useQueryClient>) =>
   qc.invalidateQueries({ queryKey: ["templates"] });
+
+async function unwrap<T>(res: Response, fallback: string): Promise<T> {
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? fallback);
+  return (json.data ?? json) as T;
+}
 
 export function useTemplates() {
   return useQuery({
     queryKey: ["templates"],
     queryFn: async () => {
       const res = await fetch("/api/templates");
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to fetch templates");
-      // API returns { success, data: TemplateDTO[] }
-      return (json.data ?? json) as TemplateDTO[];
+      return unwrap<TemplateDTO[]>(res, "Couldn't load your templates");
     },
   });
 }
@@ -59,11 +71,7 @@ export function useCreateTemplate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to create template");
-      }
-      return res.json() as Promise<TemplateDTO>;
+      return unwrap<TemplateDTO>(res, "Couldn't create the template");
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -78,11 +86,7 @@ export function useUpdateTemplate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to update template");
-      }
-      return res.json() as Promise<TemplateDTO>;
+      return unwrap<TemplateDTO>(res, "Couldn't save the template");
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -93,10 +97,7 @@ export function useDeleteTemplate() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/templates/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to delete template");
-      }
+      await unwrap<unknown>(res, "Couldn't delete the template");
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -107,11 +108,7 @@ export function useDuplicateTemplate() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/templates/${id}/duplicate`, { method: "POST" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to duplicate template");
-      }
-      return res.json() as Promise<TemplateDTO>;
+      return unwrap<TemplateDTO>(res, "Couldn't duplicate the template");
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -122,38 +119,19 @@ export function useSubmitTemplate() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/templates/${id}/submit`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as {
-          error?: string;
-          debug?: { metaPayload?: unknown; templateId?: string; metaError?: unknown } | null;
-        };
-
-        // ── Client-side debug logs ───────────────────────────────────────
-        console.group("%c🔴 Template submit failed", "color:#dc2626;font-weight:bold");
-        console.log("Template ID  :", id);
-        console.log("Error message:", body.error ?? "(no message)");
-        if (body.debug?.metaError) {
-          console.group("%c↳ Meta API error", "color:#b91c1c");
-          console.table(body.debug.metaError);
-          console.groupEnd();
-        }
-        if (body.debug?.metaPayload) {
-          console.group("%c↳ Payload sent to Meta", "color:#6b7280");
-          console.log(JSON.stringify(body.debug.metaPayload, null, 2));
-          console.groupEnd();
-        } else {
-          console.log("No payload debug available (error occurred before Meta call)");
-        }
-        console.groupEnd();
-        // ────────────────────────────────────────────────────────────────
-
-        const err = new Error(body.error ?? "Failed to submit template") as Error & { debug?: typeof body.debug };
-        err.debug = body.debug;
-        throw err;
-      }
-      return res.json() as Promise<TemplateDTO>;
+      return unwrap<TemplateDTO>(res, "Couldn't submit the template to Meta");
     },
     onSuccess: () => invalidate(queryClient),
+  });
+}
+
+/** Meta's rules checked server-side, without spending a submission. */
+export function useValidateTemplate() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/templates/${id}/validate`, { method: "POST" });
+      return unwrap<{ valid: boolean; errors: string[] }>(res, "Couldn't check the template");
+    },
   });
 }
 
@@ -161,25 +139,8 @@ export function useRefreshTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      console.group(`%c[TemplateSync] Refresh status templateId=${id}`, "color:#6366f1;font-weight:bold");
-      console.time("[TemplateSync] refresh duration");
-      console.log(`→ POST /api/templates/${id}/refresh`);
       const res = await fetch(`/api/templates/${id}/refresh`, { method: "POST" });
-      console.log(`← HTTP ${res.status} ${res.statusText}`);
-      if (!res.ok) {
-        const raw = await res.text();
-        let err: { error?: string; message?: string } = {};
-        try { err = JSON.parse(raw); } catch { console.error("Non-JSON error body:", raw); }
-        console.error("Refresh failed:", err);
-        console.timeEnd("[TemplateSync] refresh duration");
-        console.groupEnd();
-        throw new Error(err.error ?? err.message ?? "Failed to refresh template");
-      }
-      const data = await res.json() as TemplateDTO;
-      console.log(`Refresh result: status=${data.status} lastSyncedAt=${data.lastSyncedAt}`, data);
-      console.timeEnd("[TemplateSync] refresh duration");
-      console.groupEnd();
-      return data;
+      return unwrap<TemplateDTO>(res, "Couldn't refresh the status");
     },
     onSuccess: () => invalidate(queryClient),
   });
@@ -189,53 +150,33 @@ export function useSyncTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      console.group("%c[TemplateSync] Sync pending → Meta", "color:#f59e0b;font-weight:bold");
-      console.time("[TemplateSync] sync duration");
-      console.log("→ POST /api/templates/sync");
       const res = await fetch("/api/templates/sync", { method: "POST" });
-      console.log(`← HTTP ${res.status} ${res.statusText}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
-        console.error("Sync failed:", err);
-        console.timeEnd("[TemplateSync] sync duration");
-        console.groupEnd();
-        throw new Error(err.error ?? err.message ?? "Failed to sync templates");
-      }
-      const data = await res.json();
-      console.log("Sync result:", data);
-      console.timeEnd("[TemplateSync] sync duration");
-      console.groupEnd();
-      return data;
+      return unwrap<{ enqueued: number }>(res, "Couldn't sync your templates");
     },
     onSuccess: () => invalidate(queryClient),
   });
 }
 
-/** Pull all templates from the connected Meta WABA and upsert into the local DB. */
+/** Pull every template from the connected WhatsApp account into this workspace. */
 export function useImportTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      console.group("%c[TemplateSync] Import from Meta", "color:#10b981;font-weight:bold");
-      console.time("[TemplateSync] import duration");
-      console.log("→ POST /api/templates/import");
       const res = await fetch("/api/templates/import", { method: "POST" });
-      console.log(`← HTTP ${res.status} ${res.statusText}`);
-      if (!res.ok) {
-        const raw = await res.text();
-        let err: { error?: string; message?: string } = {};
-        try { err = JSON.parse(raw); } catch { console.error("Non-JSON error body:", raw); }
-        console.error("Import failed:", err);
-        console.timeEnd("[TemplateSync] import duration");
-        console.groupEnd();
-        throw new Error(err.error ?? err.message ?? "Failed to import templates from Meta");
-      }
-      const data = await res.json() as { success: boolean; created: number; updated: number };
-      console.log(`Import result: created=${data.created} updated=${data.updated}`, data);
-      console.timeEnd("[TemplateSync] import duration");
-      console.groupEnd();
-      return data;
+      return unwrap<{ created: number; updated: number }>(res, "Couldn't import from Meta");
     },
     onSuccess: () => invalidate(queryClient),
   });
+}
+
+/**
+ * Uploads a sample file. Meta approves a template against the resumable-upload handle,
+ * while a sent message needs a URL, so both come back.
+ */
+export async function uploadTemplateMedia(file: File): Promise<UploadedMedia> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/templates/upload-media", { method: "POST", body: form });
+  if (res.status === 413) throw new Error("That file is too large. The limit is 4 MB.");
+  return unwrap<UploadedMedia>(res, "The upload failed. Try again.");
 }
