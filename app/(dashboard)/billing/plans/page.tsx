@@ -277,6 +277,7 @@ export default function PlansPage() {
           ))}
         </div>
       ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => {
             const isCurrent = plan.id === currentPlanId;
@@ -337,6 +338,8 @@ export default function PlansPage() {
             );
           })}
         </div>
+        {plans.length > 1 && <PlanComparisonTable plans={plans} />}
+        </>
       )}
     </div>
   );
@@ -348,5 +351,53 @@ function Feature({ children }: { children: React.ReactNode }) {
       <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
       <span>{children}</span>
     </li>
+  );
+}
+
+function unlimited(n: number) {
+  return n <= 0 ? "Unlimited" : n.toLocaleString();
+}
+
+export function PlanComparisonTable({ plans }: { plans: PlanDTO[] }) {
+  const rows = [
+    { label: "Price / month",     get: (p: PlanDTO) => `₹${(p.priceMonthly / 100).toFixed(0)}` },
+    { label: "Agents",            get: (p: PlanDTO) => unlimited(p.maxAgents) },
+    { label: "Contacts",          get: (p: PlanDTO) => unlimited(p.maxContacts) },
+    { label: "Messages / month",  get: (p: PlanDTO) => unlimited(p.maxMsgPerMonth) },
+    { label: "Campaigns / month", get: (p: PlanDTO) => unlimited(p.maxCampaigns) },
+    { label: "Storage",           get: (p: PlanDTO) => p.maxStorageMb <= 0 ? "Unlimited" : `${p.maxStorageMb} MB` },
+    { label: "AI credits / month",get: (p: PlanDTO) => unlimited(p.aiCredits) },
+  ];
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 text-sm font-semibold text-slate-700">Compare all plans</h2>
+      <div className="scrollbar-slim overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full min-w-[36rem] text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Feature</th>
+              {plans.map((p) => (
+                <th key={p.id} className="px-4 py-3 text-center text-xs font-semibold text-slate-800">
+                  {p.displayName || p.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.map((row) => (
+              <tr key={row.label} className="hover:bg-slate-50">
+                <td className="px-4 py-2.5 font-medium text-slate-600">{row.label}</td>
+                {plans.map((p) => (
+                  <td key={p.id} className="px-4 py-2.5 text-center tabular-nums text-slate-800">
+                    {row.get(p)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
