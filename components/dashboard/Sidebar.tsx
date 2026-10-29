@@ -30,7 +30,9 @@ import {
   ChevronRight,
   FileBarChart2,
   Tag,
+  Phone,
 } from "lucide-react";
+import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { BusinessSwitcher } from "@/components/dashboard/BusinessSwitcher";
@@ -41,6 +43,7 @@ const NAV = [
     section: null,
     items: [
       { href: "/inbox", label: "Inbox", icon: MessageSquare, roles: null },
+      { href: "/calls", label: "Calls", icon: Phone, roles: null, feature: "callingEnabled" as keyof PlanFeatures },
       { href: "/contacts", label: "Contacts", icon: Users, roles: null },
       { href: "/tags", label: "Tags", icon: Tag, roles: null },
       { href: "/leads", label: "Leads", icon: Target, roles: null },
@@ -102,6 +105,11 @@ function canSeeNavItem(role: string | null | undefined, allowed: string[] | null
   return allowed.includes(role);
 }
 
+/** Items tied to a plan feature stay hidden until the tenant's plan switches it on. */
+function planAllows(item: { href: string; feature?: keyof PlanFeatures }, features: PlanFeatures | null | undefined) {
+  return !item.feature || Boolean(features?.[item.feature]);
+}
+
 export interface SidebarUser {
   name?: string | null;
   role?: string | null;
@@ -110,6 +118,7 @@ export interface SidebarUser {
   plan?: string | null;
   accountType?: string | null;
   resellerType?: string | null;
+  features?: PlanFeatures | null;
 }
 
 /** The brand shown in the sidebar — the platform's, or a white-label reseller's. */
@@ -161,7 +170,9 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
 
       <nav className="scrollbar-slim flex-1 overflow-y-auto px-3 pb-3">
         {groups.map((group, gi) => {
-          const items = group.items.filter((item) => canSeeNavItem(user.role, item.roles));
+          const items = group.items.filter(
+            (item) => canSeeNavItem(user.role, item.roles) && planAllows(item, user.features),
+          );
           if (items.length === 0) return null;
           return (
           <div key={group.section ?? gi} className={cn(gi > 0 && "mt-5")}>

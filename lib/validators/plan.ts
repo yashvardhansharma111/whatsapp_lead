@@ -51,6 +51,7 @@ const planRules = {
 
   allowedAiModels: z.array(z.string().min(1)),
   allowExport: z.boolean(),
+  callingEnabled: z.boolean(),
   isPopular: z.boolean(),
   aiEnabled: z.boolean(),
   ragEnabled: z.boolean(),
@@ -100,6 +101,7 @@ export const createPlanSchema = z.object({
   retentionDays: planRules.retentionDays.default(0),
   allowedAiModels: planRules.allowedAiModels.default([]),
   allowExport: planRules.allowExport.default(true),
+  callingEnabled: planRules.callingEnabled.default(false),
   isPopular: planRules.isPopular.default(false),
   aiEnabled: planRules.aiEnabled.default(false),
   ragEnabled: planRules.ragEnabled.default(false),

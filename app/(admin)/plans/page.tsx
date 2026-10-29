@@ -53,6 +53,7 @@ const FEATURES: { key: keyof AdminPlan; label: string }[] = [
   { key: "advancedAi", label: "Advanced AI (lead scoring)" },
   { key: "whiteLabel", label: "White label" },
   { key: "allowExport", label: "CSV export" },
+  { key: "callingEnabled", label: "WhatsApp calling" },
 ];
 
 const LIMITS: { key: keyof AdminPlan; label: string }[] = [

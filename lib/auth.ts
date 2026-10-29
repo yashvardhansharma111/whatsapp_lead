@@ -6,6 +6,15 @@ import { VIEW_AS_COOKIE, decodeViewAs } from "@/lib/viewAs";
 
 const CLAIMS_TTL_MS = 5 * 60_000;
 
+export interface PlanFeatures {
+  aiEnabled: boolean;
+  ragEnabled: boolean;
+  whiteLabel: boolean;
+  advancedAi: boolean;
+  allowExport: boolean;
+  callingEnabled: boolean;
+}
+
 function backendUrl() {
   const url = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
   console.log("[auth] backendUrl resolved:", url || "(empty — not set)");
@@ -45,6 +54,8 @@ async function loadClaims(nestToken: string) {
       resellerType:   (u.resellerType  as string | null) ?? null,
       parentTenantId: (u.parentTenantId as string | null) ?? null,
       avatar:         u.avatar         as string | undefined,
+      planName:       (u.plan?.displayName as string | undefined) ?? null,
+      features:       (u.plan?.features as PlanFeatures | undefined) ?? null,
     };
   } catch (err) {
     console.error("[auth] loadClaims: fetch threw", err);
@@ -170,6 +181,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.avatar         = user.avatar;
         token.nestToken      = (user as any).nestToken;
         token.claimsAt       = Date.now();
+        // The login response carries no plan; fetch it once so feature gates are right from the first page.
+        const claims = await loadClaims(token.nestToken ?? "");
+        if (claims) Object.assign(token, claims);
         return token;
       }
 
@@ -201,6 +215,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.resellerType   = token.resellerType ?? null;
       session.user.parentTenantId = token.parentTenantId ?? null;
       session.user.avatar         = token.avatar;
+      session.user.planName       = token.planName ?? null;
+      session.user.features       = token.features ?? null;
       session.user.viewAs         = null;
 
       if (token.role === "SUPER_ADMIN") {

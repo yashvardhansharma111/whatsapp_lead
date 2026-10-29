@@ -41,6 +41,7 @@ export interface AdminPlan {
   retentionDays: number;
   allowedAiModels: string[];
   allowExport: boolean;
+  callingEnabled?: boolean;
   isPopular: boolean;
   aiEnabled: boolean;
   ragEnabled: boolean;
@@ -114,12 +115,13 @@ const NUMBER_FIELDS: { key: NumericKey; label: string; hint?: string; group: "pr
   { key: "sortOrder", label: "Sort order", hint: "Lower sorts first on the pricing page.", group: "meta" },
 ];
 
-const TOGGLES: { key: "aiEnabled" | "ragEnabled" | "advancedAi" | "whiteLabel" | "allowExport"; label: string }[] = [
+const TOGGLES: { key: "aiEnabled" | "ragEnabled" | "advancedAi" | "whiteLabel" | "allowExport" | "callingEnabled"; label: string }[] = [
   { key: "aiEnabled", label: "AI auto-reply" },
   { key: "ragEnabled", label: "Knowledge base (RAG)" },
   { key: "advancedAi", label: "Advanced AI (lead scoring)" },
   { key: "whiteLabel", label: "White label" },
   { key: "allowExport", label: "CSV export" },
+  { key: "callingEnabled", label: "WhatsApp calling" },
 ];
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -139,6 +141,7 @@ type FormState = Record<NumericKey, number> & {
   whiteLabel: boolean;
   advancedAi: boolean;
   allowExport: boolean;
+  callingEnabled: boolean;
 };
 
 /** A blank tier: everything off, every cap zero-as-unlimited left explicit. */
@@ -164,6 +167,7 @@ function emptyForm(): FormState {
     whiteLabel: false,
     advancedAi: false,
     allowExport: true,
+    callingEnabled: false,
   };
 }
 
@@ -187,6 +191,7 @@ function formFrom(plan: AdminPlan): FormState {
     whiteLabel: plan.whiteLabel,
     advancedAi: plan.advancedAi,
     allowExport: plan.allowExport,
+    callingEnabled: plan.callingEnabled ?? false,
   };
 }
 
@@ -315,6 +320,7 @@ export function PlanFormModal({
       whiteLabel: form.whiteLabel,
       advancedAi: form.advancedAi,
       allowExport: form.allowExport,
+      callingEnabled: form.callingEnabled,
     };
 
     if (!editing) {

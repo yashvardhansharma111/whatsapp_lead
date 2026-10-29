@@ -28,6 +28,7 @@ import {
   type WhatsAppTestDTO,
 } from "@/hooks/useWhatsAppConnection";
 import { cn } from "@/lib/utils";
+import { CallingToggle } from "@/components/calls/CallingToggle";
 
 // ─── FB SDK type declarations ─────────────────────────────────────────────────
 declare global {
@@ -265,6 +266,8 @@ function IntegrationCard({
           </div>
         )}
       </div>
+
+      {integration.isActive && <CallingToggle integrationId={integration.id} />}
 
       <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <DetailRow label="Display Name" value={integration.displayName ?? "—"} />

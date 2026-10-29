@@ -1,4 +1,5 @@
 import type { DefaultSession } from "next-auth";
+import type { PlanFeatures } from "@/lib/auth";
 
 declare module "next-auth" {
   interface Session {
@@ -17,6 +18,10 @@ declare module "next-auth" {
       /** The reseller account this client belongs to, if any. */
       parentTenantId: string | null;
       avatar?: string;
+      /** Display name of the tenant's current plan; null when none is known. */
+      planName?: string | null;
+      /** Plan feature switches from /auth/me; null until claims have loaded. */
+      features?: PlanFeatures | null;
       /**
        * Set while a Super Admin is viewing another account (lib/viewAs.ts): the claims
        * above are that account's, and this is the admin's own. Null otherwise.
@@ -54,6 +59,8 @@ declare module "@auth/core/jwt" {
     resellerType?: string | null;
     parentTenantId?: string | null;
     avatar?: string;
+    planName?: string | null;
+    features?: PlanFeatures | null;
     /** When the claims above were last read from the database (ms). */
     claimsAt?: number;
     /** NestJS access_token stored for /auth/me claim refresh calls. */

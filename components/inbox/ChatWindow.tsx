@@ -10,10 +10,15 @@ import {
   Clock,
   FileText,
   Image as ImageIcon,
+  Info,
   LayoutList,
   MapPin,
   MessageSquare,
   Paperclip,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneMissed,
+  PhoneOff,
   Plus,
   Reply,
   Send,
@@ -797,6 +802,8 @@ function MessageBubble({
 }) {
   const outbound = message.direction === "OUTBOUND";
 
+  if (message.type === "SYSTEM") return <SystemLine message={message} />;
+
   if (message.isNote) {
     return (
       <div className="my-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 shadow-sm">
@@ -932,6 +939,33 @@ function KnowledgeCitation({
       <BookOpen className="mr-1 inline h-3 w-3 align-[-2px]" />
       Answered from {names.join(", ")}
     </p>
+  );
+}
+
+/** Centered event line — today that is a call ("Missed call", "Voice call · 2:13"). */
+function SystemLine({ message }: { message: InboxMessage }) {
+  const call = (message.metadata?.call ?? null) as { status?: string; answeredBy?: string | null } | null;
+  const status = call?.status ?? "";
+  const Icon =
+    status === "MISSED" ? PhoneMissed
+    : status === "REJECTED" || status === "FAILED" ? PhoneOff
+    : status === "RINGING" || status === "CONNECTING" || status === "IN_PROGRESS" ? PhoneIncoming
+    : call ? PhoneCall : Info;
+  const tone =
+    status === "MISSED" || status === "FAILED" ? "bg-rose-50 text-rose-700 ring-rose-600/20"
+    : status === "IN_PROGRESS" || status === "RINGING" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+    : "bg-slate-100 text-slate-600 ring-slate-500/20";
+  return (
+    <div className="my-2 flex justify-center">
+      <span className={cn("inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1 ring-inset", tone)}>
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">
+          {message.content}
+          {call?.answeredBy ? ` · ${call.answeredBy}` : ""}
+        </span>
+        <span className="shrink-0 opacity-60">{formatTime(message.createdAt)}</span>
+      </span>
+    </div>
   );
 }
 

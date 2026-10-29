@@ -120,7 +120,8 @@ export type PlanFeature =
   | "ragEnabled"
   | "whiteLabel"
   | "advancedAi"
-  | "allowExport";
+  | "allowExport"
+  | "callingEnabled";
 
 export const FEATURE_TITLE: Record<PlanFeature, string> = {
   aiEnabled: "AI is not on your plan",
@@ -128,6 +129,7 @@ export const FEATURE_TITLE: Record<PlanFeature, string> = {
   whiteLabel: "White label is not on your plan",
   advancedAi: "Advanced AI is not on your plan",
   allowExport: "Data export is not on your plan",
+  callingEnabled: "WhatsApp calling is not on your plan",
 };
 
 export const FEATURE_LABEL: Record<PlanFeature, string> = {
@@ -136,6 +138,7 @@ export const FEATURE_LABEL: Record<PlanFeature, string> = {
   whiteLabel: "White label",
   advancedAi: "Advanced AI (lead scoring)",
   allowExport: "CSV export",
+  callingEnabled: "WhatsApp calling",
 };
 
 export const FEATURE_HINT: Record<PlanFeature, string> = {
@@ -149,6 +152,8 @@ export const FEATURE_HINT: Record<PlanFeature, string> = {
     "Score and qualify every lead automatically from what the customer actually said. Upgrade to switch it on.",
   allowExport:
     "Download your contacts, leads and campaign results as CSV to use anywhere else. Upgrade to switch it on.",
+  callingEnabled:
+    "Answer WhatsApp voice calls from customers right inside the inbox. Upgrade to switch it on.",
 };
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
