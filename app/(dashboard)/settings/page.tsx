@@ -19,10 +19,9 @@ import { WebhooksTab } from "@/components/settings/WebhooksTab";
 import { MessageRatesTab } from "@/components/settings/MessageRatesTab";
 import { OptOutTab } from "@/components/settings/OptOutTab";
 import { ActivityTab } from "@/components/settings/ActivityTab";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
-const STAGE_ADMIN_ROLES = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"];
-const BILLING_ROLES     = ["SUPER_ADMIN", "TENANT_OWNER"];
 
 type TabDef = {
   key: string;
@@ -83,10 +82,12 @@ export default function SettingsPage() {
 
 function SettingsPageInner() {
   const { data: session } = useSession();
-  const role = session?.user?.role ?? "";
   const isReseller  = session?.user?.accountType === "RESELLER";
-  const isStageAdmin = STAGE_ADMIN_ROLES.includes(role);
-  const canSeeBilling = BILLING_ROLES.includes(role);
+  // Tabs follow the permission the server checks, not a role name — so a member granted
+  // settings.manage in a workspace they were invited to sees exactly those tabs.
+  const { can } = usePermissions();
+  const isStageAdmin  = can("settings.manage");
+  const canSeeBilling = can("billing.manage");
 
   // `/settings?tab=notifications` (from the bell) opens that tab directly.
   const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");

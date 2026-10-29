@@ -1,5 +1,5 @@
 import type { DefaultSession } from "next-auth";
-import type { PlanFeatures } from "@/lib/auth";
+import type { PlanFeatures, WorkspaceMembership } from "@/lib/auth";
 
 declare module "next-auth" {
   interface Session {
@@ -22,6 +22,14 @@ declare module "next-auth" {
       planName?: string | null;
       /** Plan feature switches from /auth/me; null until claims have loaded. */
       features?: PlanFeatures | null;
+      /**
+       * What this person may do in the workspace they are currently in. Resolved on the
+       * server, which refuses the request regardless — this is only so the UI can avoid
+       * offering an action that would be refused. Empty means "assume nothing".
+       */
+      permissions?: string[];
+      /** Every workspace they belong to, for the switcher. */
+      workspaces?: WorkspaceMembership[];
       /**
        * Set while a Super Admin is viewing another account (lib/viewAs.ts): the claims
        * above are that account's, and this is the admin's own. Null otherwise.
@@ -61,6 +69,8 @@ declare module "@auth/core/jwt" {
     avatar?: string;
     planName?: string | null;
     features?: PlanFeatures | null;
+    permissions?: string[];
+    workspaces?: WorkspaceMembership[];
     /** When the claims above were last read from the database (ms). */
     claimsAt?: number;
     /** NestJS access_token stored for /auth/me claim refresh calls. */

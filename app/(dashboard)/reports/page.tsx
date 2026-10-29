@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn, formatCompact } from "@/lib/utils";
 import type { AnalyticsData } from "@/components/analytics/Charts";
 
@@ -28,11 +28,6 @@ const PERIODS = [
   { value: "90d",   label: "90 days" },
 ] as const;
 type Period = (typeof PERIODS)[number]["value"];
-
-// ─── Role helpers ─────────────────────────────────────────────────────────────
-
-const ADMIN_ROLES  = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"];
-const MANAGER_ROLES = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"];
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -157,9 +152,10 @@ function SummaryStrip({ analytics, period }: { analytics?: AnalyticsData; period
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const { data: session } = useSession();
-  const role = (session?.user as { role?: string })?.role ?? "";
-  const isAgent = role === "AGENT";
+  const { can } = usePermissions();
+  // Reports follow the reports.view grant rather than a role list.
+  const canViewReports = can("reports.view");
+  const isAgent = !canViewReports;
 
   const [period, setPeriod] = useState<Period>("30d");
   const { data: analytics } = useAnalyticsSummary(period);
@@ -250,7 +246,7 @@ export default function ReportsPage() {
       />
 
       {/* Summary strip — only meaningful for admin+ */}
-      {ADMIN_ROLES.includes(role) && (
+      {canViewReports && (
         <SummaryStrip analytics={analytics} period={period} />
       )}
 
@@ -270,7 +266,7 @@ export default function ReportsPage() {
               {workspaceCards.map((card) => (
                 <ReportCard key={card.resource} {...card} />
               ))}
-              {MANAGER_ROLES.includes(role) && (
+              {canViewReports && (
                 <ReportCard {...managerCard} />
               )}
             </>

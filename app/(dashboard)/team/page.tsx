@@ -16,8 +16,7 @@ import {
   X,
   Minus,
   Trash2,
-  Copy,
-  ClipboardCheck,
+  AlertCircle,
 } from "lucide-react";
 type UserRole = "SUPER_ADMIN" | "TENANT_OWNER" | "ADMIN" | "MANAGER" | "AGENT" | "MARKETING_USER";
 type User = { id: string; tenantId: string; name: string; email: string; role: UserRole; avatar?: string | null; phone?: string | null; isActive: boolean; lastLoginAt?: string | null; createdAt?: string; updatedAt?: string; aiCreditLimit: number | null; aiCreditsUsed: number; };
@@ -35,8 +34,6 @@ import {
 } from "@/components/ui";
 import { cn, formatCompact, timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-
-// TODO [SHALMON]: GET /api/team + POST /api/team/invite (currently 501).
 
 type Member = User & { _count?: { assignedConvs?: number; assignedTickets?: number } | null };
 
@@ -100,7 +97,7 @@ function StatTile({
 
 export default function TeamPage() {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useTeam();
+  const { data, isLoading, isError, error } = useTeam();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -174,19 +171,21 @@ export default function TeamPage() {
           <div className="p-4">
             <SkeletonRows rows={5} />
           </div>
-        ) : isError || members.length === 0 ? (
+        ) : isError ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Couldn't load your team"
+            description={(error as Error)?.message ?? "Something went wrong fetching the member list. Try again in a moment."}
+          />
+        ) : members.length === 0 ? (
           <EmptyState
             icon={UserCog}
-            title={isError ? "Your team isn't available yet" : "No team members yet"}
-            description={
-              isError
-                ? "The team API is still being built. Once it's live, everyone in your workspace will be listed here with their role and activity."
-                : "Invite an agent to start sharing the inbox and handling conversations together."
-            }
+            title="No team members yet"
+            description="Add a teammate to share the inbox and handle conversations together. They need their own account first — then they pick this workspace from their workspace switcher."
             action={
               <Button onClick={() => setOpen(true)}>
                 <UserPlus className="h-4 w-4" />
-                Invite Member
+                Add member
               </Button>
             }
           />
@@ -428,8 +427,7 @@ function InviteModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("AGENT");
-  const [created, setCreated] = useState<{ name: string; email: string; tempPassword: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [created, setCreated] = useState<{ email: string; rejoined: boolean } | null>(null);
 
   const invite = useMutation({
     mutationFn: async (data: { name: string; email: string; role: UserRole }) => {
@@ -444,78 +442,42 @@ function InviteModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     },
     onSuccess: (json) => {
       queryClient.invalidateQueries({ queryKey: ["team"] });
-      const pwd = json.data?.tempPassword as string | undefined;
-      if (pwd) {
-        setCreated({ name, email, tempPassword: pwd });
-      } else {
-        showToast("Member invited successfully.", "success");
-        close();
-      }
+      setCreated({ email, rejoined: Boolean(json.data?.rejoined) });
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
   const close = () => {
     setName(""); setEmail(""); setRole("AGENT");
-    setCreated(null); setCopied(false);
+    setCreated(null);
     onClose();
-  };
-
-  const copyPassword = () => {
-    if (!created) return;
-    navigator.clipboard.writeText(created.tempPassword).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
   };
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title={created ? "Member Created" : "Invite Member"}
+      title={created ? "Member added" : "Add member"}
       description={
         created
-          ? `Share the temporary password with ${created.name} — they'll use it to log in.`
-          : "Add a teammate to this workspace. They can log in with the temporary password."
+          ? undefined
+          : "Add someone who already has an account. They sign in with their own password and pick this workspace from their switcher."
       }
     >
       {created ? (
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
-            <div className="flex justify-between text-slate-600">
-              <span className="font-medium">Name</span>
-              <span>{created.name}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span className="font-medium">Email</span>
-              <span>{created.email}</span>
-            </div>
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+            <span>
+              <span className="font-medium">{created.email}</span>{" "}
+              {created.rejoined ? "has re-joined this workspace." : "is now in this workspace."} They sign in with
+              their own password — nothing to share — and switch to it from the workspace switcher in their sidebar.
+            </span>
           </div>
-
-          <div>
-            <p className="mb-1.5 text-sm font-medium text-slate-700">Temporary password</p>
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-              <code className="flex-1 font-mono text-base font-semibold tracking-widest text-emerald-800 select-all">
-                {created.tempPassword}
-              </code>
-              <button
-                type="button"
-                onClick={copyPassword}
-                className="flex shrink-0 items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 transition"
-              >
-                {copied ? (
-                  <><ClipboardCheck className="h-3.5 w-3.5 text-emerald-600" /> Copied!</>
-                ) : (
-                  <><Copy className="h-3.5 w-3.5" /> Copy</>
-                )}
-              </button>
-            </div>
-            <p className="mt-1.5 text-xs text-slate-500">
-              This password will not be shown again. Copy it before closing.
-            </p>
-          </div>
-
+          <p className="text-xs text-slate-500">
+            They can only do what their role allows here. Use <span className="font-medium">Permissions</span> on
+            their row to adjust it.
+          </p>
           <div className="flex justify-end pt-2">
             <Button onClick={close}>Done</Button>
           </div>

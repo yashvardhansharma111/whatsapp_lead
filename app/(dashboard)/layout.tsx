@@ -71,6 +71,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           accountType: session.user.accountType,
           resellerType: session.user.resellerType,
           features: session.user.features ?? null,
+          permissions: session.user.permissions ?? [],
         }}
         brand={{ name: brand.name, logoUrl: brand.logoUrl }}
       />

@@ -27,6 +27,12 @@ export const authConfig = {
       session.user.resellerType = (token.resellerType as string | null | undefined) ?? null;
       session.user.parentTenantId = (token.parentTenantId as string | null | undefined) ?? null;
       session.user.avatar = token.avatar as string | undefined;
+      // Kept in step with the Node-runtime callback in lib/auth.ts; anything missing here
+      // is silently absent from the session the proxy sees.
+      session.user.permissions = (token.permissions as string[] | undefined) ?? [];
+      session.user.workspaces = (token.workspaces as never) ?? [];
+      session.user.planName = (token.planName as string | null | undefined) ?? null;
+      session.user.features = (token.features as never) ?? null;
       return session;
     },
   },

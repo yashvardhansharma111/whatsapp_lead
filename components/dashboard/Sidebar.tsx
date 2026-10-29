@@ -36,41 +36,42 @@ import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { BusinessSwitcher } from "@/components/dashboard/BusinessSwitcher";
+import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 
 /** Grouped so eleven links don't read as one undifferentiated wall. */
 const NAV = [
   {
     section: null,
     items: [
-      { href: "/inbox", label: "Inbox", icon: MessageSquare, roles: null },
-      { href: "/calls", label: "Calls", icon: Phone, roles: null, feature: "callingEnabled" as keyof PlanFeatures },
-      { href: "/contacts", label: "Contacts", icon: Users, roles: null },
-      { href: "/tags", label: "Tags", icon: Tag, roles: null },
-      { href: "/leads", label: "Leads", icon: Target, roles: null },
+      { href: "/inbox", label: "Inbox", icon: MessageSquare, permission: "conversations.view" },
+      { href: "/calls", label: "Calls", icon: Phone, permission: "conversations.view", feature: "callingEnabled" as keyof PlanFeatures },
+      { href: "/contacts", label: "Contacts", icon: Users, permission: "contacts.view" },
+      { href: "/tags", label: "Tags", icon: Tag, permission: "contacts.view" },
+      { href: "/leads", label: "Leads", icon: Target, permission: "contacts.view" },
     ],
   },
   {
     section: "Automate",
     items: [
-      { href: "/campaigns", label: "Campaigns", icon: Megaphone, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/segments", label: "Segments", icon: Filter, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/broadcast", label: "Bulk Broadcast", icon: Send, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/templates", label: "Templates", icon: FileText, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/chatbot", label: "Chatbot", icon: Bot, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
-      { href: "/ai-settings", label: "AI Settings", icon: Sparkles, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
-      { href: "/knowledge-base", label: "Knowledge Base", icon: BookOpen, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
+      { href: "/campaigns", label: "Campaigns", icon: Megaphone, permission: "campaigns.view" },
+      { href: "/segments", label: "Segments", icon: Filter, permission: "contacts.view" },
+      { href: "/broadcast", label: "Bulk Broadcast", icon: Send, permission: "campaigns.send" },
+      { href: "/templates", label: "Templates", icon: FileText, permission: "campaigns.view" },
+      { href: "/chatbot", label: "Chatbot", icon: Bot, permission: "settings.manage" },
+      { href: "/ai-settings", label: "AI Settings", icon: Sparkles, permission: "settings.manage" },
+      { href: "/knowledge-base", label: "Knowledge Base", icon: BookOpen, permission: "settings.manage" },
     ],
   },
   {
     section: "Manage",
     items: [
-      { href: "/tickets", label: "Tickets", icon: Ticket, roles: null },
-      { href: "/analytics", label: "Analytics", icon: BarChart2, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/reports", label: "Reports", icon: FileBarChart2, roles: null },
-      { href: "/blacklist", label: "Blacklist", icon: Ban, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"] },
-      { href: "/team", label: "Team", icon: UserCog, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
-      { href: "/billing", label: "Billing & Plan", icon: CreditCard, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"] },
-      { href: "/settings", label: "Settings", icon: Settings, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
+      { href: "/tickets", label: "Tickets", icon: Ticket, permission: "conversations.view" },
+      { href: "/analytics", label: "Analytics", icon: BarChart2, permission: "reports.view" },
+      { href: "/reports", label: "Reports", icon: FileBarChart2, permission: "reports.view" },
+      { href: "/blacklist", label: "Blacklist", icon: Ban, permission: "blacklist.view" },
+      { href: "/team", label: "Team", icon: UserCog, permission: "users.manage" },
+      { href: "/billing", label: "Billing & Plan", icon: CreditCard, permission: "billing.manage" },
+      { href: "/settings", label: "Settings", icon: Settings, permission: "settings.manage" },
     ],
   },
 ];
@@ -83,26 +84,33 @@ const RESELLER_NAV = [
   {
     section: null,
     items: [
-      { href: "/reseller", label: "Overview", icon: LayoutDashboard, roles: null },
-      { href: "/reseller/clients", label: "Clients", icon: Building2, roles: null },
-      { href: "/reseller/plans", label: "Plans", icon: CreditCard, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"] },
-      { href: "/billing", label: "Billing & Plan", icon: CreditCard, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"] },
-      { href: "/reseller/branding", label: "Branding", icon: Palette, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"], whiteLabelOnly: true },
+      { href: "/reseller", label: "Overview", icon: LayoutDashboard, permission: "reseller.clients.view" },
+      { href: "/reseller/clients", label: "Clients", icon: Building2, permission: "reseller.clients.view" },
+      { href: "/reseller/plans", label: "Plans", icon: CreditCard, permission: "reseller.plans.manage" },
+      { href: "/billing", label: "Billing & Plan", icon: CreditCard, permission: "billing.manage" },
+      { href: "/reseller/branding", label: "Branding", icon: Palette, permission: "whitelabel.manage", whiteLabelOnly: true },
     ],
   },
   {
     section: "Manage",
     items: [
-      { href: "/team", label: "Team", icon: UserCog, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"] },
-      { href: "/settings", label: "Settings", icon: Settings, roles: ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN"] },
+      { href: "/team", label: "Team", icon: UserCog, permission: "users.manage" },
+      { href: "/settings", label: "Settings", icon: Settings, permission: "settings.manage" },
     ],
   },
 ];
 
-function canSeeNavItem(role: string | null | undefined, allowed: string[] | null) {
-  if (!allowed) return true;
-  if (!role) return false;
-  return allowed.includes(role);
+/**
+ * A link appears only if the server would actually serve the page behind it.
+ *
+ * This replaced per-item role lists: a workspace owner can now grant or revoke any of
+ * these individually, and the nav follows the grant rather than the role name. Fails
+ * closed while permissions are still loading — a brief empty group beats offering a page
+ * that 403s.
+ */
+function canSeeNavItem(permissions: string[] | undefined, required: string | undefined) {
+  if (!required) return true;
+  return Array.isArray(permissions) && permissions.includes(required);
 }
 
 /** Items tied to a plan feature stay hidden until the tenant's plan switches it on. */
@@ -119,6 +127,7 @@ export interface SidebarUser {
   accountType?: string | null;
   resellerType?: string | null;
   features?: PlanFeatures | null;
+  permissions?: string[];
 }
 
 /** The brand shown in the sidebar — the platform's, or a white-label reseller's. */
@@ -171,7 +180,7 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
       <nav className="scrollbar-slim flex-1 overflow-y-auto px-3 pb-3">
         {groups.map((group, gi) => {
           const items = group.items.filter(
-            (item) => canSeeNavItem(user.role, item.roles) && planAllows(item, user.features),
+            (item) => canSeeNavItem(user.permissions, item.permission) && planAllows(item, user.features),
           );
           if (items.length === 0) return null;
           return (
@@ -248,7 +257,13 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
           </button>
         </div>
 
-        {/* Businesses are client workspaces; a reseller account has none. */}
+        {/* Workspaces this person belongs to — their own plus any they were invited to.
+            Renders nothing when there is only one. */}
+        <div className="-mx-3 mt-2.5">
+          <WorkspaceSwitcher />
+        </div>
+
+        {/* Businesses are WhatsApp workspaces inside one account; a reseller has none. */}
         {!isReseller && (
           <div className="mt-2.5">
             <BusinessSwitcher />

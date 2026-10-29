@@ -6,6 +6,18 @@ import { VIEW_AS_COOKIE, decodeViewAs } from "@/lib/viewAs";
 
 const CLAIMS_TTL_MS = 5 * 60_000;
 
+/** One workspace this person belongs to, for the switcher. */
+export interface WorkspaceMembership {
+  tenantId: string;
+  tenantSlug: string;
+  tenantName: string;
+  accountType: string;
+  logo: string | null;
+  role: string;
+  isOwner: boolean;
+  isCurrent: boolean;
+}
+
 export interface PlanFeatures {
   aiEnabled: boolean;
   ragEnabled: boolean;
@@ -56,6 +68,10 @@ async function loadClaims(nestToken: string) {
       avatar:         u.avatar         as string | undefined,
       planName:       (u.plan?.displayName as string | undefined) ?? null,
       features:       (u.plan?.features as PlanFeatures | undefined) ?? null,
+      // What this person may do in the workspace they are currently in, and every
+      // workspace they could switch to. Both are resolved server-side.
+      permissions:    (u.permissions as string[] | undefined) ?? [],
+      workspaces:     (u.workspaces as WorkspaceMembership[] | undefined) ?? [],
     };
   } catch (err) {
     console.error("[auth] loadClaims: fetch threw", err);
@@ -167,7 +183,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // ── Switching workspace ──────────────────────────────────────────────
+      // Driven from the client by `update({ switchWorkspaceTenantId })`. The backend
+      // matches the membership on this person's email and mints a token for that
+      // workspace's row, so no password is involved and nothing is kept in the browser.
+      const switchTo = trigger === "update" ? (session as { switchWorkspaceTenantId?: string } | null)?.switchWorkspaceTenantId : undefined;
+      if (switchTo && token.nestToken) {
+        const base = backendUrl();
+        try {
+          const res = await fetch(`${base}/auth/switch-workspace`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token.nestToken}` },
+            body:    JSON.stringify({ tenantId: switchTo }),
+            cache:   "no-store",
+          });
+          if (res.ok) {
+            const body = await res.json();
+            const payload = body.data ?? body;
+            const u = payload.user;
+            token.nestToken      = payload.access_token;
+            token.id             = u.id;
+            token.role           = u.role;
+            token.tenantId       = u.tenantId;
+            token.tenantSlug     = u.tenantSlug;
+            token.tenantName     = u.tenantName;
+            token.accountType    = u.accountType;
+            token.resellerType   = u.resellerType ?? null;
+            token.parentTenantId = u.parentTenantId ?? null;
+            token.avatar         = u.avatar ?? undefined;
+            // Permissions are per-workspace, so they must come from the new one.
+            const claims = await loadClaims(token.nestToken ?? "");
+            if (claims) Object.assign(token, claims);
+            token.claimsAt = Date.now();
+          } else {
+            console.warn(`[auth] switch-workspace refused: ${res.status}`);
+          }
+        } catch (err) {
+          console.error("[auth] switch-workspace threw", err);
+        }
+        return token;
+      }
+
       if (user) {
         console.log("[auth] jwt callback: initial sign-in for user", user.id);
         token.id             = user.id ?? token.id;
@@ -217,6 +274,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.avatar         = token.avatar;
       session.user.planName       = token.planName ?? null;
       session.user.features       = token.features ?? null;
+      session.user.permissions    = token.permissions ?? [];
+      session.user.workspaces     = token.workspaces ?? [];
       session.user.viewAs         = null;
 
       if (token.role === "SUPER_ADMIN") {
