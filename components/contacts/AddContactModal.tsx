@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
-import { Button, Field, Modal, inputClass } from "@/components/ui";
+import { Button, Field, Modal, PhoneInput, inputClass } from "@/components/ui";
 import { createContactSchema, type CreateContactInput } from "@/lib/validators/contact";
 import { cn } from "@/lib/utils";
 import { useContactSources, useCreateContact } from "@/hooks/useContacts";
@@ -37,6 +37,7 @@ function AddContactForm({ onClose }: { onClose: () => void }) {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<CreateContactInput>({
@@ -80,12 +81,18 @@ function AddContactForm({ onClose }: { onClose: () => void }) {
           </Field>
 
           <Field label="Phone" htmlFor="phone" required error={errors.phone?.message}>
-            <input
-              id="phone"
-              className={inputClass}
-              placeholder="+919876543210"
-              inputMode="tel"
-              {...register("phone")}
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <PhoneInput
+                  id="phone"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={!!errors.phone}
+                />
+              )}
             />
           </Field>
 

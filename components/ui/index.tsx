@@ -3,6 +3,8 @@
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn, initials, avatarColor } from "@/lib/utils";
+export { PhoneInput } from "./PhoneInput";
+export type { PhoneInputProps, Country } from "./PhoneInput";
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 

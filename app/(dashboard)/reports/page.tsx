@@ -11,25 +11,27 @@ import {
   UserCog,
   Target,
   Loader2,
+  TrendingUp,
+  CalendarDays,
 } from "lucide-react";
-import { Button, PageHeader } from "@/components/ui";
+import { Button, Card, PageHeader } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
+import { cn, formatCompact } from "@/lib/utils";
 import type { AnalyticsData } from "@/components/analytics/Charts";
 
 // ─── Period ───────────────────────────────────────────────────────────────────
 
 const PERIODS = [
   { value: "today", label: "Today" },
-  { value: "7d", label: "7 Days" },
-  { value: "30d", label: "30 Days" },
-  { value: "90d", label: "90 Days" },
+  { value: "7d",    label: "7 days" },
+  { value: "30d",   label: "30 days" },
+  { value: "90d",   label: "90 days" },
 ] as const;
 type Period = (typeof PERIODS)[number]["value"];
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 
-const ADMIN_ROLES = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"];
+const ADMIN_ROLES  = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER", "MARKETING_USER"];
 const MANAGER_ROLES = ["SUPER_ADMIN", "TENANT_OWNER", "ADMIN", "MANAGER"];
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -76,9 +78,10 @@ interface ReportCardProps {
   description: string;
   count?: number | null;
   period: Period;
+  columns: string;
 }
 
-function ReportCard({ resource, icon: Icon, title, description, count, period }: ReportCardProps) {
+function ReportCard({ resource, icon: Icon, title, description, count, period, columns }: ReportCardProps) {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -94,35 +97,59 @@ function ReportCard({ resource, icon: Icon, title, description, count, period }:
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+    <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+          <Icon className="h-5 w-5 text-emerald-600" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{description}</p>
         </div>
-        <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        </div>
+        {count != null && (
+          <p className="shrink-0 text-2xl font-bold tabular-nums text-slate-900">{formatCompact(count)}</p>
+        )}
       </div>
 
-      {count != null && (
-        <p className="text-2xl font-bold tabular-nums">{count.toLocaleString()}</p>
-      )}
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <p className="truncate text-xs text-slate-400">
+          Columns: <span className="text-slate-500">{columns}</span>
+        </p>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleDownload}
+          disabled={loading}
+          className="shrink-0"
+        >
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          {loading ? "Downloading…" : "CSV"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={handleDownload}
-        disabled={loading}
-        className="self-start"
-      >
-        {loading ? (
-          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Download className="mr-1.5 h-3.5 w-3.5" />
-        )}
-        {loading ? "Downloading…" : "Download CSV"}
-      </Button>
+// ─── Summary strip ────────────────────────────────────────────────────────────
+
+function SummaryStrip({ analytics, period }: { analytics?: AnalyticsData; period: Period }) {
+  const metrics = [
+    { label: "Messages",      value: analytics?.totalMessages      ?? null },
+    { label: "Conversations", value: analytics?.totalConversations ?? null },
+    { label: "Leads",         value: analytics?.totalLeads         ?? null },
+    { label: "Won deals",     value: analytics?.wonDeals           ?? null },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {metrics.map((m) => (
+        <Card key={m.label} className="px-4 py-3">
+          <p className="text-xs text-slate-500">{m.label}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+            {m.value != null ? formatCompact(m.value) : <span className="text-slate-300">—</span>}
+          </p>
+          <p className="mt-0.5 text-[10px] text-slate-400 uppercase tracking-wide">{period === "today" ? "today" : period === "7d" ? "last 7 d" : period === "30d" ? "last 30 d" : "last 90 d"}</p>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -137,101 +164,119 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const { data: analytics } = useAnalyticsSummary(period);
 
-  // Cards available to admin/manager/owner roles
-  const workspaceCards = [
+  const workspaceCards: ReportCardProps[] = [
     {
-      resource: "conversations",
-      icon: MessageSquare,
-      title: "Conversations",
-      description: "All conversations — contact, status, assigned agent, timestamps",
-      count: analytics?.totalConversations,
+      resource:    "conversations",
+      icon:        MessageSquare,
+      title:       "Conversations",
+      description: "All conversations in this period — contact, status, assigned agent, timestamps.",
+      count:       analytics?.totalConversations,
+      period,
+      columns:     "id, contact, phone, status, agent, opened, closed",
     },
     {
-      resource: "contacts",
-      icon: Users,
-      title: "Contacts",
-      description: "All contacts — name, phone, email, source, tags, created date",
-      count: null,
+      resource:    "contacts",
+      icon:        Users,
+      title:       "Contacts",
+      description: "Full contact list — name, phone, email, source, tags, created date.",
+      count:       null,
+      period,
+      columns:     "id, name, phone, email, company, source, tags, created",
     },
     {
-      resource: "leads",
-      icon: Target,
-      title: "Leads",
-      description: "All leads — stage, score, value, BANT fields, closed date",
-      count: analytics?.totalLeads,
+      resource:    "leads",
+      icon:        Target,
+      title:       "Leads",
+      description: "All leads — pipeline stage, score, deal value, BANT fields, close date.",
+      count:       analytics?.totalLeads,
+      period,
+      columns:     "id, contact, stage, value, score, budget, timeline, closed",
     },
     {
-      resource: "campaigns",
-      icon: Megaphone,
-      title: "Campaigns",
-      description: "All campaigns — delivery funnel: sent, delivered, read, failed",
-      count: null,
+      resource:    "campaigns",
+      icon:        Megaphone,
+      title:       "Campaigns",
+      description: "Campaign delivery funnel — sent, delivered, read, failed per campaign.",
+      count:       null,
+      period,
+      columns:     "id, name, template, sent, delivered, read, failed, date",
     },
-  ] as const;
+  ];
 
-  const managerCard = {
-    resource: "agents",
-    icon: UserCog,
-    title: "Agent Performance",
-    description: "Per-agent: conversations assigned, resolved count, resolution rate",
-    count: analytics?.agentPerformance?.length ?? null,
-  } as const;
+  const managerCard: ReportCardProps = {
+    resource:    "agents",
+    icon:        UserCog,
+    title:       "Agent Performance",
+    description: "Per-agent breakdown — conversations handled, resolved count, resolution rate.",
+    count:       analytics?.agentPerformance?.length ?? null,
+    period,
+    columns:     "agent, assigned, resolved, rate, avg_resolution_time",
+  };
 
-  // Card only agents see
-  const myConvCard = {
-    resource: "my-conversations",
-    icon: MessageSquare,
-    title: "My Conversations",
-    description: "Conversations assigned to you — contact, status, timestamps",
-    count: null,
-  } as const;
+  const myConvCard: ReportCardProps = {
+    resource:    "my-conversations",
+    icon:        MessageSquare,
+    title:       "My Conversations",
+    description: "Conversations assigned to you — contact, status, timestamps.",
+    count:       null,
+    period,
+    columns:     "id, contact, phone, status, opened, closed",
+  };
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Reports"
-        description="Download workspace data as CSV, scoped to the selected period."
+        description="Download workspace data as CSV. Each export is scoped to the selected period."
+        action={
+          <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 p-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPeriod(p.value)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                  period === p.value
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700",
+                )}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                {p.label}
+              </button>
+            ))}
+          </div>
+        }
       />
 
-      {/* Period filter */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {PERIODS.map((p) => (
-          <button
-            key={p.value}
-            onClick={() => setPeriod(p.value)}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              period === p.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80",
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {/* Summary strip — only meaningful for admin+ */}
+      {ADMIN_ROLES.includes(role) && (
+        <SummaryStrip analytics={analytics} period={period} />
+      )}
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {isAgent ? (
-          // Agents only see their own data
-          <ReportCard {...myConvCard} period={period} />
-        ) : (
-          <>
-            {workspaceCards.map((card) => (
-              <ReportCard key={card.resource} {...card} period={period} />
-            ))}
-            {MANAGER_ROLES.includes(role) && (
-              <ReportCard {...managerCard} period={period} />
-            )}
-          </>
-        )}
-      </div>
+      {/* Export cards */}
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">Export data</p>
+          <span className="text-xs text-slate-400">· max 10,000 rows per file</span>
+        </div>
 
-      {/* Tip */}
-      <p className="mt-6 text-xs text-muted-foreground">
-        All exports are scoped to your workspace. Maximum 10,000 rows per file.
-      </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {isAgent ? (
+            <ReportCard {...myConvCard} />
+          ) : (
+            <>
+              {workspaceCards.map((card) => (
+                <ReportCard key={card.resource} {...card} />
+              ))}
+              {MANAGER_ROLES.includes(role) && (
+                <ReportCard {...managerCard} />
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
