@@ -182,20 +182,31 @@ export function CmsSectionPage({ sectionKey }: { sectionKey: SectionKey }) {
 
   return (
     <>
-      <nav aria-label="Breadcrumb" className="mb-4 text-xs text-slate-500">
-        <Link
-          href="/admin/cms"
-          onClick={(event) => {
-            if (!confirmLeave()) event.preventDefault();
-          }}
-          className="hover:text-slate-900"
+      <nav aria-label="Breadcrumb" className="mb-4 flex items-center justify-between text-xs text-slate-500">
+        <span className="flex items-center">
+          <Link
+            href="/admin/cms"
+            onClick={(event) => {
+              if (!confirmLeave()) event.preventDefault();
+            }}
+            className="hover:text-slate-900"
+          >
+            Website CMS
+          </Link>
+          <span className="mx-1.5 text-slate-300">/</span>
+          <span>Home page</span>
+          <span className="mx-1.5 text-slate-300">/</span>
+          <span className="font-medium text-slate-900">{CMS_SECTIONS[sectionKey].label}</span>
+        </span>
+        <a
+          href={`/#${sectionKey}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900"
         >
-          Website CMS
-        </Link>
-        <span className="mx-1.5 text-slate-300">/</span>
-        <span>Home page</span>
-        <span className="mx-1.5 text-slate-300">/</span>
-        <span className="font-medium text-slate-900">{CMS_SECTIONS[sectionKey].label}</span>
+          <ExternalLink className="h-3 w-3" />
+          Preview section
+        </a>
       </nav>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-start">

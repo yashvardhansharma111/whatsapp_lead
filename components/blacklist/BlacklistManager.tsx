@@ -58,6 +58,8 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
   const queryClient = useQueryClient();
   const [view, setView] = useState<"list" | "history">("list");
   const [search, setSearch] = useState(initialSearch);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo]   = useState("");
   const [page, setPage] = useState(1);
   const [numbers, setNumbers] = useState("");
   const [reason, setReason] = useState("");
@@ -69,9 +71,15 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
   const scopeParam = scope === "platform" ? "&scope=platform" : scope === "all" ? "&scope=all" : "";
 
   const list = useQuery<ListResponse>({
-    queryKey: ["blacklist", scope, search.trim(), page],
-    queryFn: () =>
-      getJson(`/api/blacklist?page=${page}&limit=50&search=${encodeURIComponent(search.trim())}${scopeParam}`),
+    queryKey: ["blacklist", scope, search.trim(), dateFrom, dateTo, page],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), limit: "50" });
+      if (search.trim()) params.set("search", search.trim());
+      if (dateFrom)       params.set("from",   dateFrom);
+      if (dateTo)         params.set("to",     dateTo);
+      if (scopeParam)     params.set("scope",  scope === "platform" ? "platform" : scope === "all" ? "all" : "account");
+      return getJson(`/api/blacklist?${params}`);
+    },
     placeholderData: keepPreviousData,
   });
 
@@ -150,15 +158,42 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
             ))}
           </div>
           {view === "list" && (
-            <div className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  className={cn(inputClass, "pl-8 w-52")}
+                  placeholder="Search number or reason"
+                  aria-label="Search the blacklist"
+                />
+              </div>
               <input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className={cn(inputClass, "pl-8")}
-                placeholder="Search number or reason"
-                aria-label="Search the blacklist"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                className={cn(inputClass, "w-36 text-xs")}
+                aria-label="From date"
+                title="From date"
               />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                className={cn(inputClass, "w-36 text-xs")}
+                aria-label="To date"
+                title="To date"
+              />
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+                  className="text-xs text-slate-400 hover:text-slate-700 transition"
+                  title="Clear date filter"
+                >
+                  Clear dates
+                </button>
+              )}
             </div>
           )}
         </div>

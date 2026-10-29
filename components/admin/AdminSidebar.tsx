@@ -20,7 +20,6 @@ import {
   Menu,
   X,
   BarChart2,
-  BookOpen,
   Palette,
   Ban,
 } from "lucide-react";
@@ -49,7 +48,6 @@ const NAV_GROUPS = [
     label: "Content",
     items: [
       { href: "/admin/reports",     label: "Reports",     icon: BarChart2 },
-      { href: "/admin/api-docs",    label: "API Docs",    icon: BookOpen },
       { href: "/admin/cms",         label: "Website CMS", icon: PanelsTopLeft },
       { href: "/admin/categories",  label: "Categories",  icon: Tags },
     ],
