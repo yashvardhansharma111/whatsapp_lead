@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useConversation, useConversations } from "@/hooks/useMessages";
 import { useInboxRealtime } from "@/hooks/useInboxRealtime";
@@ -28,6 +29,14 @@ const STATUS_BY_TAB: Partial<Record<InboxTab, string>> = {
 };
 
 export default function InboxPage() {
+  return (
+    <Suspense>
+      <InboxPageInner />
+    </Suspense>
+  );
+}
+
+function InboxPageInner() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const userName = session?.user?.name;
@@ -35,7 +44,15 @@ export default function InboxPage() {
 
   useInboxRealtime();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // `/inbox?c=<id>` (notification clicks) opens that thread, including when the
+  // param changes while the page is already mounted.
+  const linkedId = useSearchParams().get("c");
+  const [selectedId, setSelectedId] = useState<string | null>(linkedId);
+  const [seenLinkedId, setSeenLinkedId] = useState(linkedId);
+  if (linkedId !== seenLinkedId) {
+    setSeenLinkedId(linkedId);
+    if (linkedId) setSelectedId(linkedId);
+  }
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Building2, MessageSquare, CreditCard, Bell, KanbanSquare,
@@ -73,13 +74,22 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
 type TabKey = string;
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "";
   const isReseller  = session?.user?.accountType === "RESELLER";
   const isStageAdmin = STAGE_ADMIN_ROLES.includes(role);
   const canSeeBilling = BILLING_ROLES.includes(role);
 
-  const [tab, setTab] = useState<TabKey>("account");
+  // `/settings?tab=notifications` (from the bell) opens that tab directly.
+  const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");
 
   function canSee(t: TabDef): boolean {
     if (isReseller && ["pipeline", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;

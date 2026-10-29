@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   title: `${process.env.NEXT_PUBLIC_BRAND_NAME ?? "Waboxa"} — AI-Powered WhatsApp CRM & Lead Management`,
   description:
     "Shared WhatsApp inbox, AI lead qualification, campaigns and analytics for sales teams.",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

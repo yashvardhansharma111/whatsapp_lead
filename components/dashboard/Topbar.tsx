@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Bell, ChevronDown, Search } from "lucide-react";
+import { Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search, UserRound } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
+import { useMarkNotificationsRead, useNotificationList, useUnreadCount, type AppNotification } from "@/hooks/useNotifications";
 
 type AgentStatus = "Online" | "Busy" | "Away";
 
@@ -15,35 +15,20 @@ const STATUS_DOT: Record<AgentStatus, string> = {
   Away: "bg-amber-500",
 };
 
-type Notification = {
-  id: string;
-  type: "message" | "activity";
-  title: string;
-  body: string;
-  avatar: string | null;
-  createdAt: string;
-  href: string;
+const TYPE_ICON: Record<string, typeof Bell> = {
+  NEW_MESSAGE: MessageSquare,
+  MISSED_CALL: PhoneMissed,
+  CAMPAIGN_COMPLETED: Megaphone,
+  CONVERSATION_ASSIGNED: UserRound,
+  LEAD_ASSIGNED: UserRound,
 };
-
-function useNotifications() {
-  return useQuery<Notification[]>({
-    queryKey: ["notifications"],
-    queryFn: async () => {
-      const r = await fetch("/api/notifications");
-      const j = await r.json();
-      return j.data ?? [];
-    },
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-}
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [lastOpenedAt, setLastOpenedAt] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const qc = useQueryClient();
-  const { data: notifications = [] } = useNotifications();
+  const { data: unread = 0 } = useUnreadCount();
+  const list = useNotificationList(open);
+  const markRead = useMarkNotificationsRead();
 
   // Close on outside click
   useEffect(() => {
@@ -55,74 +40,95 @@ function NotificationBell() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Count only notifications newer than the last time the panel was opened.
-  const unread = Math.min(
-    lastOpenedAt === null
-      ? notifications.length
-      : notifications.filter((n) => new Date(n.createdAt).getTime() > lastOpenedAt).length,
-    9
-  );
+  const notifications: AppNotification[] = list.data?.pages.flatMap((p) => p.items) ?? [];
+
+  function openOne(n: AppNotification) {
+    setOpen(false);
+    if (!n.readAt) markRead.mutate({ ids: [n.id] });
+  }
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => {
-          const opening = !open;
-          setOpen(opening);
-          if (opening) setLastOpenedAt(Date.now());
-          void qc.invalidateQueries({ queryKey: ["notifications"] });
-        }}
+        onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-        aria-label="Notifications"
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
         aria-haspopup="true"
         aria-expanded={open}
       >
-        <Bell className="h-4.5 w-4.5" />
+        {unread > 0 ? <BellRing className="h-4.5 w-4.5" /> : <Bell className="h-4.5 w-4.5" />}
         {unread > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white">
-            {unread}
+          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
+            {unread > 99 ? "99+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/5">
+        <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/5">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <span className="text-sm font-semibold text-slate-900">Notifications</span>
-            <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
-              {unread} new
-            </span>
+            {unread > 0 && (
+              <button
+                onClick={() => markRead.mutate({ all: true })}
+                className="text-xs font-medium text-emerald-700 hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">No notifications yet</p>
+          <div className="max-h-96 overflow-y-auto">
+            {list.isLoading ? (
+              <p className="py-8 text-center text-sm text-slate-400">Loading…</p>
+            ) : notifications.length === 0 ? (
+              <p className="py-8 text-center text-sm text-slate-400">You&apos;re all caught up</p>
             ) : (
-              notifications.slice(0, 12).map((n) => (
-                <Link
-                  key={n.id}
-                  href={n.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
-                >
-                  <Avatar name={n.title} src={n.avatar} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">{n.title}</p>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{n.body}</p>
-                    <p className="mt-1 text-[10px] text-slate-400">{timeAgo(new Date(n.createdAt))}</p>
-                  </div>
-                </Link>
-              ))
+              notifications.map((n) => {
+                const Icon = TYPE_ICON[n.type] ?? Bell;
+                const inner = (
+                  <>
+                    {n.type === "NEW_MESSAGE" ? (
+                      <Avatar name={n.title} size="sm" />
+                    ) : (
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("truncate text-sm", n.readAt ? "text-slate-700" : "font-medium text-slate-900")}>{n.title}</p>
+                      {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</p>}
+                      <p className="mt-1 text-[10px] text-slate-400">{timeAgo(new Date(n.createdAt))}</p>
+                    </div>
+                    {!n.readAt && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Unread" />}
+                  </>
+                );
+                const className = cn("flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50", !n.readAt && "bg-emerald-50/40");
+                return n.href ? (
+                  <Link key={n.id} href={n.href} onClick={() => openOne(n)} className={className}>{inner}</Link>
+                ) : (
+                  <button key={n.id} type="button" onClick={() => openOne(n)} className={className}>{inner}</button>
+                );
+              })
+            )}
+            {list.hasNextPage && (
+              <button
+                onClick={() => list.fetchNextPage()}
+                disabled={list.isFetchingNextPage}
+                className="block w-full border-t border-slate-100 py-2 text-center text-xs font-medium text-slate-500 hover:bg-slate-50"
+              >
+                {list.isFetchingNextPage ? "Loading…" : "Show older"}
+              </button>
             )}
           </div>
 
           <div className="border-t border-slate-100 px-4 py-2.5">
             <Link
-              href="/inbox"
+              href="/settings?tab=notifications"
               onClick={() => setOpen(false)}
               className="block text-center text-xs font-medium text-emerald-600 hover:underline"
             >
-              Open inbox
+              Notification settings
             </Link>
           </div>
         </div>
