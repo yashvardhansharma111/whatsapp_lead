@@ -197,7 +197,7 @@ export function useImportTemplates() {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as { error?: string }).error ?? "Failed to import templates from Meta");
       }
-      return res.json() as Promise<{ success: boolean; created: number; updated: number }>;
+      return (await res.json()) as { success: boolean; created: number; updated: number };
     },
     onSuccess: () => invalidate(queryClient),
   });
