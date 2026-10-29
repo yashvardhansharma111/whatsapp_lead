@@ -68,20 +68,35 @@ interface Preview {
 
 const FIELDS: FieldKey[] = ["location", "tags", "status", "leadStage", "name", "company", "source", "email", "custom"];
 
+const TEXT_OPS = [
+  { value: "is",          label: "is any of" },
+  { value: "is_not",      label: "is not" },
+  { value: "contains",    label: "contains" },
+  { value: "starts_with", label: "starts with" },
+  { value: "ends_with",   label: "ends with" },
+  { value: "is_empty",    label: "is empty" },
+  { value: "not_empty",   label: "is not empty" },
+];
+
 const OPS: Record<FieldKey, { value: string; label: string }[]> = {
-  name: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
-  location: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
-  company: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
-  source: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
-  email: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
+  name:     TEXT_OPS,
+  location: TEXT_OPS,
+  company:  TEXT_OPS,
+  source:   TEXT_OPS,
+  email:    TEXT_OPS,
   tags: [
-    { value: "any", label: "has any of" },
-    { value: "all", label: "has all of" },
+    { value: "any",  label: "has any of" },
+    { value: "all",  label: "has all of" },
     { value: "none", label: "has none of" },
   ],
-  status: [{ value: "is", label: "is any of" }],
+  status:    [{ value: "is", label: "is any of" }],
   leadStage: [{ value: "any", label: "is any of" }],
-  custom: [{ value: "is", label: "is any of" }, { value: "contains", label: "contains" }],
+  custom: [
+    { value: "is",          label: "is any of" },
+    { value: "is_not",      label: "is not" },
+    { value: "contains",    label: "contains" },
+    { value: "starts_with", label: "starts with" },
+  ],
 };
 
 const newRule = (field: FieldKey): DraftRule => ({ field, op: OPS[field][0].value, values: [], ...(field === "custom" && { key: "" }) });
@@ -518,8 +533,10 @@ function RuleRow({
               ))}
             </div>
           )
-        ) : isText ? (
+        ) : isText && rule.op !== "is_empty" && rule.op !== "not_empty" ? (
           <ValuesInput values={rule.values} onChange={(values) => onChange({ values })} suggestions={suggestions} field={rule.field} />
+        ) : isText ? (
+          <p className="flex h-[38px] items-center text-xs text-slate-500 italic">No value needed for this operator.</p>
         ) : null}
       </div>
 

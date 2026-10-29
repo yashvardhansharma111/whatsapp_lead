@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Building2, MessageSquare, CreditCard, Bell, KanbanSquare, UserCircle, Zap, Webhook, DollarSign, BellOff } from "lucide-react";
+import { Building2, MessageSquare, CreditCard, Bell, KanbanSquare, UserCircle, Zap, Webhook, DollarSign, BellOff, ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { AccountTab } from "@/components/settings/AccountTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
@@ -14,6 +14,7 @@ import { QuickRepliesTab } from "@/components/settings/QuickRepliesTab";
 import { WebhooksTab } from "@/components/settings/WebhooksTab";
 import { MessageRatesTab } from "@/components/settings/MessageRatesTab";
 import { OptOutTab } from "@/components/settings/OptOutTab";
+import { ActivityTab } from "@/components/settings/ActivityTab";
 import { cn } from "@/lib/utils";
 
 /** Managing pipeline stages / billing is an admin action — same allowlist as the backend guard. */
@@ -31,6 +32,7 @@ const TABS = [
   { key: "message-rates", label: "Message Rates", icon: DollarSign, adminOnly: true },
   { key: "billing", label: "Billing", icon: CreditCard, billingOnly: true },
   { key: "notifications", label: "Notifications", icon: Bell, adminOnly: false },
+  { key: "activity", label: "Activity Log", icon: ScrollText, adminOnly: false },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -95,6 +97,7 @@ export default function SettingsPage() {
         {activeTab === "webhooks" && isStageAdmin && <WebhooksTab />}
         {activeTab === "message-rates" && isStageAdmin && <MessageRatesTab />}
         {activeTab === "notifications" && <NotificationsTab />}
+        {activeTab === "activity" && <ActivityTab />}
       </div>
     </div>
   );

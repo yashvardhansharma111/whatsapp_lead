@@ -118,11 +118,11 @@ function NotificationBell() {
 
           <div className="border-t border-slate-100 px-4 py-2.5">
             <Link
-              href="/analytics"
+              href="/inbox"
               onClick={() => setOpen(false)}
               className="block text-center text-xs font-medium text-emerald-600 hover:underline"
             >
-              View all activity
+              Open inbox
             </Link>
           </div>
         </div>

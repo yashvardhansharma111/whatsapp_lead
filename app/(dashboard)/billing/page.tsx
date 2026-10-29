@@ -161,6 +161,13 @@ export default function BillingPage() {
                     <RotateCw className="h-4 w-4" />
                     {resume.isPending ? "Resuming…" : "Resume"}
                   </Button>
+                ) : data?.status === "EXPIRED" || data?.status === "CANCELLED" ? (
+                  <Link href="/billing/plans">
+                    <Button>
+                      <ArrowUpRight className="h-4 w-4" />
+                      Get a plan
+                    </Button>
+                  </Link>
                 ) : (
                   data?.status !== "CANCELLED" && (
                     <Button
@@ -181,6 +188,12 @@ export default function BillingPage() {
               <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 Your last payment failed. Update your payment method in the billing portal to keep your plan active.
+              </div>
+            )}
+            {(data?.status === "EXPIRED" || data?.status === "CANCELLED") && (
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600 ring-1 ring-slate-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                Your subscription has ended. Choose a plan to restore access to all features.
               </div>
             )}
           </Card>
