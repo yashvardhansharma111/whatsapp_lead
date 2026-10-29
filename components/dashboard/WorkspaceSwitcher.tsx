@@ -46,8 +46,16 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
     setSwitchingTo(ws.tenantId);
     setError(null);
     try {
-      // Swap the session, then drop the old workspace's business cookie.
-      await update({ switchWorkspaceTenantId: ws.tenantId });
+      // Swap the session, then check it actually landed: a refused switch leaves the
+      // old token in place, and navigating then would silently drop us back here.
+      const next = await update({ switchWorkspaceTenantId: ws.tenantId });
+      if (next?.user?.tenantId !== ws.tenantId) {
+        setError(`You're no longer a member of ${ws.tenantName}.`);
+        setSwitchingTo(null);
+        return;
+      }
+      // Drop the old workspace's business cookie — a business id from another tenant
+      // means nothing here.
       await fetch("/api/workspace/switch", { method: "POST" }).catch(() => {});
       // Full navigation, not a client transition: no cached query data may cross
       // workspaces — the same reasoning as switching business.
