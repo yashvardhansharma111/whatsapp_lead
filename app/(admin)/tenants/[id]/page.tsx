@@ -348,11 +348,19 @@ function HierarchyPanel({ tenant, update }: { tenant: TenantDetail; update: Retu
   );
 }
 
-/** The account's message wallet, with manual credit / correction (e.g. a bank transfer). */
+/**
+ * The account's message wallet, with manual add / deduct (e.g. a bank transfer, or a
+ * correction). The amount box takes a plain rupee figure and the two buttons decide the
+ * direction, but a typed negative still deducts — so either habit works.
+ *
+ * A balance never goes below zero: deducting more than is there empties the wallet and
+ * the response says how much could not be taken.
+ */
 function WalletPanel({ tenantId }: { tenantId: string }) {
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [result, setResult] = useState<string | null>(null);
   const inr = (m: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(m / 100);
 
   const { data } = useQuery({
@@ -366,39 +374,105 @@ function WalletPanel({ tenantId }: { tenantId: string }) {
       };
     },
   });
+
+  const balanceMinor = Math.max(0, data?.balanceMinor ?? 0);
+  const typed = Number(amount);
+  const magnitudeMinor = Number.isFinite(typed) ? Math.round(Math.abs(typed) * 100) : 0;
+  // A typed "-250" means deduct even if the Add button is pressed.
+  const typedNegative = Number.isFinite(typed) && typed < 0;
+
   const adjust = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (direction: "add" | "deduct") => {
+      const deduct = direction === "deduct" || typedNegative;
+      const amountMinor = deduct ? -magnitudeMinor : magnitudeMinor;
       const res = await fetch(`/api/admin/tenants/${tenantId}/wallet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountMinor: Math.round(Number(amount) * 100), note }),
+        body: JSON.stringify({ amountMinor, note }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Adjustment failed");
+      if (!res.ok) throw new Error(json.error ?? json.message ?? "Adjustment failed");
+      return (json.data ?? json) as { appliedMinor: number; shortfallMinor: number; balanceMinor: number };
     },
-    onSuccess: () => { setAmount(""); setNote(""); qc.invalidateQueries({ queryKey: ["admin", "tenant", tenantId, "wallet"] }); },
+    onSuccess: (r) => {
+      setAmount("");
+      setNote("");
+      setResult(
+        r.shortfallMinor > 0
+          ? `Deducted ${inr(Math.abs(r.appliedMinor))} — the balance was short by ${inr(r.shortfallMinor)}, so the wallet is now empty.`
+          : `${r.appliedMinor < 0 ? "Deducted" : "Added"} ${inr(Math.abs(r.appliedMinor))}. Balance is now ${inr(r.balanceMinor)}.`,
+      );
+      void qc.invalidateQueries({ queryKey: ["admin", "tenant", tenantId, "wallet"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "tenant", tenantId] });
+    },
+    onError: () => setResult(null),
   });
 
-  const inputCls = "h-10 min-w-0 rounded-lg bg-white px-3 sm:h-9 text-sm ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  const ready = magnitudeMinor > 0 && note.trim().length > 0 && !adjust.isPending;
+  const overdraw = magnitudeMinor > balanceMinor;
+
   return (
-    <AdminPanel title="Wallet" subtitle={data ? `Balance ${inr(data.balanceMinor)}` : "Message credit"}>
+    <AdminPanel title="Wallet" subtitle={`Balance ${inr(balanceMinor)}`}>
       <div className="flex flex-col gap-2 sm:flex-row">
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="₹ (negative to deduct)" className={`${inputCls} sm:w-44`} aria-label="Amount in rupees" />
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note, e.g. NEFT ref 12345" className={`${inputCls} flex-1`} maxLength={200} aria-label="Note" />
-        <AdminButton size="sm" className="h-10 sm:h-9" disabled={!Number(amount) || !note.trim() || adjust.isPending} onClick={() => adjust.mutate()}>
-          {Number(amount) < 0 ? "Deduct" : "Add credit"}
-        </AdminButton>
+        <input
+          type="number"
+          step="0.01"
+          value={amount}
+          onChange={(e) => { setAmount(e.target.value); setResult(null); }}
+          placeholder="Amount in ₹"
+          className={cn(adminInputClass, "h-10 min-w-0 sm:h-9 sm:w-40")}
+          aria-label="Amount in rupees"
+        />
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Note, e.g. NEFT ref 12345"
+          className={cn(adminInputClass, "h-10 min-w-0 flex-1 sm:h-9")}
+          maxLength={200}
+          aria-label="Note"
+        />
+        <div className="flex gap-2">
+          <AdminButton
+            size="sm"
+            className="h-10 flex-1 sm:h-9 sm:flex-none"
+            disabled={!ready}
+            onClick={() => adjust.mutate("add")}
+          >
+            {adjust.isPending ? "Working…" : typedNegative ? "Deduct" : "Add credit"}
+          </AdminButton>
+          <AdminButton
+            size="sm"
+            variant="secondary"
+            className="h-10 flex-1 sm:h-9 sm:flex-none"
+            disabled={!ready}
+            onClick={() => adjust.mutate("deduct")}
+          >
+            Deduct
+          </AdminButton>
+        </div>
       </div>
+
+      <p className="mt-2 text-xs text-slate-500">
+        {magnitudeMinor === 0
+          ? "A note is required so the adjustment can be explained later. A negative amount deducts."
+          : typedNegative
+            ? `Deducting ${inr(magnitudeMinor)} — balance would be ${inr(Math.max(0, balanceMinor - magnitudeMinor))}.`
+            : `Add makes it ${inr(balanceMinor + magnitudeMinor)}; Deduct makes it ${inr(Math.max(0, balanceMinor - magnitudeMinor))}.`}
+        {magnitudeMinor > 0 && overdraw && " Deducting more than the balance empties the wallet — it never goes negative."}
+      </p>
+
       {adjust.isError && <p className="mt-2 text-xs text-rose-700">{(adjust.error as Error).message}</p>}
+      {result && !adjust.isError && <p className="mt-2 text-xs text-emerald-700">{result}</p>}
+
       {data && (data.transactions?.length ?? 0) > 0 && (
         <ul className="mt-4 divide-y divide-slate-100 text-sm">
           {(data.transactions ?? []).map((t) => (
             <li key={t.id} className="flex justify-between gap-3 py-1.5">
               <span className="min-w-0 truncate text-slate-600">
-                {formatDate(t.createdAt)} · {t.type.replace("_", " ").toLowerCase()} · {t.description ?? ""}
+                {formatDate(t.createdAt)} · {t.type.replace(/_/g, " ").toLowerCase()} · {t.description ?? ""}
               </span>
-              <span className={t.amountMinor < 0 ? "tabular-nums text-slate-700" : "tabular-nums text-emerald-700"}>
-                {t.amountMinor > 0 ? "+" : ""}{inr(t.amountMinor)}
+              <span className={cn("shrink-0 tabular-nums", t.amountMinor < 0 ? "text-slate-700" : "text-emerald-700")}>
+                {t.amountMinor > 0 ? "+" : t.amountMinor < 0 ? "−" : ""}{inr(Math.abs(t.amountMinor))}
               </span>
             </li>
           ))}
