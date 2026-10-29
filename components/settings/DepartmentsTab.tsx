@@ -7,7 +7,7 @@ import {
 import { Avatar, Button, Card, EmptyState, Field, Modal, SkeletonRows, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
-  useDeleteDepartment, useDepartments, useSaveDepartment, type Department,
+  useDeleteDepartment, useDepartmentMembers, useDepartments, useSaveDepartment, type Department,
 } from "@/hooks/useHandovers";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -182,10 +182,7 @@ export function DepartmentsTab() {
 function DepartmentModal({ department, onClose }: { department: Department | null; onClose: () => void }) {
   const save = useSaveDepartment();
   const { showToast } = useToast();
-  // The workspace people available to put in a department, from the lead filter options,
-  // which already lists exactly that.
-  const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
-  const [loadedPeople, setLoadedPeople] = useState(false);
+  const { data: people = [] } = useDepartmentMembers();
 
   const [name, setName] = useState(department?.name ?? "");
   const [description, setDescription] = useState(department?.description ?? "");
@@ -193,14 +190,6 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
   const [isDefault, setIsDefault] = useState(department?.isDefault ?? false);
   const [enabled, setEnabled] = useState(department?.enabled ?? true);
   const [memberIds, setMemberIds] = useState<string[]>(department?.members.map((m) => m.id) ?? []);
-
-  if (!loadedPeople) {
-    setLoadedPeople(true);
-    void fetch("/api/leads/filters")
-      .then((r) => r.json())
-      .then((j) => setPeople(j?.data?.agents ?? []))
-      .catch(() => setPeople([]));
-  }
 
   function submit() {
     if (!name.trim()) { showToast("Give the department a name.", "error"); return; }

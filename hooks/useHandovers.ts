@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export type HandoverStatus = "PENDING" | "ASSIGNED" | "ACCEPTED" | "RESOLVED" | "CANCELLED";
 
@@ -108,8 +109,14 @@ export function useHandovers(filters: HandoverFilters = {}) {
   });
 }
 
-/** Just the count, for the badge in the sidebar. */
+/**
+ * Just the count, for the badge in the sidebar.
+ *
+ * Asked for on every page, so it is gated on the permission rather than left to 403:
+ * a reseller account has no conversations permission at all.
+ */
 export function useHandoverWaiting() {
+  const { can, loaded } = usePermissions();
   return useQuery({
     queryKey: ["handovers", "waiting"],
     queryFn: async () => {
@@ -117,7 +124,21 @@ export function useHandoverWaiting() {
       const data = await unwrap<{ waiting: number }>(res, "Couldn't load the count");
       return data.waiting;
     },
+    enabled: loaded && can("conversations.view"),
     staleTime: 30_000,
+  });
+}
+
+/** The people who can be put in a department. */
+export function useDepartmentMembers(enabled = true) {
+  return useQuery({
+    queryKey: ["department-members"],
+    queryFn: async () =>
+      unwrap<{ id: string; name: string; email: string; role: string; avatar: string | null }[]>(
+        await fetch("/api/departments/members"), "Couldn't load the people in this workspace",
+      ),
+    enabled,
+    staleTime: 5 * 60_000,
   });
 }
 
