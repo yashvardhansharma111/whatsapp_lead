@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { Check, Send } from "lucide-react";
+import { COUNTRIES } from "@/components/ui/PhoneInput";
 
 type FormState = {
   name: string;
@@ -20,6 +21,7 @@ const INPUT_CLASS =
 export default function ContactForm() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [dialCode, setDialCode] = useState("91");
 
   // UI only — there is no backend route for this form yet.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -95,15 +97,32 @@ export default function ContactForm() {
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
             Phone
           </label>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={form.phone}
-            onChange={(event) => update("phone", event.target.value)}
-            placeholder="+91 98765 43210"
-            className={INPUT_CLASS}
-          />
+          <div className="mt-1.5 flex rounded-lg border border-gray-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
+            <select
+              value={dialCode}
+              onChange={(e) => {
+                setDialCode(e.target.value);
+                const national = form.phone.replace(/^\+\d{1,4}/, "").trim();
+                update("phone", `+${e.target.value} ${national}`);
+              }}
+              className="shrink-0 rounded-l-lg border-0 border-r border-gray-300 bg-gray-50 py-2.5 pl-2 pr-6 text-sm text-gray-700 focus:outline-none"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.dial}>
+                  {c.flag} +{c.dial}
+                </option>
+              ))}
+            </select>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={form.phone.replace(/^\+\d{1,4}\s?/, "")}
+              onChange={(e) => update("phone", `+${dialCode} ${e.target.value}`)}
+              placeholder="98765 43210"
+              className="min-w-0 flex-1 rounded-r-lg border-0 px-4 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm"
+            />
+          </div>
         </div>
 
         <div className="sm:col-span-2">

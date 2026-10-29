@@ -13,7 +13,6 @@ import {
   ScrollText,
   Tags,
   KeyRound,
-  HandCoins,
   Receipt,
   ShieldCheck,
   LogOut,
@@ -39,7 +38,6 @@ const NAV_GROUPS = [
   {
     label: "Resellers",
     items: [
-      { href: "/admin/commissions",  label: "Commissions",    icon: HandCoins },
       { href: "/admin/white-label",  label: "White Label",    icon: Palette },
       { href: "/admin/rates",        label: "Message prices", icon: Receipt },
     ],

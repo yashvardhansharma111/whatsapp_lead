@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
 import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/components/ui";
+import { COUNTRIES } from "@/components/ui/PhoneInput";
 import { useToast } from "@/components/ui/toast";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import {
@@ -531,17 +532,19 @@ export default function BroadcastPage() {
             <SectionTitle step={1} title="Audience" className="mb-0" />
             {audienceMode === "numbers" && (
               <label htmlFor="bc-cc" className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                Default country code
-                <span className="flex w-20 items-center rounded-lg bg-white shadow-sm ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-emerald-500">
-                  <span className="pl-2.5 text-sm text-slate-400">+</span>
-                  <input
-                    id="bc-cc"
-                    inputMode="numeric"
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    className="w-full rounded-lg bg-transparent px-1 py-1.5 text-sm text-slate-900 focus:outline-none"
-                  />
-                </span>
+                Default country
+                <select
+                  id="bc-cc"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="rounded-lg border-0 bg-white py-1.5 pl-2 pr-7 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.dial}>
+                      {c.flag} +{c.dial} {c.name}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
           </div>
