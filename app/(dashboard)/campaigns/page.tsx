@@ -206,6 +206,7 @@ export default function CampaignsPage() {
 
 function CampaignsPageInner() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   useCampaignsRealtime();
   // Arriving from Segments → "Create campaign" (/campaigns?segment=<id>) opens the
   // create dialog with that segment as the audience.
@@ -221,21 +222,28 @@ function CampaignsPageInner() {
 
   // ── Mutations ──
 
+  /**
+   * Start, pause or pick up a campaign.
+   *
+   * Each is its own endpoint because each does different work: launching queues the
+   * recipients and drops anyone who has opted out since the list was built, pausing stops
+   * the workers mid-run, and resuming queues only what is still pending. This used to
+   * PATCH a status field the server ignores, so neither button did anything.
+   */
   const toggleMutation = useMutation({
     mutationFn: async ({ id, current }: { id: string; current: CampaignStatus }) => {
-      const status = current === "RUNNING" ? "PAUSED" : "RUNNING";
-      const res = await fetch(`/api/campaigns/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const action = current === "RUNNING" || current === "PROCESSING" ? "pause"
+        : current === "PAUSED" ? "resume"
+        : "launch";
+      const res = await fetch(`/api/campaigns/${id}/${action}`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Failed to update campaign");
+        throw new Error((json as { error?: string }).error ?? `Couldn't ${action} the campaign`);
       }
-      return res.json();
+      return json;
     },
     onSuccess: () => invalidate(),
+    onError: (err: Error) => showToast(err.message, "error"),
   });
 
   const duplicateMutation = useMutation({
@@ -282,13 +290,17 @@ function CampaignsPageInner() {
       <Button
         variant="ghost"
         size="sm"
-        aria-label={c.status === "RUNNING" ? "Pause campaign" : "Launch campaign"}
+        aria-label={
+          c.status === "RUNNING" || c.status === "PROCESSING" ? "Pause campaign"
+            : c.status === "PAUSED" ? "Resume campaign"
+            : "Launch campaign"
+        }
         onClick={() => toggleMutation.mutate({ id: c.id, current: c.status })}
-        disabled={toggling || c.status === "COMPLETED" || c.status === "FAILED" || c.status === "CANCELLED"}
+        disabled={toggling || c.status === "COMPLETED" || c.status === "SENT" || c.status === "FAILED" || c.status === "CANCELLED"}
       >
         {toggling ? (
           <Loader2 className="h-4 w-4 animate-spin" />
-        ) : c.status === "RUNNING" ? (
+        ) : c.status === "RUNNING" || c.status === "PROCESSING" ? (
           <Pause className="h-4 w-4" />
         ) : (
           <Play className="h-4 w-4" />

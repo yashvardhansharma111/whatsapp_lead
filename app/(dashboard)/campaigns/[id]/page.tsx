@@ -8,6 +8,7 @@ import { ArrowLeft, Download, Megaphone, Users } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import { useCampaignsRealtime } from "@/hooks/useCampaignsRealtime";
+import { CampaignHaltNotice } from "@/components/campaigns/CampaignHaltNotice";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ interface CampaignDetail {
   repliedCount: number;
   clickedCount: number;
   failedCount: number;
+  /** Deliberately not sent to: opted out, or at WhatsApp's own per-person limit. */
+  skippedCount: number;
   costMinor: number;
   metadata: unknown;
   createdAt: string;
@@ -226,14 +229,22 @@ export default function CampaignReportPage() {
         }
       />
 
-      {/* Stats row */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <CampaignHaltNotice campaignId={campaign.id} status={campaign.status} />
+
+      {/* Stats row. Skipped only appears when there is something to explain. */}
+      <div className={cn(
+        "mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3",
+        campaign.skippedCount > 0 ? "lg:grid-cols-7" : "lg:grid-cols-6",
+      )}>
         <StatCard label="Total"     value={total}                    total={total} barColor="bg-slate-400" />
         <StatCard label="Sent"      value={campaign.sentCount}       total={total} barColor="bg-blue-500" />
         <StatCard label="Delivered" value={campaign.deliveredCount}  total={total} barColor="bg-emerald-500" />
         <StatCard label="Read"      value={campaign.readCount}       total={total} barColor="bg-violet-500" />
         <StatCard label="Clicked"   value={campaign.clickedCount}    total={total} barColor="bg-amber-500" />
         <StatCard label="Failed"    value={campaign.failedCount}     total={total} barColor="bg-rose-500" />
+        {campaign.skippedCount > 0 && (
+          <StatCard label="Skipped" value={campaign.skippedCount}    total={total} barColor="bg-slate-300" />
+        )}
       </div>
 
       {/* Recipients table */}

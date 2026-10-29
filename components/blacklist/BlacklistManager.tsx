@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Ban, CheckCircle2, History, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { AlertCircle, Ban, CheckCircle2, History, Loader2, Plus, Search, ShieldOff, Trash2 } from "lucide-react";
 import { Button, Card, EmptyState, Modal, SkeletonRows, inputClass } from "@/components/ui";
 import { splitNumberInput } from "@/lib/broadcast";
 import { cn, formatDate } from "@/lib/utils";
@@ -21,10 +21,27 @@ interface Entry {
   id: string;
   phone: string;
   reason: string | null;
+  /** MANUAL, or OPT_OUT when WhatsApp told us this person stopped marketing messages. */
+  source?: string | null;
+  errorCode?: number | null;
   createdAt: string;
   createdBy: { id: string; name: string } | null;
   contactName: string | null;
   tenantName?: string | null;
+}
+
+/**
+ * An automatic entry needs saying out loud. Someone looking at a number they never added
+ * should see that WhatsApp put it there, not wonder who on the team did.
+ */
+function SourceBadge({ entry }: { entry: Entry }) {
+  if (entry.source !== "OPT_OUT") return null;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700">
+      <ShieldOff className="h-3 w-3" />
+      They opted out
+    </span>
+  );
 }
 
 interface ListResponse {
@@ -231,7 +248,10 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                 {entries.map((e) => (
                   <li key={e.id} className="flex items-start gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                        <SourceBadge entry={e} />
+                      </div>
                       {e.contactName && <p className="text-xs text-slate-500">{e.contactName}</p>}
                       {scope === "all" && e.tenantName && (
                         <p className="mt-0.5 text-xs font-medium text-slate-700">{e.tenantName}</p>
@@ -266,7 +286,10 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                     {entries.map((e) => (
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2.5">
-                          <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                            <SourceBadge entry={e} />
+                          </div>
                           {e.contactName && <p className="text-xs text-slate-500">{e.contactName}</p>}
                         </td>
                         {scope === "all" && (
