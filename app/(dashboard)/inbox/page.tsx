@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useConversation, useConversations, useMarkConversationRead } from "@/hooks/useMessages";
+import { useConversation, useConversations } from "@/hooks/useMessages";
+import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 import { ChatWindow } from "@/components/inbox/ChatWindow";
 import { ContactPanel } from "@/components/inbox/ContactPanel";
 import {
@@ -16,13 +16,10 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Every /api route is still a 501 stub, so the React Query hooks are expected to
- * reject. Nothing here trusts the payload shape: responses are unwrapped
- * defensively and each column falls back to a loading or empty view.
+ * The list and the open thread come from react-query; the socket keeps both caches
+ * current (useInboxRealtime). Payloads are still unwrapped defensively so a
+ * half-populated row renders rather than crashing a column.
  */
-
-/** Stable identity so ChatWindow's timeline memo doesn't recompute every render. */
-const EMPTY: InboxMessage[] = [];
 
 const STATUS_BY_TAB: Partial<Record<InboxTab, string>> = {
   open: "OPEN",
@@ -35,63 +32,10 @@ export default function InboxPage() {
   const userId = session?.user?.id;
   const userName = session?.user?.name;
   const userAvatar = session?.user?.avatar;
-  const tenantId = session?.user?.tenantId;
 
-  const queryClient = useQueryClient();
-  const { mutate: markConversationRead } = useMarkConversationRead();
+  useInboxRealtime();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedIdRef = useRef<string | null>(null);
-  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
-
-  // SSE real-time subscription: invalidate conversations when a new message arrives.
-  // EventSource auto-reconnects; on each (re)connect we refetch to catch any gap.
-  // Falls back to the 30s poll in useConversations when SSE is unavailable.
-  useEffect(() => {
-    if (!tenantId) return;
-
-    console.log("[inbox] SSE: opening /api/events tenantId=", tenantId);
-    const es = new EventSource("/api/events");
-
-    es.onopen = () => {
-      console.log("[inbox] SSE: connected (readyState=OPEN)");
-      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      // Reconnect after timeout — also refresh the open conversation detail
-      const openId = selectedIdRef.current;
-      if (openId) void queryClient.invalidateQueries({ queryKey: ["conversations", openId] });
-    };
-
-    es.onmessage = (e) => {
-      console.log("[inbox] SSE raw message:", e.data);
-      try {
-        const payload = JSON.parse(e.data as string);
-        console.log("[inbox] SSE event:", payload?.event, payload);
-        if (payload?.event === "new-message") {
-          console.log("[inbox] SSE new-message → invalidating conversations conversationId=", payload?.conversationId);
-          void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          if (payload?.conversationId) {
-            void queryClient.invalidateQueries({ queryKey: ["conversations", payload.conversationId] });
-          }
-        } else if (payload?.event === "status-update") {
-          // Status changed (PENDING→SENT→DELIVERED→READ) — refresh the open conversation
-          const openId = selectedIdRef.current;
-          if (openId) void queryClient.invalidateQueries({ queryKey: ["conversations", openId] });
-        }
-      } catch (err) {
-        console.warn("[inbox] SSE parse error:", err, "raw:", e.data);
-      }
-    };
-
-    es.onerror = (err) => {
-      console.error("[inbox] SSE error (will auto-reconnect):", err, "readyState=", es.readyState);
-    };
-
-    return () => {
-      console.log("[inbox] SSE: closing connection");
-      es.close();
-    };
-  }, [tenantId, queryClient]);
-
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */
@@ -101,22 +45,8 @@ export default function InboxPage() {
     setSelectedId(id);
     setPanelOpen(false);
     // Do NOT auto-mark as read on open — agents need to see the unread badge until
-    // they have actually replied. markConversationRead is called in handleSend instead.
+    // they have actually replied. ChatWindow marks it read after a successful send.
   }, []);
-  /** Optimistically "sent" messages, per conversation, cleared when server confirms. */
-  const [outbox, setOutbox] = useState<Record<string, InboxMessage[]>>({});
-  // Track the ID of the last server message per conversation. Comparing IDs (not array
-  // length) correctly detects new messages when the server returns a fixed-size page.
-  const lastServerMsgId = useRef<Record<string, string>>({});
-
-  const handleSend = useCallback((conversationId: string, message: InboxMessage) => {
-    setOutbox((prev) => ({
-      ...prev,
-      [conversationId]: [...(prev[conversationId] ?? []), message],
-    }));
-    // Sending a reply means the agent has read this conversation
-    markConversationRead(conversationId);
-  }, [markConversationRead]);
 
   const filters = useMemo(() => {
     const status = STATUS_BY_TAB[tab];
@@ -136,7 +66,7 @@ export default function InboxPage() {
     isError: detailError,
   } = useConversation(selectedId ?? "");
 
-  // Only show the full-panel skeleton on the *first* load. A Pusher-driven refetch must not
+  // Only show the full-panel skeleton on the *first* load. A background refetch must not
   // blank the list/thread — that is what made the inbox look wiped after a new WhatsApp text.
   const listBusy = listLoading && !listData;
   const detailBusy = Boolean(selectedId) && detailLoading && !detailData;
@@ -177,19 +107,6 @@ export default function InboxPage() {
     const detail = unwrap<InboxConversation>(detailData);
     return toArray<InboxMessage>(detail?.messages ?? unwrap<unknown>(detailData));
   }, [detailData]);
-
-  // When the server delivers new messages, clear optimistic outbox entries.
-  // Compare the LAST message ID (not array length) so this works correctly when
-  // the server always returns a fixed page size (e.g. newest 50).
-  useEffect(() => {
-    if (!selectedId || messages.length === 0) return;
-    const lastId = messages[messages.length - 1]?.id;
-    if (!lastId) return;
-    if (lastId !== lastServerMsgId.current[selectedId]) {
-      lastServerMsgId.current[selectedId] = lastId;
-      setOutbox((o) => (o[selectedId]?.length ? { ...o, [selectedId]: [] } : o));
-    }
-  }, [messages, selectedId]);
 
   /** No team endpoint exists yet — build the assignee options from what we have. */
   const agents = useMemo<InboxAgent[]>(() => {
@@ -232,8 +149,6 @@ export default function InboxPage() {
         key={selectedId ?? "empty"}
         conversation={selected}
         messages={messages}
-        localMessages={selectedId ? (outbox[selectedId] ?? EMPTY) : EMPTY}
-        onSend={handleSend}
         isLoading={detailBusy}
         isError={detailError && !detailData}
         onBack={() => {

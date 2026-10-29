@@ -8,6 +8,7 @@ import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
 import { brandStyle, getBrandForTenant } from "@/lib/branding";
 import { BrandProvider } from "@/components/BrandProvider";
 import { ToastProvider } from "@/components/ui/toast";
+import { RealtimeProvider } from "@/hooks/useRealtime";
 
 async function getPlanName(nestToken: string | undefined): Promise<string | null> {
   const base = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -54,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       }}
     >
     <ToastProvider>
+    <RealtimeProvider>
     <div className="flex h-dvh overflow-hidden bg-[#f6f7f9]" style={brandStyle(brand)}>
       <Sidebar
         user={{
@@ -77,6 +79,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       {/* WhatsApp onboarding is for client accounts; resellers never connect a number. */}
       {!isReseller && !viewing && <OnboardingWrapper tenantId={session.user.tenantId} tenantName={session.user.tenantName} />}
     </div>
+    </RealtimeProvider>
     </ToastProvider>
     </BrandProvider>
   );

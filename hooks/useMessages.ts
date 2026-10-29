@@ -12,14 +12,14 @@
 // useAiSummarize()           - POST  /api/ai/summarize
 // ============================================================================
 //
-// The two query hooks below key on ["conversations", …]. The mutations invalidate that whole prefix
-// rather than picking individual keys, and that is the point of the shape: a conversation's messages
-// are not a cache entry of their own — the detail endpoint returns them nested inside the
-// conversation — so invalidating the prefix refreshes the inbox list and the open thread together.
-// Any narrower invalidation would refresh the thread and leave the list showing a stale preview, or
-// the reverse.
+// The two query hooks below key on ["conversations", …]. A conversation's messages are not a cache
+// entry of their own — the detail endpoint returns them nested inside the conversation. Live updates
+// arrive over the socket (hooks/useInboxRealtime.ts) and are applied straight into these caches; the
+// mutations here only invalidate the prefix for state the socket does not carry.
 
+import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { applyOptimisticSend, applySendFailed, applyServerMessage, localMessageId } from "@/lib/realtime/inboxCache";
 type Message = Record<string, unknown>;
 import type { InteractivePayload } from "@/lib/validators/message";
 
@@ -40,6 +40,11 @@ export interface SendMessageInput {
   mediaId?: string;
   mediaMimeType?: string;
   mediaSize?: number;
+  fileName?: string;
+  /** Correlates the optimistic bubble with the server row; generated when omitted. */
+  clientId?: string;
+  /** Local object URL shown in the optimistic bubble until the server row carries a real URL. Never sent. */
+  previewUrl?: string;
 }
 
 /**
@@ -99,10 +104,9 @@ export function useConversations(filters?: ConversationFilters) {
       if (!res.ok) throw new Error("Failed to fetch conversations");
       return res.json();
     },
-    // Keep the last list visible while Pusher/poll refetch runs — otherwise a slow or empty
-    // refetch after an inbound message makes the inbox look wiped.
+    // Keep the last list visible while a refetch runs — otherwise a slow or empty
+    // refetch makes the inbox look wiped.
     placeholderData: (previous) => previous,
-    refetchInterval: 30000, // poll every 30s as fallback when Pusher not wired
   });
 }
 
@@ -116,40 +120,76 @@ export function useConversation(id: string) {
     },
     enabled: !!id,
     placeholderData: (previous) => previous,
-    refetchInterval: 15000, // poll for new messages
   });
 }
+
+const CONVERSATIONS = { queryKey: ["conversations"] as const };
 
 /**
  * Send a message, or record an internal note.
  *
- * No optimistic update, deliberately. An outbound message is not a local state change the client can
- * predict: the server calls Meta *before* it persists, and the WhatsApp API can reject the send for
- * reasons only it knows — an opted-out recipient, an expired 24-hour session window, a throttled
- * number. Painting the message into the thread before the server confirms would show an agent a
- * message the customer never received, and rolling it back afterwards would make it flicker out of a
- * conversation they have already started reading. The one place a mutation must not lie is the one
- * where the user believes something has left the building.
+ * Optimistic, and honest about it: the bubble appears instantly with a clock tick (PENDING). The
+ * server calls Meta before it persists, so a rejected send — opted-out recipient, expired 24-hour
+ * window — flips the same bubble to FAILED with Meta's reason instead of removing it. The agent sees
+ * exactly what left the building and what did not.
  *
- * Invalidating the `["conversations"]` prefix refreshes both the open thread — which now holds the
- * new message — and the inbox list, whose `lastMessagePreview` and `lastMessageAt` the server has
- * just moved. The two are written in one transaction on the server; refreshing them separately is
- * how they would come apart on the client.
+ * The placeholder carries a `clientId` that the server echoes in `metadata`; both the HTTP response
+ * and the `message:new` socket event replace it by that id, whichever lands first.
  */
 export function useSendMessage() {
   const queryClient = useQueryClient();
 
-  return useMutation<Message, Error, SendMessageInput>({
-    mutationFn: (input) =>
-      request<Message>("/api/messages", {
-        method: "POST",
-        body: JSON.stringify(input),
-      }),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      void queryClient.invalidateQueries({ queryKey: ["conversations", variables.conversationId] });
+  const mutation = useMutation<Message, Error, SendMessageInput & { clientId: string }, { clientId: string }>({
+    mutationFn: (input) => {
+      const body: Partial<typeof input> = { ...input };
+      delete body.previewUrl;
+      return request<Message>("/api/messages", { method: "POST", body: JSON.stringify(body) });
+    },
+    onMutate: (input) => {
+      const placeholder = {
+        id: localMessageId(input.clientId),
+        conversationId: input.conversationId,
+        direction: "OUTBOUND",
+        type: input.type ?? "TEXT",
+        content: input.content ?? null,
+        mediaUrl: input.previewUrl ?? input.mediaUrl ?? null,
+        mediaMimeType: input.mediaMimeType ?? null,
+        mediaSize: input.mediaSize ?? null,
+        metadata: {
+          clientId: input.clientId,
+          ...(input.fileName ? { filename: input.fileName } : {}),
+          ...(input.interactive ? { interactive: input.interactive } : {}),
+        },
+        status: "PENDING",
+        isNote: Boolean(input.isNote),
+        isAiGenerated: false,
+        replyToId: input.replyToId ?? null,
+        createdAt: new Date().toISOString(),
+      };
+      queryClient.setQueriesData(CONVERSATIONS, (old: unknown) =>
+        applyOptimisticSend(old, input.conversationId, placeholder),
+      );
+      return { clientId: input.clientId };
+    },
+    onSuccess: (message, variables) => {
+      queryClient.setQueriesData(CONVERSATIONS, (old: unknown) =>
+        applyServerMessage(old, variables.conversationId, message),
+      );
+    },
+    onError: (error, variables) => {
+      queryClient.setQueriesData(CONVERSATIONS, (old: unknown) =>
+        applySendFailed(old, variables.conversationId, variables.clientId, error.message),
+      );
     },
   });
+
+  const mutateAsync = useCallback(
+    (input: SendMessageInput) =>
+      mutation.mutateAsync({ ...input, clientId: input.clientId ?? crypto.randomUUID() }),
+    [mutation],
+  );
+
+  return { ...mutation, mutateAsync, mutate: (input: SendMessageInput) => void mutateAsync(input).catch(() => {}) };
 }
 
 export function useUpdateConversation() {
@@ -221,10 +261,8 @@ function patchCachedAiActive(payload: unknown, id: string, isAiActive: boolean):
  * snapshot is restored if the write fails. Leaving it flipped on a failure would be the worse lie:
  * it would tell an agent the bot is off for a conversation it is still answering.
  *
- * `cancelQueries` matters more here than it usually does. Both conversation queries poll — every 30s
- * for the list, 15s for the thread — so a refetch issued before the toggle can land would otherwise
- * resolve afterwards and overwrite the optimistic value with the pre-toggle one, making the switch
- * appear to flip itself back a few seconds later.
+ * `cancelQueries` guards against a refetch issued before the toggle (a reconnect, a window focus)
+ * resolving afterwards and overwriting the optimistic value with the pre-toggle one.
  */
 export function useSetConversationAiActive() {
   const queryClient = useQueryClient();

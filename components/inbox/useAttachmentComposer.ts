@@ -8,7 +8,6 @@ import {
   validateFile,
 } from "@/lib/attachments";
 import { useUploadAttachments } from "@/hooks/useAttachments";
-import type { InboxMessage } from "./ConversationList";
 
 /** A file the agent has picked but not yet sent — the unit the preview renders. */
 export interface PendingAttachment {
@@ -71,8 +70,11 @@ export interface AttachmentSendInput {
   mediaId?: string;
   mediaMimeType?: string;
   mediaSize?: number;
+  fileName?: string;
   content?: string;
   isNote?: boolean;
+  /** Object URL for the optimistic bubble; the send hook strips it before the request. */
+  previewUrl?: string;
 }
 
 /**
@@ -86,11 +88,9 @@ export interface AttachmentSendInput {
  */
 export function useAttachmentComposer({
   conversationId,
-  onSend,
   sendFn,
 }: {
   conversationId: string | null;
-  onSend: (conversationId: string, message: InboxMessage) => void;
   sendFn?: (input: AttachmentSendInput) => Promise<unknown>;
 }) {
   const [items, setItems] = useState<PendingAttachment[]>([]);
@@ -270,62 +270,37 @@ export function useAttachmentComposer({
         const content = index === 0 && trimmedCaption ? trimmedCaption : undefined;
         const msgType = item.spec.messageType as "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
 
-        if (sendFn) {
-          const payload = {
+        if (!sendFn) continue;
+        try {
+          // The send hook paints the optimistic bubble from this payload (previewUrl) and
+          // swaps in the server row when it lands.
+          await sendFn({
             conversationId,
             type: msgType,
             mediaUrl: media.url,
             mediaId: media.mediaId,
             mediaMimeType: media.mimeType ?? undefined,
             mediaSize: media.size ?? undefined,
+            fileName: media.filename ?? item.file.name,
             content,
             isNote,
-          };
-          console.log(`[ATTACH] Calling sendFn for file ${index + 1}/${uploaded.length}:`, {
-            type: payload.type,
-            sendMethod: payload.mediaId ? "meta-upload-id" : "url-link",
-            mediaId: payload.mediaId,
-            mediaUrl: payload.mediaUrl,
+            previewUrl: item.previewUrl,
           });
-          try {
-            await sendFn(payload);
-            console.log(`[ATTACH] sendFn succeeded for file ${index + 1}`);
-          } catch (err) {
-            console.error(`[ATTACH] sendFn failed for file ${index + 1}:`, err instanceof Error ? err.message : err);
-            allSent = false;
-            // Continue to next file even if one fails; errors surfaced by the caller.
-            continue;
-          }
+        } catch (err) {
+          console.error(`[ATTACH] send failed for file ${index + 1}:`, err instanceof Error ? err.message : err);
+          allSent = false;
         }
-
-        // Add to local thread for immediate feedback (React Query invalidation shows
-        // the persisted version on the next poll/mutation success).
-        const message: InboxMessage = {
-          id: localId("local"),
-          type: msgType,
-          direction: "OUTBOUND",
-          content: content ?? null,
-          mediaUrl: media.url,
-          mediaMimeType: media.mimeType,
-          mediaSize: media.size,
-          metadata: {
-            filename: media.filename,
-            ...(item.width ? { width: item.width } : {}),
-            ...(item.height ? { height: item.height } : {}),
-            ...(item.duration ? { duration: item.duration } : {}),
-          },
-          status: "SENT",
-          isNote,
-          isAiGenerated: false,
-          createdAt: new Date().toISOString(),
-        };
-        onSend(conversationId, message);
       }
 
-      clear();
+      // Object URLs stay alive on purpose: the optimistic bubbles reference them until
+      // the server row carries a real media URL.
+      setItems([]);
+      setCaption("");
+      setErrors([]);
+      reset();
       return allSent;
     },
-    [conversationId, items, caption, upload, sendFn, onSend, clear]
+    [conversationId, items, caption, upload, sendFn, reset]
   );
 
   return {

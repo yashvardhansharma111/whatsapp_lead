@@ -30,7 +30,7 @@ type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel, formatTime } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT, formatBytes } from "@/lib/attachments";
-import { useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
+import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
 import type { InteractivePayload } from "@/lib/validators/message";
 import { useQuickReplies, type QuickReply } from "@/hooks/useQuickReplies";
 import { contactName, type InboxConversation, type InboxMessage } from "./ConversationList";
@@ -47,14 +47,12 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
 /**
  * The page remounts this with `key={conversationId}`, so all composer state is
- * naturally per-conversation — no reset effects needed. Locally "sent" messages
- * live in the page instead, so they survive switching threads.
+ * naturally per-conversation — no reset effects needed. Optimistic sends live in
+ * the react-query cache (useSendMessage), so they survive switching threads.
  */
 export function ChatWindow({
   conversation,
   messages,
-  localMessages,
-  onSend,
   isLoading,
   isError,
   onBack,
@@ -63,8 +61,6 @@ export function ChatWindow({
 }: {
   conversation: InboxConversation | null;
   messages: InboxMessage[];
-  localMessages: InboxMessage[];
-  onSend: (conversationId: string, message: InboxMessage) => void;
   isLoading?: boolean;
   isError?: boolean;
   onBack?: () => void;
@@ -152,6 +148,7 @@ export function ChatWindow({
   const [showFaqMenu, setShowFaqMenu] = useState(false);
   const sendMessage = useSendMessage();
   const setAiActive = useSetConversationAiActive();
+  const markRead = useMarkConversationRead();
 
   /**
    * Hand the change to the mutation and nothing else.
@@ -167,13 +164,12 @@ export function ChatWindow({
 
   // All attachment behaviour (drag-and-drop, file picker, clipboard paste, preview and the
   // shared upload → send pipeline) lives in this hook so the composer stays a thin shell.
-  const attach = useAttachmentComposer({ conversationId, onSend, sendFn: sendMessage.mutateAsync });
+  const attach = useAttachmentComposer({ conversationId, sendFn: sendMessage.mutateAsync });
 
-  const timeline = useMemo(() => {
-    const all = [...messages, ...localMessages];
-    all.sort((a, b) => msTime(a.createdAt) - msTime(b.createdAt));
-    return all;
-  }, [messages, localMessages]);
+  const timeline = useMemo(
+    () => [...messages].sort((a, b) => msTime(a.createdAt) - msTime(b.createdAt)),
+    [messages],
+  );
 
   // Follow the conversation as it grows (and land at the bottom on first paint).
   useEffect(() => {
@@ -200,31 +196,16 @@ export function ChatWindow({
     const content = draft.trim();
     if (!content || !conversationId || sendMessage.isPending) return;
     setSendError(null);
-
-    // Optimistic: show the message immediately before the server round-trip.
-    onSend(conversationId, {
-      id: `opt-${Date.now()}`,
-      direction: "OUTBOUND",
-      type: "TEXT",
-      content,
-      status: "PENDING",
-      isNote: isNote ?? null,
-      replyToId: replyTo?.id ?? null,
-      createdAt: new Date().toISOString(),
-    });
+    const replyToId = replyTo?.id;
     setDraft("");
     setAiSources([]);
     setShowEmoji(false);
     setReplyTo(null);
 
     try {
-      await sendMessage.mutateAsync({
-        conversationId,
-        content,
-        type: "TEXT",
-        isNote,
-        replyToId: replyTo?.id,
-      });
+      await sendMessage.mutateAsync({ conversationId, content, type: "TEXT", isNote, replyToId });
+      // Replying means the agent has read this conversation.
+      markRead.mutate(conversationId);
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Failed to send message");
     }
@@ -261,15 +242,6 @@ export function ChatWindow({
       };
     }
 
-    onSend(conversationId, {
-      id: `opt-${Date.now()}`,
-      direction: "OUTBOUND",
-      type: "INTERACTIVE",
-      content: body,
-      status: "PENDING",
-      replyToId: replyTo?.id ?? null,
-      createdAt: new Date().toISOString(),
-    });
     setShowInteractive(false);
     setInteractiveBody("");
 
@@ -277,9 +249,11 @@ export function ChatWindow({
       await sendMessage.mutateAsync({
         conversationId,
         type: "INTERACTIVE",
+        content: body,
         interactive,
         replyToId: replyTo?.id,
       });
+      markRead.mutate(conversationId);
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Failed to send interactive message");
     }
