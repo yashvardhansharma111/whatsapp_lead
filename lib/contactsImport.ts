@@ -54,17 +54,23 @@ export interface ImportContactPayload {
   source?: string;
   notes?: string;
   tags?: string[];
+  /** Spreadsheet columns that don't map to a built-in field, keyed by header. */
+  customFields?: Record<string, string>;
 }
 
 export interface ImportRequest {
   contacts: ImportContactPayload[];
   mode: ImportMode;
   dryRun?: boolean;
+  importId?: string;
+  fileName?: string;
+  sheetName?: string;
 }
 
 export function validateRows(
   rawRows: RawRow[],
   mapping: ColumnMapping,
+  extraColumns: string[] = [],
 ): ValidationSummary<ImportContactPayload> {
   const seenPhones = new Set<string>();
   const rows: ValidatedRow<ImportContactPayload>[] = [];
@@ -75,10 +81,17 @@ export function validateRows(
     const email = cell(raw, mapping.email);
     const phone = normalizePhone(rawPhone);
 
+    const customFields: Record<string, string> = {};
+    for (const header of extraColumns) {
+      const v = cell(raw, header);
+      if (v) customFields[header] = v;
+    }
+
     const isEmpty = [
       rawName, rawPhone, email,
       cell(raw, mapping.company), cell(raw, mapping.designation), cell(raw, mapping.location),
       cell(raw, mapping.source), cell(raw, mapping.notes), cell(raw, mapping.tags),
+      ...Object.values(customFields),
     ].every((v) => v.length === 0);
 
     const errors: string[] = [];
@@ -101,6 +114,7 @@ export function validateRows(
       source: cell(raw, mapping.source) || undefined,
       notes: cell(raw, mapping.notes) || undefined,
       tags: parseTags(cell(raw, mapping.tags)),
+      customFields: Object.keys(customFields).length ? customFields : undefined,
     };
 
     rows.push({

@@ -20,7 +20,9 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
       description: "Bring contacts in from an Excel or CSV file.",
       fields: IMPORT_FIELDS,
       validate: validateRows,
-      importBatch: (payload, mode, dryRun) => mutateAsync({ contacts: payload, mode, dryRun }),
+      customFields: true,
+      importBatch: (payload, mode, dryRun, meta) =>
+        mutateAsync({ contacts: payload, mode, dryRun, ...meta }),
       sampleFiles: [
         { label: "Excel (.xlsx)", href: "/contacts-sample.xlsx" },
         { label: "CSV", href: "/contacts-sample.csv" },
@@ -39,7 +41,8 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
       mappingHint: (
         <>
           Your file needs a header row. A <span className="font-medium">Phone</span> column is
-          required; all other columns are optional. Tags can be comma-separated.
+          required; all other columns are optional. Tags can be comma-separated. Any other
+          columns can be kept as custom fields.
         </>
       ),
     }),

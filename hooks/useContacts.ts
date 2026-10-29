@@ -169,6 +169,34 @@ export function useImportContacts() {
       if (variables.dryRun) return;
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contacts", "sources"] });
+      queryClient.invalidateQueries({ queryKey: ["contact-imports"] });
+    },
+  });
+}
+
+export interface ContactImportRun {
+  id: string;
+  fileName: string | null;
+  sheetName: string | null;
+  mode: "skip" | "update";
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  createdAt: string;
+  importedBy: { id: string; name: string; email: string } | null;
+}
+
+export function useContactImports(enabled = true) {
+  return useQuery({
+    queryKey: ["contact-imports"],
+    enabled,
+    queryFn: async (): Promise<ContactImportRun[]> => {
+      const res = await fetch("/api/contacts/imports?limit=50");
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error ?? "Couldn't load import history");
+      return Array.isArray(json.data) ? json.data : [];
     },
   });
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Filter, Megaphone, Search, Upload, UserPlus } from "lucide-react";
+import { Filter, History, Megaphone, Search, Upload, UserPlus } from "lucide-react";
 import {
   useBulkContactAction,
   useContactSources,
@@ -16,6 +16,7 @@ import { Button, Card, Modal, PageHeader, inputClass } from "@/components/ui";
 import { AddContactModal } from "@/components/contacts/AddContactModal";
 import { EditContactModal } from "@/components/contacts/EditContactModal";
 import { ImportContactsModal } from "@/components/contacts/ImportContactsModal";
+import { ImportHistoryModal } from "@/components/contacts/ImportHistoryModal";
 import {
   ContactTable,
   type ContactPermissions,
@@ -67,6 +68,7 @@ export default function ContactsPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [editContact, setEditContact] = useState<ContactRow | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [actionText, setActionText] = useState("");
@@ -188,6 +190,16 @@ export default function ContactsPage() {
             <Button variant="secondary" onClick={() => setImportOpen(true)} className="flex-1 sm:flex-none">
               <Upload className="h-4 w-4" />
               Import
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setHistoryOpen(true)}
+              className="flex-1 sm:flex-none"
+              aria-label="Import history"
+              title="Import history"
+            >
+              <History className="h-4 w-4" />
+              <span className="sm:hidden">History</span>
             </Button>
             <ExportButton resource="contacts" />
             <Button onClick={() => setModalOpen(true)} className="flex-1 sm:flex-none">
@@ -434,6 +446,7 @@ export default function ContactsPage() {
 
       <AddContactModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <ImportContactsModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }

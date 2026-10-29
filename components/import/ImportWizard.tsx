@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { parseSpreadsheet } from "@/lib/spreadsheet";
+import { loadWorkbook, type Workbook } from "@/lib/spreadsheet";
 import {
   IMPORT_MAX_ROWS,
   autoMapHeaders,
@@ -30,15 +30,27 @@ import {
  * supply their own fields, validation and batch-import call; the wizard owns the UI —
  * upload, column mapping, validated preview, batched import with progress, and report.
  */
+/** Identifies one import run across its client batches and the history record it produces. */
+export interface ImportBatchMeta {
+  importId: string;
+  fileName: string;
+  sheetName: string;
+}
+
 export interface ImportWizardConfig<T> {
   title: string;
   description: string;
   /** Mappable columns for this entity. */
   fields: ImportField[];
-  /** Map + validate parsed rows (file-level rules) into the preview model. */
-  validate: (rows: RawRow[], mapping: ColumnMapping) => ValidationSummary<T>;
+  /**
+   * Map + validate parsed rows (file-level rules) into the preview model. `extraColumns`
+   * lists spreadsheet headers the user chose to keep as custom fields (see `customFields`).
+   */
+  validate: (rows: RawRow[], mapping: ColumnMapping, extraColumns?: string[]) => ValidationSummary<T>;
   /** One client batch → server. `dryRun` reports the new/existing split without writing. */
-  importBatch: (payload: T[], mode: ImportMode, dryRun: boolean) => Promise<ImportResult>;
+  importBatch: (payload: T[], mode: ImportMode, dryRun: boolean, meta: ImportBatchMeta) => Promise<ImportResult>;
+  /** Offer to carry unmapped spreadsheet columns through as custom fields. */
+  customFields?: boolean;
   /** Optional loading gate (e.g. Leads waiting on stage/user lists). */
   busy?: boolean;
   /** Optional guidance rendered under the mapping grid. */
@@ -52,7 +64,7 @@ export interface ImportWizardConfig<T> {
   columnGuide?: { header: string; example: string; required?: boolean }[];
 }
 
-type Step = "upload" | "map" | "preview" | "importing" | "done";
+type Step = "upload" | "sheet" | "map" | "preview" | "importing" | "done";
 
 /** Batch size for the client → server import loop; drives the real progress bar. */
 const CLIENT_BATCH = 500;
@@ -88,10 +100,14 @@ export function ImportWizard<T>({
 function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: ImportWizardConfig<T> }) {
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
+  const [workbook, setWorkbook] = useState<Workbook | null>(null);
+  const [sheetName, setSheetName] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<RawRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
+  const [keepExtra, setKeepExtra] = useState(false);
   const [mode, setMode] = useState<ImportMode>("skip");
+  const [importId, setImportId] = useState("");
   const [dbSplit, setDbSplit] = useState<{ newCount: number; existingCount: number } | null>(null);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -101,35 +117,65 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
 
   const fileInputId = useId();
 
+  // Headers no field claims — offered as custom fields when the entity supports them.
+  const extraColumns = useMemo(() => {
+    if (!mapping) return [];
+    const used = new Set(Object.values(mapping).filter(Boolean));
+    return headers.filter((h) => !used.has(h));
+  }, [headers, mapping]);
+
   // Validation is derived from the file + mapping, so it updates live as columns are remapped.
   const validation = useMemo(
-    () => (mapping ? config.validate(rows, mapping) : null),
-    [rows, mapping, config],
+    () => (mapping ? config.validate(rows, mapping, keepExtra ? extraColumns : []) : null),
+    [rows, mapping, config, keepExtra, extraColumns],
   );
   const validPayload = useMemo(
     () => validation?.rows.filter((r) => r.isValid).map((r) => r.payload) ?? [],
     [validation],
   );
 
+  /** Reads one sheet into the mapping step; returns false (with an error shown) if it's unusable. */
+  function loadSheet(wb: Workbook, name: string): boolean {
+    const { headers: h, rows: r } = wb.parse(name);
+    if (h.length === 0 || r.length === 0) {
+      setError(
+        wb.sheetNames.length > 1
+          ? `Sheet "${name}" has no rows we can read. Check it has a header row and at least one data row.`
+          : "That file has no rows we can read. Check it has a header row and at least one data row.",
+      );
+      return false;
+    }
+    if (r.length > IMPORT_MAX_ROWS) {
+      setError(`This sheet has ${r.length.toLocaleString()} rows — the limit is ${IMPORT_MAX_ROWS.toLocaleString()} per import.`);
+      return false;
+    }
+    setError(null);
+    setSheetName(name);
+    setHeaders(h);
+    setRows(r);
+    setMapping(autoMapHeaders(config.fields, h));
+    setKeepExtra(false);
+    return true;
+  }
+
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setError(null);
     setParsing(true);
     try {
-      const { headers: h, rows: r } = await parseSpreadsheet(file);
-      if (h.length === 0 || r.length === 0) {
-        setError("That file has no rows we can read. Check it has a header row and at least one data row.");
-        return;
-      }
-      if (r.length > IMPORT_MAX_ROWS) {
-        setError(`This file has ${r.length.toLocaleString()} rows — the limit is ${IMPORT_MAX_ROWS.toLocaleString()} per import.`);
+      const wb = await loadWorkbook(file);
+      if (wb.sheetNames.length === 0) {
+        setError("That file has no sheets we can read.");
         return;
       }
       setFileName(file.name);
-      setHeaders(h);
-      setRows(r);
-      setMapping(autoMapHeaders(config.fields, h));
-      setStep("map");
+      setWorkbook(wb);
+      if (wb.sheetNames.length > 1) {
+        setSheetName(wb.sheetNames[0]);
+        setStep("sheet");
+        return;
+      }
+      if (loadSheet(wb, wb.sheetNames[0])) setStep("map");
     } catch {
       setError("Couldn't read that file. Supported formats are .xlsx, .xls and .csv.");
     } finally {
@@ -141,11 +187,13 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
     setMapping((m) => (m ? { ...m, [field]: header || null } : m));
   }
 
+  const meta = (): ImportBatchMeta => ({ importId, fileName, sheetName });
+
   async function goToPreview() {
     setError(null);
     setRunning(true);
     try {
-      const preview = await config.importBatch(validPayload, mode, true);
+      const preview = await config.importBatch(validPayload, mode, true, meta());
       setDbSplit({ newCount: preview.newCount ?? 0, existingCount: preview.existingCount ?? 0 });
       setStep("preview");
     } catch (e) {
@@ -160,11 +208,16 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
     setStep("importing");
     setProgress({ done: 0, total: validPayload.length });
 
+    // One id for the whole run so every batch lands on the same history record.
+    const runId = crypto.randomUUID();
+    setImportId(runId);
+    const runMeta: ImportBatchMeta = { importId: runId, fileName, sheetName };
+
     const acc: ImportResult = { total: 0, created: 0, updated: 0, skipped: 0, failed: 0, errors: [] };
     try {
       for (let i = 0; i < validPayload.length; i += CLIENT_BATCH) {
         const batch = validPayload.slice(i, i + CLIENT_BATCH);
-        const r = await config.importBatch(batch, mode, false);
+        const r = await config.importBatch(batch, mode, false, runMeta);
         acc.total += r.total;
         acc.created += r.created;
         acc.updated += r.updated;
@@ -314,12 +367,80 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
         </div>
       )}
 
-      {step === "map" && mapping && validation && (
+      {step === "sheet" && workbook && (
         <div className="space-y-4">
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
             <FileSpreadsheet className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="min-w-0 truncate font-medium text-slate-700">{fileName}</span>
-            <span className="shrink-0">· {rows.length.toLocaleString()} rows</span>
+            <span className="shrink-0">· {workbook.sheetNames.length} sheets</span>
+          </div>
+
+          <p className="text-sm text-slate-600">
+            This workbook has more than one sheet. Pick the one with your {config.title.toLowerCase().replace(/^import\s+/, "")}.
+          </p>
+
+          <div role="radiogroup" aria-label="Sheet" className="grid gap-2 sm:grid-cols-2">
+            {workbook.sheetNames.map((name) => {
+              const { headers: h, rows: r } = workbook.parse(name);
+              const usable = h.length > 0 && r.length > 0;
+              return (
+                <label
+                  key={name}
+                  className={cn(
+                    "flex cursor-pointer gap-2.5 rounded-lg border p-3 transition",
+                    sheetName === name ? "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500" : "border-slate-200 hover:border-slate-300",
+                    !usable && "opacity-60",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="import-sheet"
+                    value={name}
+                    checked={sheetName === name}
+                    onChange={() => setSheetName(name)}
+                    className="mt-0.5 accent-emerald-600"
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-slate-800">{name}</span>
+                    <span className="block text-xs text-slate-500">
+                      {usable ? `${r.length.toLocaleString()} rows · ${h.length} columns` : "Empty sheet"}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          <div className={FOOTER}>
+            <Button variant="ghost" onClick={() => setStep("upload")}>
+              <ArrowLeft className="h-4 w-4" />
+              Choose another file
+            </Button>
+            <Button onClick={() => { if (loadSheet(workbook, sheetName)) setStep("map"); }} disabled={!sheetName}>
+              Use this sheet
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === "map" && mapping && validation && (
+        <div className="space-y-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-500">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-slate-400" />
+            <span className="min-w-0 truncate font-medium text-slate-700">{fileName}</span>
+            {workbook && workbook.sheetNames.length > 1 ? (
+              <select
+                value={sheetName}
+                onChange={(e) => loadSheet(workbook, e.target.value)}
+                aria-label="Sheet"
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-emerald-500 focus:outline-none"
+              >
+                {workbook.sheetNames.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            ) : null}
+            <span className="shrink-0">· {rows.length.toLocaleString()} rows · {headers.length} columns</span>
           </div>
 
           <p className="text-sm text-slate-600">
@@ -347,6 +468,27 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
               </label>
             ))}
           </div>
+
+          {config.customFields && extraColumns.length > 0 && (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 p-3 transition hover:border-slate-300">
+              <input
+                type="checkbox"
+                checked={keepExtra}
+                onChange={(e) => setKeepExtra(e.target.checked)}
+                className="mt-0.5 accent-emerald-600"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-slate-800">
+                  Keep the {extraColumns.length} unmapped column{extraColumns.length === 1 ? "" : "s"} as custom fields
+                </span>
+                <span className="mt-1 flex flex-wrap gap-1">
+                  {extraColumns.map((h) => (
+                    <span key={h} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{h}</span>
+                  ))}
+                </span>
+              </span>
+            </label>
+          )}
 
           {config.mappingHint && <div className="text-xs text-slate-500">{config.mappingHint}</div>}
 

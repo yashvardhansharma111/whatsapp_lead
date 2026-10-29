@@ -6,10 +6,31 @@
 import * as XLSX from "xlsx";
 import type { RawRow } from "@/lib/import";
 
-export async function parseSpreadsheet(file: File): Promise<{ headers: string[]; rows: RawRow[] }> {
+export interface ParsedSheet {
+  headers: string[];
+  rows: RawRow[];
+}
+
+export interface Workbook {
+  sheetNames: string[];
+  parse: (sheetName: string) => ParsedSheet;
+}
+
+export async function loadWorkbook(file: File): Promise<Workbook> {
   const buffer = await file.arrayBuffer();
   const wb = XLSX.read(new Uint8Array(buffer), { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+  return {
+    sheetNames: wb.SheetNames,
+    parse: (sheetName) => parseSheet(wb.Sheets[sheetName]),
+  };
+}
+
+export async function parseSpreadsheet(file: File): Promise<ParsedSheet> {
+  const wb = await loadWorkbook(file);
+  return wb.sheetNames[0] ? wb.parse(wb.sheetNames[0]) : { headers: [], rows: [] };
+}
+
+function parseSheet(sheet: XLSX.WorkSheet | undefined): ParsedSheet {
   if (!sheet) return { headers: [], rows: [] };
 
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
