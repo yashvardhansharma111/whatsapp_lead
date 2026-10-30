@@ -55,6 +55,8 @@ function InboxPageInner() {
   }
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
+  /** Empty means every connected number. Only offered when more than one exists. */
+  const [numberId, setNumberId] = useState("");
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -67,10 +69,11 @@ function InboxPageInner() {
 
   const filters = useMemo(() => {
     const status = STATUS_BY_TAB[tab];
-    if (status) return { status };
-    if (tab === "mine" && userId) return { assigneeId: userId };
-    return undefined;
-  }, [tab, userId]);
+    const forNumber = numberId ? { whatsappIntegrationId: numberId } : {};
+    if (status) return { status, ...forNumber };
+    if (tab === "mine" && userId) return { assigneeId: userId, ...forNumber };
+    return numberId ? forNumber : undefined;
+  }, [tab, userId, numberId]);
 
   const {
     data: listData,
@@ -158,6 +161,8 @@ function InboxPageInner() {
         onSearchChange={setSearch}
         tab={tab}
         onTabChange={setTab}
+        numberId={numberId}
+        onNumberChange={setNumberId}
         className={cn("w-full shrink-0 md:w-80", selectedId && "hidden md:flex")}
       />
 

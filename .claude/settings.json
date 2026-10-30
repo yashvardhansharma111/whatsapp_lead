@@ -13,7 +13,8 @@
       "Bash(xargs ls *)",
       "Bash(../node_modules/.bin/tsx ./.smoke-rates.ts)",
       "Bash(grep -v \"SSL\\\\|sslmode\\\\|libpq\\\\|trace-warnings\\\\|prepare for\\\\|current behavior\\\\|See https\\\\|^$\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(python -)"
     ],
     "additionalDirectories": [
       "C:\\tmp"

@@ -20,6 +20,8 @@ export interface TemplateInput {
   buttons?: TemplateButton[];
   variables?: string[];
   cards?: TemplateCard[] | null;
+  /** The WhatsApp account this template lives in, when known. */
+  wabaId?: string | null;
   ltoText?: string | null;
   ltoHasExpiration?: boolean;
   addSecurityRecommendation?: boolean;
@@ -52,11 +54,18 @@ async function unwrap<T>(res: Response, fallback: string): Promise<T> {
   return (json.data ?? json) as T;
 }
 
-export function useTemplates() {
+/**
+ * @param whatsappIntegrationId narrows to templates the given number can actually send.
+ *   A template belongs to a WhatsApp account, and Meta refuses one sent from a number
+ *   outside its own, so offering all of them in a mixed workspace invites a rejection.
+ */
+export function useTemplates(whatsappIntegrationId?: string) {
   return useQuery({
-    queryKey: ["templates"],
+    queryKey: ["templates", whatsappIntegrationId ?? "all"],
     queryFn: async () => {
-      const res = await fetch("/api/templates");
+      const params = new URLSearchParams();
+      if (whatsappIntegrationId) params.set("whatsappIntegrationId", whatsappIntegrationId);
+      const res = await fetch(`/api/templates?${params}`);
       return unwrap<TemplateDTO[]>(res, "Couldn't load your templates");
     },
   });

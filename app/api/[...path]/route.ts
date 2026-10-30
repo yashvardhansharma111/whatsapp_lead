@@ -30,7 +30,7 @@ async function getNestToken(
   try {
     const res = await fetch(`${BACKEND}/auth/service-token`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "1" },
       body: JSON.stringify({ userId, email, secret, businessId }),
     });
     if (!res.ok) return null;
@@ -69,7 +69,11 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   const contentType = req.headers.get("Content-Type") ?? "";
   const isMultipart = contentType.includes("multipart/form-data");
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    // Harmless everywhere, and required when the backend is behind a free ngrok
+    // tunnel, which otherwise answers with its interstitial page instead of JSON.
+    "ngrok-skip-browser-warning": "1",
+  };
   if (!isMultipart) headers["Content-Type"] = contentType || "application/json";
   if (nestToken) headers["Authorization"] = `Bearer ${nestToken}`;
 

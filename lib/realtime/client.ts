@@ -31,6 +31,10 @@ export function getSocket(): RealtimeSocket {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10_000,
+    // A free ngrok tunnel answers browser-looking requests with its own interstitial
+    // page, which the polling transport would receive instead of the handshake. The
+    // header opts out of it and is ignored by every other host.
+    extraHeaders: { "ngrok-skip-browser-warning": "1" },
     auth: (cb) => {
       fetchTicket()
         .then((t) => cb({ token: t.token }))

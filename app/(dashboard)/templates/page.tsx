@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { TemplateBuilder } from "@/components/templates/TemplateBuilder";
+import { NumberPicker } from "@/components/NumberPicker";
 import { cn, formatDate } from "@/lib/utils";
 import {
   useTemplates,
@@ -66,7 +67,11 @@ const DELETABLE = new Set(["DRAFT", "REJECTED", "DISABLED"]);
 export default function TemplatesPage() {
   const [tab, setTab] = useState<Tab>("ALL");
   const [categoryTab, setCategoryTab] = useState<CategoryTab>("ALL");
-  const { data, isLoading, isError } = useTemplates();
+  // Which number's templates to show. A template belongs to a WhatsApp account, so in a
+  // workspace with numbers on different accounts the full list is not sendable from any
+  // one of them.
+  const [numberId, setNumberId] = useState("");
+  const { data, isLoading, isError } = useTemplates(numberId || undefined);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
   const [rejection, setRejection] = useState<TemplateDTO | null>(null);
   const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<TemplateDTO | null>(null);
@@ -236,6 +241,16 @@ export default function TemplatesPage() {
             </Button>
           </div>
         }
+      />
+
+      {/* Renders nothing when the workspace has one connected number. */}
+      <NumberPicker
+        id="templates-number"
+        value={numberId}
+        onChange={setNumberId}
+        anyLabel="All numbers"
+        hint="A template can only be sent from a number in its own WhatsApp account."
+        className="mb-4 max-w-sm"
       />
 
       <div className="scrollbar-slim mb-4 flex gap-1 overflow-x-auto border-b border-slate-200">

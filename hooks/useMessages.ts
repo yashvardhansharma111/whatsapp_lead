@@ -77,6 +77,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 interface ConversationFilters {
   status?: string;
   assigneeId?: string;
+  /** Narrow the inbox to threads that arrived on one connected number. */
+  whatsappIntegrationId?: string;
 }
 
 /**
@@ -101,6 +103,7 @@ export function useConversations(filters?: ConversationFilters) {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
       if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
+      if (filters?.whatsappIntegrationId) params.set("whatsappIntegrationId", filters.whatsappIntegrationId);
       const res = await fetch(`/api/conversations?${params}`);
       if (!res.ok) throw new Error("Failed to fetch conversations");
       return res.json();

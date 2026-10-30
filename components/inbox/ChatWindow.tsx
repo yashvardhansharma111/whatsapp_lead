@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
+import { NumberBadge } from "@/components/NumberPicker";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel, formatTime } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT, formatBytes } from "@/lib/attachments";
 import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
@@ -356,9 +357,21 @@ export function ChatWindow({
               {String(status).toLowerCase()}
             </Badge>
           </div>
-          <p className="truncate text-xs text-slate-500">
-            {conversation.contact?.phone ?? "No phone on file"}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-xs text-slate-500">
+              {conversation.contact?.phone ?? "No phone on file"}
+            </p>
+            {/* Which of your numbers this thread is on. Replies go back out from it,
+                never from another, so it is worth seeing before typing. */}
+            {conversation.whatsappIntegration && (
+              <NumberBadge number={{
+                id: conversation.whatsappIntegration.id,
+                displayName: conversation.whatsappIntegration.displayName,
+                phoneNumber: conversation.whatsappIntegration.phoneNumber,
+                phoneNumberId: null, whatsappBusinessId: null, isDefault: false, isActive: true,
+              }} />
+            )}
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
