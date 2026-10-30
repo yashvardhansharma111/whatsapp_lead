@@ -7,12 +7,15 @@ import { useRealtimeEvent } from "@/hooks/useRealtime";
 import { useNotificationPrefs, useNotificationsRealtime } from "@/hooks/useNotifications";
 import { EVENT_FOR_TYPE } from "@/lib/notifications/prefs";
 import { registerServiceWorker } from "@/lib/notifications/push";
+import { showBrowserNotice } from "@/lib/notifications/browser";
 import type { RtNotification } from "@/lib/realtime/events";
 
 /**
- * Turns `notification:new` into a toast (+ sound) while this tab is open, and keeps the
- * service worker registered so OS notifications arrive when it is not. The worker only
- * shows a notification when no tab is focused, so a user never gets both at once.
+ * Decides where a notification is shown.
+ *
+ * Looking at the tab, it is a toast, because an OS notification for something already on
+ * screen is just noise. Looking elsewhere, the browser draws it, so it is seen at all.
+ * Never both, and never nothing.
  */
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
@@ -32,7 +35,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const event = EVENT_FOR_TYPE[n.type];
     const channel = event && prefs ? prefs[event] : { inApp: true, sound: false };
     if (!channel.inApp) return;
-    if (document.visibilityState !== "visible") return; // the service worker covers hidden tabs
+
+    // Not looking at this tab: hand it to the browser. Push would only reach someone who
+    // closed the app, and it needs a server key, so this is what covers a background tab.
+    if (document.visibilityState !== "visible") {
+      void showBrowserNotice({
+        title: n.title,
+        body:  n.body,
+        href:  n.href,
+        tag:   (n.data?.dedupeKey as string | undefined) ?? n.id,
+      });
+      return;
+    }
 
     showToast({
       kind: "notification",

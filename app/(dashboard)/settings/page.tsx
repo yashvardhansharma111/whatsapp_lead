@@ -36,42 +36,48 @@ type TabDef = {
   permission?: string;
 };
 
+/**
+ * Grouped by whose settings they are, because that is what decides who may open one: the
+ * first group is yours alone and everyone has it, the rest belong to the workspace and
+ * are gated. No section is named after a tab inside it — "Account" used to head the
+ * billing group while also being the name of the profile tab, which read as a duplicate.
+ */
 const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
   {
-    section: null,
+    section: "Yours",
     tabs: [
-      { key: "account",  label: "Account",  icon: UserCircle },
-      { key: "general",  label: "General",  icon: Building2, permission: "settings.manage" },
-    ],
-  },
-  {
-    section: "Channel",
-    tabs: [
-      { key: "whatsapp",      label: "WhatsApp",      icon: MessageSquare, permission: "settings.manage" },
-      { key: "quick-replies", label: "Quick Replies",  icon: Zap,          permission: "campaigns.view" },
-      { key: "opt-out",       label: "Opt-out Manager",icon: BellOff,      permission: "settings.manage" },
+      { key: "account",       label: "My profile",    icon: UserCircle },
+      { key: "notifications", label: "Notifications", icon: Bell },
     ],
   },
   {
     section: "Workspace",
     tabs: [
-      { key: "pipeline",      label: "Lead Stages",   icon: KanbanSquare, permission: "settings.manage" },
-      { key: "departments",   label: "Departments",   icon: Users,        permission: "settings.manage" },
-      { key: "notifications", label: "Notifications", icon: Bell },
+      { key: "general",     label: "Business profile", icon: Building2,    permission: "settings.manage" },
+      { key: "pipeline",    label: "Lead stages",      icon: KanbanSquare, permission: "settings.manage" },
+      { key: "departments", label: "Departments",      icon: Users,        permission: "settings.manage" },
+    ],
+  },
+  {
+    section: "Channel",
+    tabs: [
+      { key: "whatsapp",      label: "WhatsApp numbers", icon: MessageSquare, permission: "settings.manage" },
+      { key: "quick-replies", label: "Quick replies",    icon: Zap,           permission: "campaigns.view" },
+      { key: "opt-out",       label: "Opt-out manager",  icon: BellOff,       permission: "settings.manage" },
+    ],
+  },
+  {
+    section: "Plan & records",
+    tabs: [
+      { key: "billing",  label: "Billing",      icon: CreditCard, permission: "billing.manage" },
+      { key: "activity", label: "Activity log", icon: ScrollText, permission: "reports.view" },
     ],
   },
   {
     section: "Developer",
     tabs: [
-      { key: "webhooks",      label: "Webhooks & API",  icon: Webhook,    permission: "settings.manage" },
-      { key: "message-rates", label: "Message Rates",   icon: DollarSign, permission: "settings.manage" },
-    ],
-  },
-  {
-    section: "Account",
-    tabs: [
-      { key: "billing",  label: "Billing",      icon: CreditCard, permission: "billing.manage" },
-      { key: "activity", label: "Activity Log",  icon: ScrollText, permission: "reports.view" },
+      { key: "webhooks",      label: "Webhooks & API", icon: Webhook,    permission: "settings.manage" },
+      { key: "message-rates", label: "Message rates",  icon: DollarSign, permission: "settings.manage" },
     ],
   },
 ];
@@ -120,7 +126,7 @@ function SettingsPageInner() {
             >
               {TAB_GROUPS.map((g) =>
                 g.tabs.filter(canSee).length > 0 ? (
-                  <optgroup key={g.section ?? "_top"} label={g.section ?? "General"}>
+                  <optgroup key={g.section ?? "_top"} label={g.section ?? "Settings"}>
                     {g.tabs.filter(canSee).map((t) => (
                       <option key={t.key} value={t.key}>{t.label}</option>
                     ))}
@@ -136,9 +142,9 @@ function SettingsPageInner() {
               const visible = g.tabs.filter(canSee);
               if (visible.length === 0) return null;
               return (
-                <div key={g.section ?? gi} className={cn(gi > 0 && "mt-5")}>
+                <div key={g.section ?? gi} className={cn(gi > 0 && "mt-6")}>
                   {g.section && (
-                    <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                       {g.section}
                     </p>
                   )}
@@ -151,16 +157,23 @@ function SettingsPageInner() {
                           onClick={() => setTab(t.key)}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+                            // `relative` anchors the active bar below — without it the bar
+                            // positions against the page and lands nowhere near the tab.
+                            "group relative flex w-full items-center gap-2.5 rounded-lg py-2 pl-4 pr-2.5 text-sm transition",
                             active
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                              ? "bg-emerald-50 font-semibold text-emerald-700"
+                              : "font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                           )}
                         >
-                          {active && <span className="absolute left-0 h-5 w-0.5 rounded-full bg-emerald-600" aria-hidden />}
+                          {active && (
+                            <span
+                              className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-emerald-600"
+                              aria-hidden
+                            />
+                          )}
                           <t.icon className={cn("h-4 w-4 shrink-0", active ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-500")} />
                           <span className="flex-1 truncate text-left">{t.label}</span>
-                          {active && <ChevronRight className="h-3.5 w-3.5 text-emerald-400" />}
+                          {active && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
                         </button>
                       );
                     })}

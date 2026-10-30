@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search,
@@ -9,6 +9,9 @@ import {
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { useMarkNotificationsRead, useNotificationList, useUnreadCount, type AppNotification } from "@/hooks/useNotifications";
+import {
+  askNotifyPermission, notifyPermission, notifyPermissionOnServer, subscribeNotifyPermission,
+} from "@/lib/notifications/browser";
 
 type AgentStatus = "Online" | "Busy" | "Away";
 
@@ -27,6 +30,41 @@ const TYPE_ICON: Record<string, typeof Bell> = {
   HANDOVER_REQUESTED: UserCheck,
   LEAD_QUALIFIED: Sparkles,
 };
+
+/**
+ * Offers to turn on OS notifications, and only while that is still a choice.
+ *
+ * Browsers only honour the request from a click and hold a grudge against a site that
+ * asks at the wrong moment, so it is never asked for on load — it waits here until
+ * someone opens the panel and says yes.
+ */
+function EnableNoticesRow() {
+  // `Notification` does not exist while this renders on the server, and answering the
+  // prompt is the only thing that changes the answer.
+  const permission = useSyncExternalStore(
+    subscribeNotifyPermission, notifyPermission, notifyPermissionOnServer,
+  );
+  if (permission !== "default") return null;
+
+  return (
+    <div className="flex items-start gap-2.5 border-b border-slate-100 bg-emerald-50/60 px-4 py-2.5">
+      <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-slate-800">Get notified when you&apos;re not here</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-slate-500">
+          New messages and calls will reach you in another tab.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => void askNotifyPermission()}
+        className="shrink-0 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-700"
+      >
+        Turn on
+      </button>
+    </div>
+  );
+}
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -70,24 +108,39 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/5">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <span className="text-sm font-semibold text-slate-900">Notifications</span>
+        <div className="absolute right-0 z-30 mt-2 flex max-h-[min(32rem,calc(100dvh-6rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-900/5">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <span className="text-sm font-semibold text-slate-900">
+              Notifications
+              {unread > 0 && (
+                <span className="ml-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-rose-600">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </span>
             {unread > 0 && (
               <button
                 onClick={() => markRead.mutate({ all: true })}
-                className="text-xs font-medium text-emerald-700 hover:underline"
+                className="shrink-0 text-xs font-medium text-emerald-700 hover:underline"
               >
                 Mark all read
               </button>
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <EnableNoticesRow />
+
+          <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto">
             {list.isLoading ? (
-              <p className="py-8 text-center text-sm text-slate-400">Loading…</p>
+              <p className="py-10 text-center text-sm text-slate-400">Loading…</p>
             ) : notifications.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">You&apos;re all caught up</p>
+              <div className="px-6 py-10 text-center">
+                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <Bell className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-sm font-medium text-slate-700">You&apos;re all caught up</p>
+                <p className="mt-1 text-xs text-slate-500">New messages, calls and handovers land here.</p>
+              </div>
             ) : (
               notifications.map((n) => {
                 const Icon = TYPE_ICON[n.type] ?? Bell;
@@ -101,14 +154,21 @@ function NotificationBell() {
                       </span>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className={cn("truncate text-sm", n.readAt ? "text-slate-700" : "font-medium text-slate-900")}>{n.title}</p>
-                      {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</p>}
-                      <p className="mt-1 text-[10px] text-slate-400">{timeAgo(new Date(n.createdAt))}</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className={cn("min-w-0 flex-1 truncate text-sm", n.readAt ? "text-slate-700" : "font-medium text-slate-900")}>
+                          {n.title}
+                        </p>
+                        <span className="shrink-0 text-[10px] tabular-nums text-slate-400">{timeAgo(new Date(n.createdAt))}</span>
+                      </div>
+                      {n.body && <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-500">{n.body}</p>}
                     </div>
-                    {!n.readAt && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Unread" />}
+                    {!n.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Unread" />}
                   </>
                 );
-                const className = cn("flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50", !n.readAt && "bg-emerald-50/40");
+                const className = cn(
+                  "flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50",
+                  !n.readAt && "bg-emerald-50/40",
+                );
                 return n.href ? (
                   <Link key={n.id} href={n.href} onClick={() => openOne(n)} className={className}>{inner}</Link>
                 ) : (
@@ -127,7 +187,7 @@ function NotificationBell() {
             )}
           </div>
 
-          <div className="border-t border-slate-100 px-4 py-2.5">
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5">
             <Link
               href="/settings?tab=notifications"
               onClick={() => setOpen(false)}
@@ -147,7 +207,7 @@ export function Topbar({ tenantName, reseller = false }: { tenantName?: string |
   // account has none and is refused by those APIs, so it gets a plain header.
   if (reseller) {
     return (
-      <header className="flex h-16 shrink-0 items-center justify-end gap-3 border-b border-slate-200/70 bg-white/80 px-4 pl-16 backdrop-blur-sm lg:px-6 lg:pl-6">
+      <header className="relative z-30 flex h-16 shrink-0 items-center justify-end gap-3 border-b border-slate-200/70 bg-white/80 px-4 pl-16 backdrop-blur-sm lg:px-6 lg:pl-6">
         <span className="truncate text-sm font-medium text-slate-600">{tenantName}</span>
       </header>
     );
@@ -199,7 +259,7 @@ function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
   }, [search]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 pl-16 backdrop-blur-sm lg:px-6 lg:pl-6">
+    <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 pl-16 backdrop-blur-sm lg:px-6 lg:pl-6">
       {/* Global search */}
       <div className="relative w-full max-w-sm" ref={searchRef}>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

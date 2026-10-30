@@ -10,6 +10,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useRealtimeEvent } from "@/hooks/useRealtime";
 import { callApi } from "@/hooks/useCalls";
 import { buildAnswer, formatCallDuration, type PeerConnectionLike } from "@/lib/calls/webrtc";
+import { showBrowserNotice } from "@/lib/notifications/browser";
 import type { RtCallIncoming, RtCallStatus } from "@/lib/realtime/events";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +105,18 @@ function CallManager() {
 
   useRealtimeEvent("call:incoming", (call) => {
     setRinging((prev) => (prev.some((c) => c.id === call.id) ? prev : [...prev, call]));
+
+    // A call is only answerable while it rings, so one arriving in a background tab has to
+    // leave the tab to be worth anything. It stays up until dismissed rather than fading.
+    if (document.visibilityState !== "visible") {
+      void showBrowserNotice({
+        title:  `Incoming call${call.displayPhoneNumber ? ` on ${call.displayPhoneNumber}` : ""}`,
+        body:   call.contact.name ?? call.contact.phone ?? "Unknown caller",
+        href:   call.conversationId ? `/inbox?conversation=${call.conversationId}` : "/inbox",
+        tag:    `call:${call.id}`,
+        sticky: true,
+      });
+    }
   });
 
   useRealtimeEvent("call:status", (status: RtCallStatus) => {
