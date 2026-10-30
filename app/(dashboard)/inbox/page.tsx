@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useConversation, useConversations } from "@/hooks/useMessages";
 import { useInboxRealtime } from "@/hooks/useInboxRealtime";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { ChatWindow } from "@/components/inbox/ChatWindow";
 import { ContactPanel } from "@/components/inbox/ContactPanel";
 import {
@@ -56,7 +57,9 @@ function InboxPageInner() {
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
   /** Empty means every connected number. Only offered when more than one exists. */
-  const [numberId, setNumberId] = useState("");
+  // Remembered per browser: picking a number and losing it on reload is worse than
+  // never having offered the choice.
+  const { numberId, setNumberId } = useNumberFilter("inbox");
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */
   const [panelOpen, setPanelOpen] = useState(false);
 

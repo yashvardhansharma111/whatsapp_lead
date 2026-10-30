@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useStickyState } from "@/hooks/useStickyState";
 
 export interface WhatsAppNumber {
   id: string;
@@ -60,4 +61,24 @@ export function useWhatsAppNumbers() {
     defaultNumber: active.find((n) => n.isDefault) ?? active[0] ?? null,
     byId: (id: string | null | undefined) => active.find((n) => n.id === id) ?? null,
   };
+}
+
+/**
+ * The number a view is filtered to, remembered across a refresh.
+ *
+ * Choosing a number and losing it on reload is worse than never offering the choice, so
+ * it is kept per browser. A remembered id that no longer resolves — the number was
+ * removed, or belongs to a workspace since switched away from — reads as "all numbers"
+ * rather than leaving the chooser blank and the list silently empty.
+ *
+ * @param scope separates one view's choice from another's, so the inbox and the template
+ *   list are not forced to agree.
+ */
+export function useNumberFilter(scope: string) {
+  const query = useWhatsAppNumbers();
+  const [stored, setNumberId] = useStickyState(`wa.number.${scope}`);
+
+  const known = !stored || query.isLoading || query.numbers.some((n) => n.id === stored);
+
+  return { ...query, numberId: known ? stored : "", setNumberId };
 }

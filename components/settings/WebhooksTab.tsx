@@ -1,5 +1,7 @@
 "use client";
 
+import { Skeleton } from "@/components/ui";
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, Copy, ExternalLink, Key, Plus, RefreshCw, Trash2, Webhook, XCircle } from "lucide-react";
@@ -455,7 +457,7 @@ export function WebhooksTab() {
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
         ) : !data?.endpoints?.length ? (

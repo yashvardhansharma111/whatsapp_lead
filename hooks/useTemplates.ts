@@ -45,6 +45,10 @@ export interface UploadedMedia {
   url: string | null;
 }
 
+/** The most the API will return at once, and a ceiling so a bad total cannot loop forever. */
+const TEMPLATE_PAGE_SIZE = 100;
+const MAX_TEMPLATE_PAGES = 20;
+
 const invalidate = (qc: ReturnType<typeof useQueryClient>) =>
   qc.invalidateQueries({ queryKey: ["templates"] });
 
@@ -58,16 +62,31 @@ async function unwrap<T>(res: Response, fallback: string): Promise<T> {
  * @param whatsappIntegrationId narrows to templates the given number can actually send.
  *   A template belongs to a WhatsApp account, and Meta refuses one sent from a number
  *   outside its own, so offering all of them in a mixed workspace invites a rejection.
+ * @param enabled false holds the request back until it is wanted — a picker inside a
+ *   modal has no reason to fetch before the modal opens.
  */
-export function useTemplates(whatsappIntegrationId?: string) {
+export function useTemplates(whatsappIntegrationId?: string, enabled = true) {
   return useQuery({
     queryKey: ["templates", whatsappIntegrationId ?? "all"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (whatsappIntegrationId) params.set("whatsappIntegrationId", whatsappIntegrationId);
-      const res = await fetch(`/api/templates?${params}`);
-      return unwrap<TemplateDTO[]>(res, "Couldn't load your templates");
+      // The list is filtered by status and category in the page itself, so a server page
+      // would hide templates that belong to the tab being looked at. They are fetched in
+      // full instead — in pages, because the API caps a request at 100, and nothing was
+      // asking for more than the default 20, which silently cut the list short.
+      const all: TemplateDTO[] = [];
+      for (let page = 1; page <= MAX_TEMPLATE_PAGES; page++) {
+        const params = new URLSearchParams({ page: String(page), limit: String(TEMPLATE_PAGE_SIZE) });
+        if (whatsappIntegrationId) params.set("whatsappIntegrationId", whatsappIntegrationId);
+
+        const res = await fetch(`/api/templates?${params}`);
+        const batch = await unwrap<TemplateDTO[]>(res, "Couldn't load your templates");
+        all.push(...batch);
+        if (batch.length < TEMPLATE_PAGE_SIZE) break;
+      }
+      return all;
     },
+    enabled,
+    staleTime: 30_000,
   });
 }
 

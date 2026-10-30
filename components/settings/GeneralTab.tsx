@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Building2, ImagePlus, Save } from "lucide-react";
-import { Button, Card, Field, inputClass } from "@/components/ui";
+import { Button, Card, Field, SkeletonCard, inputClass } from "@/components/ui";
 import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn } from "@/lib/utils";
 
@@ -126,7 +126,14 @@ export function GeneralTab() {
     },
   });
 
-  if (isLoading) return <div className="animate-pulse space-y-4"><div className="h-48 rounded-xl bg-slate-100" /><div className="h-32 rounded-xl bg-slate-100" /></div>;
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <SkeletonCard lines={4} />
+        <SkeletonCard lines={2} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

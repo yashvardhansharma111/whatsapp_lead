@@ -22,8 +22,9 @@ import {
   LeadPipelineChart,
   LeadScoreDonut,
   MessagesOverTimeChart,
-  type AnalyticsData,
-} from "@/components/analytics/Charts";
+} from "@/components/analytics/LazyCharts";
+// Type-only, so it is erased at build and pulls nothing into the bundle.
+import type { AnalyticsData } from "@/components/analytics/Charts";
 import { cn } from "@/lib/utils";
 import { downloadCsv } from "@/lib/csv";
 

@@ -38,6 +38,8 @@ import { useToast } from "@/components/ui/toast";
 import { ExportButton } from "@/components/ExportButton";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import { NumberPicker } from "@/components/NumberPicker";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
+import { useTemplates } from "@/hooks/useTemplates";
 import {
   ExcludedSummary,
   RecipientReview,
@@ -54,19 +56,6 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface TemplateRow {
-  id: string;
-  name: string;
-  category: string;
-  language: string;
-  status: string;
-  body: string;
-  footer?: string | null;
-  variables: string[];
-  headerType?: "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | null;
-  headerContent?: string | null;
-  buttons?: unknown;
-}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -137,22 +126,6 @@ function useCampaigns(status: "ALL" | CampaignStatus) {
       return Array.isArray(json) ? json : (json.data ?? []);
     },
     retry: false,
-  });
-}
-
-function useTemplates(enabled: boolean, whatsappIntegrationId?: string) {
-  return useQuery<TemplateRow[]>({
-    queryKey: ["templates", whatsappIntegrationId ?? "all"],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (whatsappIntegrationId) params.set("whatsappIntegrationId", whatsappIntegrationId);
-      const res = await fetch(`/api/templates?${params}`);
-      if (!res.ok) return [];
-      const json = await res.json();
-      return Array.isArray(json) ? json : (json.data ?? []);
-    },
-    enabled,
-    staleTime: 60_000,
   });
 }
 
@@ -580,7 +553,7 @@ function CreateCampaignModal({
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
   // Which connected number sends it. Empty uses the workspace's default.
-  const [numberId, setNumberId] = useState("");
+  const { numberId, setNumberId } = useNumberFilter("campaigns");
   const [bodyVarMapping, setBodyVarMapping] = useState<string[]>([]);
   // Dynamic URL buttons: a contact field ("name" / "phone" / "company") or literal text per link.
   const [urlSource, setUrlSource] = useState<string[]>([]);
@@ -594,7 +567,7 @@ function CreateCampaignModal({
   const [headerMediaUrl, setHeaderMediaUrl] = useState("");
   const [headerMediaId, setHeaderMediaId] = useState("");
 
-  const { data: templatesData, isLoading: tplLoading } = useTemplates(open, numberId || undefined);
+  const { data: templatesData, isLoading: tplLoading } = useTemplates(numberId || undefined, open);
   const { data: contactsData, isLoading: contactsLoading } = useCampaignContacts(
     open && audienceMode === "selected",
     contactSearch,

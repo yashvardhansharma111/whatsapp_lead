@@ -129,15 +129,113 @@ export function Card({ children, className }: { children: ReactNode; className?:
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
+/**
+ * A placeholder for something still loading.
+ *
+ * The shapes below are worth preferring over a bare block wherever the real content has a
+ * known shape: a placeholder the same size as what replaces it keeps the page from
+ * jumping, and tells the reader what is coming. Every one is decorative, so it is hidden
+ * from screen readers — the live region announcing "loading" belongs to the container.
+ */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-slate-100", className)} />;
+  return <div aria-hidden className={cn("wa-shimmer rounded-md", className)} />;
+}
+
+/** Lines of prose. The last runs short, the way a paragraph actually ends. */
+export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
+  return (
+    <div className={cn("space-y-2", className)}>
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton key={i} className={cn("h-3.5", i === lines - 1 ? "w-2/3" : "w-full")} />
+      ))}
+    </div>
+  );
 }
 
 export function SkeletonRows({ rows = 5, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-3", className)} role="status" aria-label="Loading">
       {Array.from({ length: rows }).map((_, i) => (
         <Skeleton key={i} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+/** A list whose rows lead with an avatar — conversations, contacts, team members. */
+export function SkeletonList({ rows = 6, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cn("divide-y divide-slate-100", className)} role="status" aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3.5 w-1/3" />
+            <Skeleton className="h-3 w-3/5" />
+          </div>
+          <Skeleton className="h-3 w-10 shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A table body, so the columns do not shift when the real rows arrive. */
+export function SkeletonTable({
+  rows = 6,
+  columns = 4,
+  className,
+}: { rows?: number; columns?: number; className?: string }) {
+  return (
+    <div className={cn("divide-y divide-slate-100", className)} role="status" aria-label="Loading">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex items-center gap-4 px-4 py-3.5 sm:px-5">
+          {Array.from({ length: columns }).map((_, c) => (
+            <Skeleton
+              key={c}
+              className={cn("h-3.5", c === 0 ? "w-1/4" : "flex-1", c === columns - 1 && "max-w-20")}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A card with the usual head: badge, title, a line of description, then body. */
+export function SkeletonCard({ lines = 3, className }: { lines?: number; className?: string }) {
+  return (
+    <div
+      className={cn("rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 sm:p-5", className)}
+      role="status"
+      aria-label="Loading"
+    >
+      <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+        <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-3/4" />
+        </div>
+      </div>
+      <SkeletonText lines={lines} className="mt-4" />
+    </div>
+  );
+}
+
+/** The figure tiles that head a dashboard or report. */
+export function SkeletonStats({ count = 4, className }: { count?: number; className?: string }) {
+  return (
+    <div
+      className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", className)}
+      role="status"
+      aria-label="Loading"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="mt-3 h-7 w-24" />
+          <Skeleton className="mt-2 h-3 w-16" />
+        </div>
       ))}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, GripVertical, KanbanSquare, Pencil, Plus, RotateCcw, Save, Star, Trash2 } from "lucide-react";
-import { Button, Card, Field, Modal, inputClass, selectClass } from "@/components/ui";
+import { Button, Card, Field, Modal, SkeletonCard, inputClass, selectClass } from "@/components/ui";
 import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { Toggle } from "@/components/ui/Toggle";
 import {
@@ -53,8 +53,9 @@ export function LeadStagesTab() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-72 rounded-xl bg-slate-100" />
+      <div className="space-y-5">
+        <SkeletonCard lines={1} />
+        <SkeletonCard lines={6} />
       </div>
     );
   }

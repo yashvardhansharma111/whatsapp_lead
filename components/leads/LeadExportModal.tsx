@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Download, Filter, Loader2, RotateCcw } from "lucide-react";
-import { Button, Field, Modal, inputClass } from "@/components/ui";
+import { Button, Field, Modal, SkeletonText, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { downloadLeadsCsv, useLeadFilterOptions } from "@/hooks/useLeadQualification";
 import { cn } from "@/lib/utils";
@@ -165,7 +165,7 @@ export function LeadExportModal({ open, onClose }: { open: boolean; onClose: () 
       className="sm:max-w-2xl"
     >
       {isLoading || !options ? (
-        <div className="h-64 animate-pulse rounded-lg bg-slate-100" />
+        <SkeletonText lines={8} />
       ) : (
         <div className="space-y-5">
           {/* ── Filters ── */}

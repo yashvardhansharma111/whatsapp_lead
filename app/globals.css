@@ -157,6 +157,31 @@ input[type="range"] {
   background-size: 22px 22px;
 }
 
+/* Loading placeholders: a sheen crossing the block, rather than the whole thing
+   blinking. It reads as "this is filling in" instead of "this is broken", and sits
+   quieter beside real content than a pulse does. */
+.wa-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-slate-100, #f1f5f9);
+}
+.wa-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.65) 55%,
+    transparent
+  );
+  animation: wa-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes wa-shimmer {
+  100% { transform: translateX(100%); }
+}
+
 @keyframes wa-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -227,6 +252,12 @@ input[type="range"] {
 @media (prefers-reduced-motion: reduce) {
   .wa-marquee-desktop {
     animation: none;
+  }
+  /* The placeholder still has to read as a placeholder, so the block stays and only
+     the travelling sheen stops. */
+  .wa-shimmer::after {
+    animation: none;
+    opacity: 0;
   }
 }
 

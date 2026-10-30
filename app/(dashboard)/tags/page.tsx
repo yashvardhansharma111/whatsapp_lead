@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Modal, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Modal, PageHeader, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 
 const PRESET_COLORS = [
@@ -113,7 +113,7 @@ export default function TagsPage() {
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-100" />
+            <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
       ) : error ? (

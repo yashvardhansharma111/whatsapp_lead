@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Info, Loader2, RotateCcw, Save, Sparkles, Target } from "lucide-react";
-import { Button, inputClass } from "@/components/ui";
+import { Button, SkeletonText, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
   KeywordList, NumberRow, SettingsCard, ToggleRow,
@@ -67,7 +67,7 @@ export function LeadQualificationCard() {
     return (
       <SettingsCard icon={Target} title="Scoring leads with AI"
         description="Let the model read a conversation and judge whether it is worth following up.">
-        <div className="h-32 animate-pulse rounded-lg bg-slate-100" />
+        <SkeletonText lines={4} />
       </SettingsCard>
     );
   }

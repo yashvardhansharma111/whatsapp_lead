@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Info, Loader2, Save, UserCheck, Users } from "lucide-react";
-import { Button, inputClass } from "@/components/ui";
+import { Button, SkeletonText, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
   KeywordList, NumberRow, SettingsCard, ToggleRow,
@@ -51,7 +51,7 @@ export function HandoverSettingsCard() {
     return (
       <SettingsCard icon={UserCheck} title="Handing over to a person"
         description="When the AI should step aside, and who picks the conversation up.">
-        <div className="h-32 animate-pulse rounded-lg bg-slate-100" />
+        <SkeletonText lines={4} />
       </SettingsCard>
     );
   }

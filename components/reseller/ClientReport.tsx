@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Card, SkeletonRows } from "@/components/ui";
-import { MessagesOverTimeChart } from "@/components/analytics/Charts";
+import { MessagesOverTimeChart } from "@/components/analytics/LazyCharts";
 import { api, money, STATUS_TONE, Tile } from "@/components/reseller/shared";
 import { cn, formatDate } from "@/lib/utils";
 

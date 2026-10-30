@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, MessageSquare, ShieldCheck, UserRoundPlus } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, Skeleton, SkeletonCard } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { ChipInput, ResetButton, SettingsCard, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 
@@ -40,9 +40,9 @@ export function OptOutTab() {
   if (isLoading || !data) {
     return (
       <div className="space-y-5">
-        <div className="h-28 animate-pulse rounded-xl bg-slate-100" />
-        <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
-        <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+        <Skeleton className="h-28 rounded-xl" />
+        <SkeletonCard lines={2} />
+        <SkeletonCard lines={2} />
       </div>
     );
   }

@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { TemplateBuilder } from "@/components/templates/TemplateBuilder";
 import { NumberPicker } from "@/components/NumberPicker";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { cn, formatDate } from "@/lib/utils";
 import {
   useTemplates,
@@ -70,7 +71,7 @@ export default function TemplatesPage() {
   // Which number's templates to show. A template belongs to a WhatsApp account, so in a
   // workspace with numbers on different accounts the full list is not sendable from any
   // one of them.
-  const [numberId, setNumberId] = useState("");
+  const { numberId, setNumberId } = useNumberFilter("templates");
   const { data, isLoading, isError } = useTemplates(numberId || undefined);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
   const [rejection, setRejection] = useState<TemplateDTO | null>(null);

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, Info, Receipt } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Card, SkeletonCard, SkeletonTable } from "@/components/ui";
 import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import {
   RATE_HINT, RATE_LABEL, SOURCE_LABEL, SOURCE_TONE, paise, type RateSource,
@@ -35,8 +35,9 @@ export function MessageRatesTab() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-48 rounded-xl bg-slate-100" />
+      <div className="space-y-5">
+        <SkeletonCard lines={1} />
+        <SkeletonTable rows={6} columns={4} className="rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5" />
       </div>
     );
   }

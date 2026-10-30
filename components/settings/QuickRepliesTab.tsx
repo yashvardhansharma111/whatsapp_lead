@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, Plus, Trash2, Zap } from "lucide-react";
-import { Button, Card, Field, Modal, inputClass } from "@/components/ui";
+import { Button, Card, Field, Modal, SkeletonCard, SkeletonTable, inputClass } from "@/components/ui";
 import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import {
   useQuickReplies,
@@ -71,8 +71,9 @@ export function QuickRepliesTab() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-72 rounded-xl bg-slate-100" />
+      <div className="space-y-5">
+        <SkeletonCard lines={1} />
+        <SkeletonTable rows={5} columns={3} className="rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5" />
       </div>
     );
   }
