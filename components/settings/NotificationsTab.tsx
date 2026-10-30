@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellOff, BellRing, CheckCircle2, Loader2, Save } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, Loader2, Save, SlidersHorizontal } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
+import { cn } from "@/lib/utils";
 import { useNotificationPrefs, useSaveNotificationPrefs } from "@/hooks/useNotifications";
 import {
   DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_EVENTS, type ChannelPrefs, type NotificationEvent, type NotificationPrefs,
@@ -65,15 +67,23 @@ export function NotificationsTab() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      <SettingsIntro icon={Bell} title="Decide what reaches you, and where" storageKey="notifications">
+        While you are looking at the app a notification appears as a toast and in the bell. While you are
+        not, your browser shows it instead — so nothing waits unseen in a background tab.
+      </SettingsIntro>
+
+      <Card className="flex flex-col gap-3 p-4 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-            {push === "on" ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+          <span className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4",
+            push === "on" ? "bg-emerald-50 text-emerald-600 ring-emerald-100" : "bg-slate-100 text-slate-500 ring-slate-200",
+          )}>
+            {push === "on" ? <BellRing className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
           </span>
           <div>
-            <p className="text-sm font-medium text-slate-900">Desktop notifications on this device</p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="text-sm font-semibold text-slate-900">Desktop notifications on this device</p>
+            <p className="mt-0.5 text-xs leading-snug text-slate-500">
               {push === "unsupported"
                 ? "This browser can't show system notifications."
                 : push === "blocked"
@@ -95,13 +105,18 @@ export function NotificationsTab() {
         </Button>
       </Card>
 
-      <Card className="overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="font-semibold text-slate-900">Notifications</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Choose how you want to hear about each event. In-app shows a toast and the bell; Desktop is the
-            system notification when you&apos;re away; Sound plays with the toast.
-          </p>
+      <Card className="overflow-hidden transition-shadow hover:shadow-md">
+        <div className="flex items-start gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-4 ring-blue-100">
+            <SlidersHorizontal className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-slate-900">Per-event preferences</h2>
+            <p className="mt-0.5 text-sm leading-snug text-slate-500">
+              In-app is the toast and the bell, Desktop is your browser&apos;s own notification, and Sound
+              plays alongside the toast.
+            </p>
+          </div>
         </div>
 
         <div className="hidden items-center gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex">

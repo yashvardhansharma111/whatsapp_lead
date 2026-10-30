@@ -1,81 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, MessageSquare, RotateCcw } from "lucide-react";
-import { Button, Card } from "@/components/ui";
+import { Ban, MessageSquare, ShieldCheck, UserRoundPlus } from "lucide-react";
+import { Button } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { ChipInput, ResetButton, SettingsCard, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 
 const DEFAULT_OPT_OUT = ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT"];
 const DEFAULT_OPT_IN  = ["START", "SUBSCRIBE", "YES"];
+const DEFAULT_OUT_REPLY =
+  "You have been unsubscribed and will no longer receive marketing messages from us. Reply START to re-subscribe.";
+const DEFAULT_IN_REPLY =
+  "You have been re-subscribed and will receive messages from us again. Reply STOP to unsubscribe.";
+
+const REPLY_CLASS =
+  "mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 transition " +
+  "focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30";
 
 interface OptOutConfig {
   optOutKeywords: string[];
   optInKeywords:  string[];
   optOutReply:    string;
   optInReply:     string;
-}
-
-function KeywordList({
-  keywords,
-  onChange,
-  placeholder,
-}: {
-  keywords: string[];
-  onChange: (next: string[]) => void;
-  placeholder: string;
-}) {
-  const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function add() {
-    const val = input.trim().toUpperCase().replace(/[^A-Z]/g, "");
-    if (!val || keywords.includes(val)) { setInput(""); return; }
-    onChange([...keywords, val]);
-    setInput("");
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {keywords.map((kw) => (
-          <span
-            key={kw}
-            className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-mono font-medium text-slate-700"
-          >
-            {kw}
-            <button
-              type="button"
-              onClick={() => onChange(keywords.filter((k) => k !== kw))}
-              className="ml-0.5 text-slate-400 hover:text-rose-500"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value.toUpperCase())}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-          placeholder={placeholder}
-          className="h-8 w-40 rounded-lg border border-slate-200 px-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        />
-        <Button type="button" variant="secondary" size="sm" onClick={add}>
-          <Plus className="h-3.5 w-3.5" />
-          Add
-        </Button>
-      </div>
-    </div>
-  );
+  updatedAt?:     string;
 }
 
 export function OptOutTab() {
-  const queryClient = useQueryClient();
-  const { showToast } = useToast();
-
   const { data, isLoading } = useQuery<OptOutConfig>({
     queryKey: ["settings-opt-out"],
     queryFn: async () => {
@@ -86,22 +37,30 @@ export function OptOutTab() {
     },
   });
 
-  const [optOutKeywords, setOptOutKeywords] = useState<string[]>(DEFAULT_OPT_OUT);
-  const [optInKeywords, setOptInKeywords]   = useState<string[]>(DEFAULT_OPT_IN);
-  const [optOutReply, setOptOutReply]       = useState(
-    "You have been unsubscribed and will no longer receive marketing messages from us. Reply START to re-subscribe.",
-  );
-  const [optInReply, setOptInReply] = useState(
-    "You have been re-subscribed and will receive messages from us again. Reply STOP to unsubscribe.",
-  );
+  if (isLoading || !data) {
+    return (
+      <div className="space-y-5">
+        <div className="h-28 animate-pulse rounded-xl bg-slate-100" />
+        <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+        <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (!data) return;
-    setOptOutKeywords(data.optOutKeywords);
-    setOptInKeywords(data.optInKeywords);
-    setOptOutReply(data.optOutReply);
-    setOptInReply(data.optInReply);
-  }, [data]);
+  // The form owns the edits, so the saved values are its starting point rather than
+  // something copied into state after the fact. Remounting on a fresh load is what
+  // discards a stale draft, and it is why there is no effect syncing the two.
+  return <OptOutForm key={data.updatedAt ?? "loaded"} saved={data} />;
+}
+
+function OptOutForm({ saved }: { saved: OptOutConfig }) {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  const [optOutKeywords, setOptOutKeywords] = useState<string[]>(saved.optOutKeywords ?? DEFAULT_OPT_OUT);
+  const [optInKeywords, setOptInKeywords]   = useState<string[]>(saved.optInKeywords ?? DEFAULT_OPT_IN);
+  const [optOutReply, setOptOutReply]       = useState(saved.optOutReply || DEFAULT_OUT_REPLY);
+  const [optInReply, setOptInReply]         = useState(saved.optInReply || DEFAULT_IN_REPLY);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -120,86 +79,87 @@ export function OptOutTab() {
     onError: (err: Error) => showToast(err.message, "error"),
   });
 
-  if (isLoading) {
-    return <div className="h-40 animate-pulse rounded-xl bg-slate-100" />;
-  }
-
   return (
-    <div className="space-y-6">
-      {/* How it works */}
-      <Card className="border-blue-100 bg-blue-50 p-4">
-        <p className="flex items-start gap-2 text-sm text-blue-800">
-          <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-          <span>
-            When a contact replies with an <strong>opt-out keyword</strong>, they are unsubscribed and won't receive
-            marketing/utility campaigns. If they later reply with an <strong>opt-in keyword</strong>, they're
-            re-subscribed. The default keywords are always active — add custom ones below.
-          </span>
-        </p>
-      </Card>
+    <div className="space-y-5">
+      <SettingsIntro icon={ShieldCheck} title="Give control to your contacts" storageKey="opt-out">
+        When a contact replies with an <strong className="font-semibold">opt-out keyword</strong> they are
+        unsubscribed at once and stop receiving marketing and utility campaigns. Reply with an{" "}
+        <strong className="font-semibold">opt-in keyword</strong> and they are back. The defaults below are
+        always active — anything you add joins them.
+      </SettingsIntro>
 
-      {/* Opt-out keywords */}
-      <Card className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">Opt-out keywords</h3>
-            <p className="text-xs text-slate-500">Contact sends one of these → unsubscribed instantly</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOptOutKeywords(DEFAULT_OPT_OUT)}
-            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700"
-          >
-            <RotateCcw className="h-3 w-3" /> Reset
-          </button>
-        </div>
-        <KeywordList keywords={optOutKeywords} onChange={setOptOutKeywords} placeholder="e.g. NAHI" />
-      </Card>
+      <SettingsCard
+        icon={Ban}
+        tone="rose"
+        title="Opt-out keywords"
+        description="A contact sending one of these is unsubscribed instantly."
+        action={<ResetButton onClick={() => setOptOutKeywords(DEFAULT_OPT_OUT)} />}
+      >
+        <ChipInput
+          inputId="opt-out-keyword"
+          values={optOutKeywords}
+          onChange={setOptOutKeywords}
+          placeholder="e.g. NAHI"
+          emptyHint="No keywords — nobody can unsubscribe by replying."
+        />
+      </SettingsCard>
 
-      {/* Opt-in keywords */}
-      <Card className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">Opt-in keywords</h3>
-            <p className="text-xs text-slate-500">Contact sends one of these while opted-out → re-subscribed</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOptInKeywords(DEFAULT_OPT_IN)}
-            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700"
-          >
-            <RotateCcw className="h-3 w-3" /> Reset
-          </button>
-        </div>
-        <KeywordList keywords={optInKeywords} onChange={setOptInKeywords} placeholder="e.g. HAAN" />
-      </Card>
+      <SettingsCard
+        icon={UserRoundPlus}
+        tone="emerald"
+        title="Opt-in keywords"
+        description="Sent by someone already opted out, these re-subscribe them."
+        action={<ResetButton onClick={() => setOptInKeywords(DEFAULT_OPT_IN)} />}
+      >
+        <ChipInput
+          inputId="opt-in-keyword"
+          values={optInKeywords}
+          onChange={setOptInKeywords}
+          placeholder="e.g. HAAN"
+          emptyHint="No keywords — a contact who opts out cannot come back on their own."
+        />
+      </SettingsCard>
 
-      {/* Auto-reply messages */}
-      <Card className="p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-900">Auto-reply messages</h3>
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-600">Opt-out confirmation</label>
+      <SettingsCard
+        icon={MessageSquare}
+        tone="blue"
+        title="Auto-reply messages"
+        description="The confirmation sent the moment someone opts out or back in."
+        action={
+          <ResetButton
+            onClick={() => { setOptOutReply(DEFAULT_OUT_REPLY); setOptInReply(DEFAULT_IN_REPLY); }}
+          />
+        }
+      >
+        <div>
+          <label htmlFor="opt-out-reply" className="block text-sm font-medium text-slate-800">
+            Opt-out confirmation
+          </label>
           <textarea
+            id="opt-out-reply"
             value={optOutReply}
             onChange={(e) => setOptOutReply(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className={REPLY_CLASS}
           />
-          <p className="text-[11px] text-slate-400">Sent immediately after the contact opts out.</p>
+          <p className="mt-1 text-xs text-slate-500">Sent immediately after the contact opts out.</p>
         </div>
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-600">Opt-in confirmation</label>
+        <div>
+          <label htmlFor="opt-in-reply" className="block text-sm font-medium text-slate-800">
+            Opt-in confirmation
+          </label>
           <textarea
+            id="opt-in-reply"
             value={optInReply}
             onChange={(e) => setOptInReply(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className={REPLY_CLASS}
           />
-          <p className="text-[11px] text-slate-400">Sent immediately after the contact re-subscribes.</p>
+          <p className="mt-1 text-xs text-slate-500">Sent immediately after the contact re-subscribes.</p>
         </div>
-      </Card>
+      </SettingsCard>
 
-      <div className="flex justify-end">
+      <div className="sticky bottom-0 -mx-1 flex justify-end border-t border-slate-200/70 bg-[#f6f7f9]/85 px-1 py-3 backdrop-blur-sm">
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
           {save.isPending ? "Saving…" : "Save changes"}
         </Button>
