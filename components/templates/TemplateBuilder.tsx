@@ -8,6 +8,8 @@ import { ButtonsEditor } from "@/components/templates/ButtonsEditor";
 import { CarouselEditor } from "@/components/templates/CarouselEditor";
 import { MediaPicker } from "@/components/templates/MediaPicker";
 import { TemplatePreview } from "@/components/templates/TemplatePreview";
+import { NumberPicker } from "@/components/NumberPicker";
+import { useWhatsAppNumbers } from "@/hooks/useWhatsAppNumbers";
 import {
   HEADER_LABELS, LIMITS, MEDIA_HEADERS,
   bodyProblem, detectFormat, draftProblems, emptyCard, headerProblem, paramCount, paramLabel,
@@ -84,7 +86,7 @@ function initialDraft(editing: TemplateDTO | null): TemplateDraft {
   };
 }
 
-function toInput(draft: TemplateDraft): TemplateInput {
+function toInput(draft: TemplateDraft, wabaId: string | null): TemplateInput {
   const carousel = draft.templateType === "CAROUSEL";
   const auth = draft.category === "AUTHENTICATION";
   const bodyVars = paramCount(draft.body, draft.parameterFormat);
@@ -111,23 +113,33 @@ function toInput(draft: TemplateDraft): TemplateInput {
     addSecurityRecommendation: auth ? draft.addSecurityRecommendation : false,
     codeExpirationMinutes:     auth ? draft.codeExpirationMinutes : null,
     messageSendTtlSeconds:     draft.messageSendTtlSeconds,
+    wabaId,
   };
 }
 
 export function TemplateBuilder({
   open,
   editing,
+  numberId,
   onClose,
   showToast,
 }: {
   open: boolean;
   editing: TemplateDTO | null;
+  /** The number chosen on the page, so a new template starts out in that account. */
+  numberId?: string;
   onClose: () => void;
   showToast: (msg: string, kind: "success" | "error" | "info") => void;
 }) {
   const create = useCreateTemplate();
   const update = useUpdateTemplate();
   const [draft, setDraft] = useState<TemplateDraft>(() => initialDraft(editing));
+
+  // Which WhatsApp account the template will be created in. Meta scopes templates to one
+  // account, so this decides where it is submitted and which numbers may send it.
+  const { hasChoice, defaultNumber, byId } = useWhatsAppNumbers();
+  const [account, setAccount] = useState(numberId || "");
+  const chosen = byId(account) ?? byId(numberId) ?? defaultNumber;
 
   const set = <K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -173,9 +185,11 @@ export function TemplateBuilder({
 
   function save() {
     if (problems.length) { showToast(problems[0], "error"); return; }
-    const payload = toInput(draft);
+    // An existing template keeps the account it was approved in; changing it would point
+    // the row at an account Meta never put it in.
+    const payload = toInput(draft, editing ? null : chosen?.whatsappBusinessId ?? null);
     const request = editing
-      ? update.mutateAsync({ id: editing.id, ...payload })
+      ? update.mutateAsync({ id: editing.id, ...payload, wabaId: undefined })
       : create.mutateAsync(payload);
     request
       .then(() => {
@@ -210,6 +224,17 @@ export function TemplateBuilder({
               />
               <p className="mt-1 text-xs text-slate-500">Lowercase letters, numbers and underscores.</p>
             </Field>
+
+            {/* Renders nothing when the workspace has one connected number. */}
+            {!editing && hasChoice && (
+              <NumberPicker
+                id="tpl-number"
+                label="WhatsApp account"
+                value={account || chosen?.id || ""}
+                onChange={setAccount}
+                hint="The template is created in this number's WhatsApp account, and only numbers in that account can send it."
+              />
+            )}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Category" htmlFor="tpl-category" required>

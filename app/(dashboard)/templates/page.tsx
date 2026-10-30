@@ -378,6 +378,7 @@ export default function TemplatesPage() {
         key={modal.editing?.id ?? "new"}
         open={modal.open}
         editing={modal.editing}
+        numberId={numberId}
         onClose={() => setModal({ open: false, editing: null })}
         showToast={showToast}
       />
