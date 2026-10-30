@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Copy, RefreshCw, Webhook, Key, ChevronDown, ChevronUp, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, Copy, ExternalLink, Key, Plus, RefreshCw, Trash2, Webhook, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 
 const WEBHOOK_EVENTS = [
   { key: "campaign.completed", label: "Campaign Completed" },
@@ -406,13 +407,10 @@ export function WebhooksTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-semibold text-slate-800">Webhooks &amp; API</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Integrate with your CRM or automation tools. Use outgoing webhooks to receive real-time
-          events, or the incoming API to send messages and manage contacts programmatically.
-        </p>
-      </div>
+      <SettingsIntro icon={Webhook} title="Wire this up to your own systems" storageKey="webhooks">
+        Outgoing webhooks push events to your CRM the moment they happen. The incoming API goes the
+        other way, letting your own code send messages and manage contacts here.
+      </SettingsIntro>
 
       <ApiKeySection />
 

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ScrollText, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ScrollText } from "lucide-react";
 import { Button, Card, EmptyState, Skeleton } from "@/components/ui";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { timeAgo } from "@/lib/utils";
 
 type AuditLog = {
@@ -59,12 +60,10 @@ export function ActivityTab() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold text-slate-900">Activity log</h2>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Recent actions performed in this workspace.
-        </p>
-      </div>
+      <SettingsIntro icon={ScrollText} title="Who did what, and when" storageKey="activity">
+        Every change anyone on the team made in this workspace, newest first — useful when a setting
+        is not what you remember leaving it as.
+      </SettingsIntro>
 
       <Card className="overflow-hidden">
         {isLoading ? (

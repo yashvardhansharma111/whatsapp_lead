@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, RefreshCw, Wifi } from "lucide-react";
+import { AlertTriangle, CheckCircle2, MessageSquare, RefreshCw, Wifi } from "lucide-react";
 import { WhatsAppConnectCard } from "@/components/settings/WhatsAppConnectCard";
 import { Button, Card } from "@/components/ui";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn } from "@/lib/utils";
 
 interface HealthData {
@@ -111,6 +112,11 @@ function Stat({ label, value }: { label: string; value: string }) {
 export function WhatsAppTab() {
   return (
     <div className="space-y-5">
+      <SettingsIntro icon={MessageSquare} title="The numbers you send and receive on" storageKey="whatsapp">
+        Each connected number is its own WhatsApp account, with its own templates and its own
+        conversations. The default is the one used wherever nothing else is chosen.
+      </SettingsIntro>
+
       <WhatsAppConnectCard />
       <HealthPanel />
     </div>

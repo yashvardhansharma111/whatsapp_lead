@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Save, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Building2, ImagePlus, Save } from "lucide-react";
 import { Button, Card, Field, inputClass } from "@/components/ui";
+import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn } from "@/lib/utils";
 
 const TIMEZONES = [
@@ -129,9 +130,17 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-5">
-      <Card className="p-5">
-        <h2 className="font-semibold text-slate-900">Workspace</h2>
-        <p className="mt-0.5 text-sm text-slate-500">How your workspace appears to your team and customers.</p>
+      <SettingsIntro icon={Building2} title="How your business presents itself" storageKey="general">
+        The name, logo and contact details your team sees in the app and your customers see on
+        anything you send. Changing them here changes them everywhere at once.
+      </SettingsIntro>
+
+      <Card className="p-5 transition-shadow hover:shadow-md">
+        <CardHead
+          icon={Building2}
+          title="Workspace"
+          description="How your workspace appears to your team and your customers."
+        />
 
         <div className="mt-5 flex flex-col gap-5 sm:flex-row">
           <div className="shrink-0">

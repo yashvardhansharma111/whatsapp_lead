@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, Plus, Trash2, Zap } from "lucide-react";
 import { Button, Card, Field, Modal, inputClass } from "@/components/ui";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import {
   useQuickReplies,
   useCreateQuickReply,
@@ -77,7 +78,13 @@ export function QuickRepliesTab() {
   }
 
   return (
-    <Card>
+    <div className="space-y-5">
+      <SettingsIntro icon={Zap} title="Answers your team doesn't have to retype" storageKey="quick-replies">
+        A quick reply is a saved message with a shortcode. Typing that shortcode in the inbox drops the
+        whole message into the composer, so common answers stay consistent across everyone who sends them.
+      </SettingsIntro>
+
+      <Card>
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-slate-900">Quick Replies</h2>
@@ -182,5 +189,6 @@ export function QuickRepliesTab() {
         </Modal>
       )}
     </Card>
+    </div>
   );
 }

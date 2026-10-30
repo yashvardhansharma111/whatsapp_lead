@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Info, Receipt } from "lucide-react";
+import { DollarSign, Info, Receipt } from "lucide-react";
 import { Card } from "@/components/ui";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import {
   RATE_HINT, RATE_LABEL, SOURCE_LABEL, SOURCE_TONE, paise, type RateSource,
 } from "@/lib/billing/rates";
@@ -44,6 +45,11 @@ export function MessageRatesTab() {
 
   return (
     <div className="space-y-5">
+      <SettingsIntro icon={DollarSign} title="What a message costs you" storageKey="message-rates">
+        Meta charges per conversation, and the rate depends on the category and the country it lands
+        in. These are the numbers used to price a campaign before you send it.
+      </SettingsIntro>
+
       <Card className="overflow-hidden">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="font-semibold text-slate-900">Message prices</h2>

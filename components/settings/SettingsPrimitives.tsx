@@ -58,6 +58,40 @@ export function SettingsCard({
   );
 }
 
+/**
+ * A card's heading, for the panels whose bodies are too particular to hand to
+ * `SettingsCard`. Same badge and rhythm, dropped in place of a bare `<h2>`.
+ */
+export function CardHead({
+  icon: Icon,
+  title,
+  description,
+  tone = "emerald",
+  action,
+  bordered = true,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description?: string;
+  tone?: CardTone;
+  action?: ReactNode;
+  /** False when the card's own body already draws the separator. */
+  bordered?: boolean;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-start gap-3", bordered && "border-b border-slate-100 pb-4")}>
+      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-4", TONE[tone])}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-semibold text-slate-900">{title}</h2>
+        {description && <p className="mt-0.5 text-sm leading-snug text-slate-500">{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 /** Puts a card's values back to the ones shipped with the product. */
 export function ResetButton({ onClick, label = "Reset to default" }: { onClick: () => void; label?: string }) {
   return (

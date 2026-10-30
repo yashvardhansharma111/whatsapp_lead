@@ -114,9 +114,9 @@ function SettingsPageInner() {
     <div>
       <PageHeader title="Settings" description="Manage your workspace, channel and billing." />
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start">
-        {/* ── Sidebar nav (desktop) / select (mobile) ── */}
-        <aside className="w-full shrink-0 lg:w-52">
+      <div className="flex flex-col gap-5 lg:flex-row lg:gap-6 lg:items-start">
+        {/* ── Nav panel (desktop) / select (mobile) ── */}
+        <aside className="w-full shrink-0 lg:sticky lg:top-4 lg:w-60">
           {/* Mobile: compact select */}
           <div className="lg:hidden">
             <select
@@ -136,15 +136,16 @@ function SettingsPageInner() {
             </select>
           </div>
 
-          {/* Desktop: sidebar */}
-          <nav className="hidden lg:block">
+          {/* Desktop: a panel of its own, so the nav reads as part of the page rather
+              than a column of loose links beside it. */}
+          <nav className="hidden rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-900/5 lg:block">
             {TAB_GROUPS.map((g, gi) => {
               const visible = g.tabs.filter(canSee);
               if (visible.length === 0) return null;
               return (
-                <div key={g.section ?? gi} className={cn(gi > 0 && "mt-6")}>
+                <div key={g.section ?? gi} className={cn(gi > 0 && "mt-4 border-t border-slate-100 pt-4")}>
                   {g.section && (
-                    <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                       {g.section}
                     </p>
                   )}

@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertCircle, Check, Loader2, Pencil, Plus, Star, Trash2, Users,
-} from "lucide-react";
+import { AlertCircle, Check, Loader2, Pencil, Plus, Star, Trash2, Users } from "lucide-react";
 import { Avatar, Button, Card, EmptyState, Field, Modal, SkeletonRows, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import {
   useDeleteDepartment, useDepartmentMembers, useDepartments, useSaveDepartment, type Department,
 } from "@/hooks/useHandovers";
@@ -40,14 +39,20 @@ export function DepartmentsTab() {
 
   return (
     <div className="space-y-4">
+      <SettingsIntro icon={Users} title="Who picks up a handover" storageKey="departments">
+        When the AI steps aside, the conversation has to land with someone. A department is that
+        destination — a flow can name one, and handover settings can send everything to one.
+      </SettingsIntro>
+
       <Card className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="font-semibold text-slate-900">Departments</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Where a handed-over conversation goes. A flow can name one, and the handover
-              settings can route everything to one.
-            </p>
+          <div className="min-w-0 flex-1">
+            <CardHead
+              icon={Users}
+              bordered={false}
+              title="Departments"
+              description="Where a handed-over conversation goes. A flow can name one, and handover settings can route everything to one."
+            />
           </div>
           {canManage && (
             <Button size="sm" onClick={() => setCreating(true)} className="shrink-0">

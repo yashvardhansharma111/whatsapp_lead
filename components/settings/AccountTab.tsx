@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, Loader2, Users } from "lucide-react";
+import { Check, Copy, Loader2, UserCircle, Users } from "lucide-react";
 import { Card } from "@/components/ui";
+import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 
 function useInviteCode() {
   return useQuery({
@@ -34,10 +35,18 @@ export function AccountTab() {
 
   return (
     <div className="space-y-5">
+      <SettingsIntro icon={UserCircle} title="This is you, not the workspace" storageKey="account">
+        Your name, your sign-in and your password. Everything here follows you between every workspace
+        you belong to — what the business itself looks like lives under Business profile.
+      </SettingsIntro>
+
       {/* Profile info */}
-      <Card className="p-5">
-        <h2 className="font-semibold text-slate-900">Your account</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Information about the account you&apos;re signed in with.</p>
+      <Card className="p-5 transition-shadow hover:shadow-md">
+        <CardHead
+          icon={UserCircle}
+          title="Your account"
+          description="The details of the account you're signed in with."
+        />
 
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>

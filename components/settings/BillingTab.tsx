@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Download, Receipt, Sparkles } from "lucide-react";
+import { ArrowUpRight, CreditCard, Download, Receipt, Sparkles } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Skeleton } from "@/components/ui";
+import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn, formatCompact, formatCurrency, formatDate } from "@/lib/utils";
 
 // TODO [SHALMON]: GET /api/billing — plan, usage counters and invoice history (currently 501).
@@ -78,6 +79,11 @@ export function BillingTab() {
 
   return (
     <div className="space-y-5">
+      <SettingsIntro icon={CreditCard} title="Your plan and what it covers" storageKey="billing">
+        What you are on, what it includes and how much of it you have used this period. Changing plan
+        takes effect straight away and the next invoice is adjusted for it.
+      </SettingsIntro>
+
       {/* Current plan */}
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, GripVertical, Pencil, Plus, RotateCcw, Save, Star, Trash2 } from "lucide-react";
+import { AlertTriangle, GripVertical, KanbanSquare, Pencil, Plus, RotateCcw, Save, Star, Trash2 } from "lucide-react";
 import { Button, Card, Field, Modal, inputClass, selectClass } from "@/components/ui";
+import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { Toggle } from "@/components/ui/Toggle";
 import {
   useLeadStages,
@@ -152,14 +153,20 @@ function StageManager({
 
   return (
     <div className="space-y-5">
+      <SettingsIntro icon={KanbanSquare} title="The path a lead walks" storageKey="lead-stages">
+        These stages are the columns of your pipeline and the choices in every lead dropdown, in the
+        order you set here. Rename or recolour one and every lead already in it follows.
+      </SettingsIntro>
+
       <Card className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold text-slate-900">Lead Pipeline Stages</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Add, reorder, rename, recolour and show/hide the stages in your pipeline. The order
-              here drives the pipeline columns and the Add / Edit Lead dropdowns.
-            </p>
+          <div className="min-w-0 flex-1">
+            <CardHead
+              icon={KanbanSquare}
+              bordered={false}
+              title="Pipeline stages"
+              description="Add, reorder, rename, recolour or hide a stage. This order drives the pipeline columns and every lead dropdown."
+            />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" onClick={() => setList(DEFAULT_STAGE_DRAFTS.map((s) => ({ ...s })))}>
