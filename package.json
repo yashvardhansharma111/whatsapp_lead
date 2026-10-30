@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tunnel": "ngrok http 4000 --url=louetta-intercounty-dwarfishly.ngrok-free.dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
