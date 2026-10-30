@@ -17,7 +17,13 @@ export async function getNestToken(userId: string, email: string, businessId: st
   try {
     const res = await fetch(`${BACKEND}/auth/service-token`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Harmless everywhere, and required when the backend is behind a free ngrok
+        // tunnel, which otherwise drops the request or answers with its interstitial
+        // page instead of JSON.
+        "ngrok-skip-browser-warning": "1",
+      },
       body: JSON.stringify({ userId, email, secret, businessId }),
       cache: "no-store",
     });

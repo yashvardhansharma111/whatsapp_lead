@@ -10,42 +10,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { backendUrl, getNestToken } from "@/lib/server/nestToken";
 
-const BACKEND = process.env.BACKEND_INTERNAL_URL ?? "http://localhost:4000";
-
-const tokenCache = new Map<string, { token: string; expiresAt: number }>();
-
-async function getNestToken(
-  userId: string,
-  email: string,
-  businessId: string | null,
-): Promise<string | null> {
-  const cacheKey = `${userId}:${businessId ?? ""}`;
-  const cached = tokenCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
-
-  const secret = process.env.BACKEND_SERVICE_SECRET;
-  if (!secret) return null;
-
-  try {
-    const res = await fetch(`${BACKEND}/auth/service-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "1" },
-      body: JSON.stringify({ userId, email, secret, businessId }),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const payload = json.data ?? json;
-    const { token, expiresIn } = payload;
-    tokenCache.set(cacheKey, {
-      token,
-      expiresAt: Date.now() + (expiresIn ?? 3600) * 1000,
-    });
-    return token;
-  } catch {
-    return null;
-  }
-}
+const BACKEND = backendUrl();
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const session = await auth();
@@ -57,8 +24,8 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   const { path } = await params;
   const nestToken = await getNestToken(
-    (session.user as any).id ?? "",
-    (session.user as any).email ?? "",
+    session.user.id ?? "",
+    session.user.email ?? "",
     businessId,
   );
 
