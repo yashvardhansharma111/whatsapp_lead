@@ -21,7 +21,6 @@ type AuditResponse = {
   logs: AuditLog[];
   total: number;
   page: number;
-  limit: number;
 };
 
 const ACTION_COLOR: Record<string, string> = {
@@ -51,12 +50,18 @@ export function ActivityTab() {
       const r = await fetch(`/api/account/audit-logs?page=${page}&limit=${limit}`);
       const j = await r.json();
       if (!r.ok || j.success === false) throw new Error(j.error ?? "Failed to load");
-      return j.data ?? j;
+      // A paginated list comes back as { data: [...], pagination: {...} }: the rows are
+      // the envelope's data, and the counts sit beside them rather than within.
+      return {
+        logs:  Array.isArray(j.data) ? j.data : (j.data?.logs ?? []),
+        total: j.pagination?.total ?? j.data?.total ?? 0,
+        page:  j.pagination?.page  ?? j.data?.page  ?? page,
+      };
     },
     staleTime: 30_000,
   });
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 1;
+  const totalPages = data?.total ? Math.ceil(data.total / limit) : 1;
 
   return (
     <div className="space-y-4">
