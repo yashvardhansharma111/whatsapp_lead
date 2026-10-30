@@ -113,7 +113,10 @@ export default auth((req) => {
       );
     }
 
-    // Routes that must stay in Next.js (auth, QStash workers, cron, the proxy itself)
+    // Routes that must stay in Next.js. Anything not listed here is rewritten to the
+    // NestJS proxy, so a route handler that exists only in this app — one that reads the
+    // session or sets an httpOnly cookie, which the backend cannot do — has to be named
+    // or it is forwarded to a backend path that does not exist and answers 404.
     const NEXTJS_ONLY_API = [
       "/api/auth",
       "/api/webhook/",   // Meta webhook — keep in Next.js (inbound message processing)
@@ -122,7 +125,9 @@ export default auth((req) => {
       "/api/nest",
       "/api/v1",
       "/api/ping",
-      "/api/debug",     // debug endpoints — never proxy to NestJS
+      "/api/debug",      // debug endpoints — never proxy to NestJS
+      "/api/realtime",   // mints the Socket.IO handshake ticket from the session
+      "/api/workspace",  // switches workspace and rewrites the business cookie
     ];
     const stayInNext = NEXTJS_ONLY_API.some((p) => pathname.startsWith(p));
 
