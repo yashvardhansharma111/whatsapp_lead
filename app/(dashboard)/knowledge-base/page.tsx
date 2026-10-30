@@ -39,6 +39,7 @@ import { UploadModal } from "@/components/knowledge/UploadModal";
 import { RetrievalTester } from "@/components/knowledge/RetrievalTester";
 import { cn, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { fetchAllPages } from "@/lib/fetchAll";
 
 /**
  * Indexing status, as the upload route and the worker record it on `metadata`.
@@ -66,10 +67,8 @@ function useKnowledgeDocs() {
   return useQuery<KnowledgeDoc[]>({
     queryKey: ["knowledge"],
     queryFn: async () => {
-      const res = await fetch("/api/knowledge");
-      if (!res.ok) throw new Error(`Failed to load documents (${res.status})`);
-      const json = await res.json();
-      return Array.isArray(json) ? json : (json.data ?? []);
+      // Searched and filtered in the page, so a server page would hide documents.
+      return fetchAllPages<KnowledgeDoc>("/api/knowledge");
     },
     retry: false,
     // Indexing happens in a worker, so the row changes without the user doing anything. Polled

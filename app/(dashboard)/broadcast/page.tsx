@@ -37,6 +37,7 @@ type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLE
 import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/components/ui";
 import { COUNTRIES } from "@/components/ui/PhoneInput";
 import { useToast } from "@/components/ui/toast";
+import { useSegments } from "@/hooks/useSegments";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import {
   ExcludedSummary,
@@ -233,10 +234,7 @@ export default function BroadcastPage() {
   const [audienceMode, setAudienceMode] = useState<"numbers" | "segment">("numbers");
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>("");
 
-  const { data: segments } = useQuery<{ id: string; name: string; count: number }[]>({
-    queryKey: ["segments"],
-    queryFn: () => fetch("/api/segments").then((r) => r.json()).then((j) => j.data ?? []),
-  });
+  const { data: segments } = useSegments();
 
   // WhatsApp number selector — which number to send this broadcast from
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>("");

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 type LeadScoreLabel = "COLD" | "WARM" | "HOT" | "QUALIFIED";
+import { fetchAllPages } from "@/lib/fetchAll";
 import type { ImportMode, ImportResult } from "@/lib/import";
 import type { ImportLeadPayload } from "@/lib/leadsImport";
 
@@ -51,11 +52,20 @@ export function useLeads(filters?: LeadFilters) {
       if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
       if (filters?.scoreLabel) params.set("scoreLabel", filters.scoreLabel);
       if (filters?.search) params.set("search", filters.search);
-      if (filters?.page) params.set("page", String(filters.page));
-      if (filters?.limit) params.set("limit", String(filters.limit));
-      const res = await fetch(`/api/leads?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leads");
-      return res.json();
+      // An explicit page means the caller is doing its own pagination; honour it.
+      if (filters?.page || filters?.limit) {
+        if (filters.page) params.set("page", String(filters.page));
+        if (filters.limit) params.set("limit", String(filters.limit));
+        const res = await fetch(`/api/leads?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch leads");
+        return res.json();
+      }
+
+      // Otherwise the whole board is wanted. The pipeline groups leads into columns in
+      // the browser, so a server page would drop whole stages off the board with nothing
+      // to say they were missing.
+      const leads = await fetchAllPages<unknown>("/api/leads", { params });
+      return { data: leads, pagination: { total: leads.length } };
     },
   });
 }

@@ -19,6 +19,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { fetchAllPages } from "@/lib/fetchAll";
 import {
   cn,
   formatDate,
@@ -63,10 +64,7 @@ function useTickets(filters: { status: string; priority: string; department: str
       if (filters.status !== "ALL") params.set("status", filters.status);
       if (filters.priority !== "ALL") params.set("priority", filters.priority);
       if (filters.department !== "ALL") params.set("department", filters.department);
-      const res = await fetch(`/api/tickets?${params}`);
-      if (!res.ok) throw new Error(`Failed to load tickets (${res.status})`);
-      const json = await res.json();
-      return Array.isArray(json) ? json : (json.data ?? []);
+      return fetchAllPages<TicketRow>("/api/tickets", { params });
     },
     retry: false,
   });

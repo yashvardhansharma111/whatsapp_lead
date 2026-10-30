@@ -40,6 +40,7 @@ import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/H
 import { NumberPicker } from "@/components/NumberPicker";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { useTemplates } from "@/hooks/useTemplates";
+import { useSegments } from "@/hooks/useSegments";
 import {
   ExcludedSummary,
   RecipientReview,
@@ -582,15 +583,8 @@ function CreateCampaignModal({
   // cannot prove a template row is never mutated, so the dependency is
   // unverifiable however it is spelled. Counting `{{n}}` slots in one string is
   // a regex scan, not work worth a memo.
-  const { data: segmentsData, isLoading: segmentsLoading } = useQuery<{ id: string; name: string; count: number }[]>({
-    queryKey: ["segments"],
-    queryFn: async () => {
-      const res = await fetch("/api/segments");
-      if (!res.ok) return [];
-      return (await res.json()).data ?? [];
-    },
-    enabled: open && audienceMode === "segment",
-  });
+  const { data: segmentsData, isLoading: segmentsLoading } =
+    useSegments(open && audienceMode === "segment");
   const segments = segmentsData ?? [];
   const chosenSegment = segments.find((s) => s.id === segmentId) ?? null;
 

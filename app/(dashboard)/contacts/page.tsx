@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { Filter, History, Megaphone, Search, Upload, UserPlus } from "lucide-react";
 import {
   useBulkContactAction,
@@ -25,6 +24,7 @@ import {
 } from "@/components/contacts/ContactTable";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSegments } from "@/hooks/useSegments";
 
 const PAGE_SIZE = 20;
 
@@ -40,12 +40,6 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
 interface PendingAction {
   action: ContactBulkAction;
   contacts: ContactRow[];
-}
-
-interface SegmentOption {
-  id: string;
-  name: string;
-  count: number;
 }
 
 const ACTION_COPY: Record<"delete" | "block" | "addTag", { title: string; confirm: string }> = {
@@ -101,15 +95,7 @@ export default function ContactsPage() {
   const { data: sourceOptions = [] } = useContactSources();
   const { data: tagOptions = [] } = useContactTags();
   // Segments need campaign access; without it the dropdown simply doesn't appear.
-  const { data: segments = [] } = useQuery<SegmentOption[]>({
-    queryKey: ["segments"],
-    queryFn: async () => {
-      const res = await fetch("/api/segments");
-      if (!res.ok) return [];
-      const json = await res.json().catch(() => ({}));
-      return Array.isArray(json.data) ? json.data : [];
-    },
-  });
+  const { data: segments = [] } = useSegments();
 
   const rows: ContactRow[] = useMemo(() => {
     const list = (data as { data?: unknown } | undefined)?.data;
