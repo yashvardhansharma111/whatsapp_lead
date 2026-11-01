@@ -114,7 +114,7 @@ export default function HandoversPage() {
   if (loaded && !canSee) {
     return (
       <div>
-        <PageHeader title="Handovers" description="Conversations the AI has passed to a person." />
+        <PageHeader title="Transfers" description="Conversations the AI has passed to a person." />
         <Card className="p-8 text-center">
           <UserCheck className="mx-auto h-6 w-6 text-slate-400" />
           <p className="mt-3 text-sm font-medium text-slate-900">This queue isn&apos;t open to you</p>
@@ -129,7 +129,7 @@ export default function HandoversPage() {
   return (
     <div>
       <PageHeader
-        title="Handovers"
+        title="Transfers"
         description="Conversations the AI has passed to a person, and who has them."
         action={
           data?.waiting ? (
@@ -202,7 +202,7 @@ export default function HandoversPage() {
             description={
               tab === "OPEN"
                 ? "When the AI passes a conversation to a person, it shows up here with the reason."
-                : "No handovers match these filters."
+                : "No transfers match these filters."
             }
           />
         ) : (

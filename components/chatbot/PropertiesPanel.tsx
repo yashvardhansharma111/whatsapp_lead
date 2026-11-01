@@ -847,14 +847,14 @@ function HandoffFields({ data, set }: { data: HandoffNodeData; set: Setter }) {
           />
         </label>
       </div>
-      <Field label="Handoff note" htmlFor="np-note">
+      <Field label="Note for the person taking it" htmlFor="np-note">
         <textarea
           id="np-note"
           rows={3}
           className={cn(inputClass, "resize-y")}
           value={data.note ?? ""}
           onChange={(e) => set({ note: e.target.value })}
-          placeholder="Context for the agent receiving this handoff…"
+          placeholder="Context for whoever picks this up…"
         />
       </Field>
     </>

@@ -39,9 +39,9 @@ export function DepartmentsTab() {
 
   return (
     <div className="space-y-4">
-      <SettingsIntro icon={Users} title="Who picks up a handover" storageKey="departments">
+      <SettingsIntro icon={Users} title="Who picks up a transfer" storageKey="departments">
         When the AI steps aside, the conversation has to land with someone. A department is that
-        destination — a flow can name one, and handover settings can send everything to one.
+        destination — a flow can name one, and transfer settings can send everything to one.
       </SettingsIntro>
 
       <Card className="p-4 sm:p-5">
@@ -51,7 +51,7 @@ export function DepartmentsTab() {
               icon={Users}
               bordered={false}
               title="Departments"
-              description="Where a handed-over conversation goes. A flow can name one, and handover settings can route everything to one."
+              description="Where a transferred conversation goes. A flow can name one, and transfer settings can route everything to one."
             />
           </div>
           {canManage && (
@@ -76,7 +76,7 @@ export function DepartmentsTab() {
           <EmptyState
             icon={Users}
             title="No departments yet"
-            description="Without one, a handover goes to whoever in the workspace is least busy. Add Sales and Support to route them separately."
+            description="Without one, a transfer goes to whoever in the workspace is least busy. Add Sales and Support to route them separately."
             action={canManage ? (
               <Button onClick={() => setCreating(true)}>
                 <Plus className="h-4 w-4" />

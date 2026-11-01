@@ -69,7 +69,7 @@ const NAV = [
     items: [
       { href: "/tickets", label: "Tickets", icon: Ticket, permission: "conversations.view" },
       // The badge shows how many people are waiting on a person right now.
-      { href: "/handovers", label: "Handovers", icon: UserCheck, permission: "conversations.view", badge: "handovers" as const },
+      { href: "/handovers", label: "Transfers", icon: UserCheck, permission: "conversations.view", badge: "handovers" as const },
       { href: "/analytics", label: "Analytics", icon: BarChart2, permission: "reports.view" },
       { href: "/reports", label: "Reports", icon: FileBarChart2, permission: "reports.view" },
       { href: "/blacklist", label: "Blacklist", icon: Ban, permission: "blacklist.view" },

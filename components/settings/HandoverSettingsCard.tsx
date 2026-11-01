@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const STRATEGY_LABELS: Record<HandoverConfig["strategy"], { label: string; hint: string }> = {
   LEAST_BUSY:    { label: "Whoever is least busy", hint: "The person with the fewest conversations open." },
-  ROUND_ROBIN:   { label: "Take turns",            hint: "Each handover goes to the next person in the list." },
+  ROUND_ROBIN:   { label: "Take turns",            hint: "Each transfer goes to the next person in the list." },
   DEPARTMENT:    { label: "A department",          hint: "The least busy member of the department you pick." },
   SPECIFIC_USER: { label: "One person",            hint: "Always the same colleague." },
 };
@@ -61,7 +61,7 @@ export function HandoverSettingsCard() {
   function submit() {
     if (!config) return;
     save.mutateAsync(config)
-      .then(() => showToast("Handover settings saved.", "success"))
+      .then(() => showToast("Transfer settings saved.", "success"))
       .catch((e: Error) => showToast(e.message, "error"));
   }
 

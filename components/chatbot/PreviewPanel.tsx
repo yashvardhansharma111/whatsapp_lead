@@ -51,7 +51,7 @@ function stepToLines(step: Step): ChatLine[] {
     if (a.type === "message" || a.type === "ai") return a.text ? [{ from: "bot", text: a.text }] : [];
     if (a.type === "delay") return [{ from: "system", text: `⏱ waits ${a.seconds ?? 0}s` }];
     if (a.type === "api") return [{ from: "system", text: `🔗 ${a.api?.method ?? "GET"} ${a.api?.url ?? ""}` }];
-    if (a.type === "handoff") return [{ from: "system", text: `👤 Handoff${a.handoff?.department ? ` → ${a.handoff.department}` : ""}` }];
+    if (a.type === "handoff") return [{ from: "system", text: `👤 Transferred to a person${a.handoff?.department ? ` → ${a.handoff.department}` : ""}` }];
     if (a.type === "menu" && a.menu) {
       // The rows are read back out of the payload that would go to Meta, so the
       // preview cannot drift from what a customer would actually be sent.

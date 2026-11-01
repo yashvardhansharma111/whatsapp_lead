@@ -226,7 +226,7 @@ DelayNode.displayName = "DelayNode";
 const HandoffNode = memo(({ data, selected, width, height }: NodeProps) => {
   const d = data as HandoffNodeData;
   return (
-    <NodeShell kind="handoff" title={d.label || "Handoff"} selected={selected} width={width} height={height}>
+    <NodeShell kind="handoff" title={d.label || "Transfer to human"} selected={selected} width={width} height={height}>
       {summary(d.team || d.department ? `To: ${d.team ?? d.department}${d.queue ? ` / ${d.queue}` : ""}` : "Assign to a human agent")}
       <Handle type="target" position={Position.Left} className={handleClass} />
     </NodeShell>

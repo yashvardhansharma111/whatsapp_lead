@@ -112,7 +112,7 @@ function CallManager() {
       void showBrowserNotice({
         title:  `Incoming call${call.displayPhoneNumber ? ` on ${call.displayPhoneNumber}` : ""}`,
         body:   call.contact.name ?? call.contact.phone ?? "Unknown caller",
-        href:   call.conversationId ? `/inbox?conversation=${call.conversationId}` : "/inbox",
+        href:   call.conversationId ? `/inbox?c=${call.conversationId}` : "/inbox",
         tag:    `call:${call.id}`,
         sticky: true,
       });

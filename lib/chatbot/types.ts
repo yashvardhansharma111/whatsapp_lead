@@ -288,7 +288,7 @@ export const NODE_KINDS: NodeKindMeta[] = [
   { kind: "api", label: "API Call", hint: "Call an external URL", accent: "bg-violet-50 text-violet-700", chip: "bg-violet-100 text-violet-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "delay", label: "Delay", hint: "Wait before continuing", accent: "bg-orange-50 text-orange-700", chip: "bg-orange-100 text-orange-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "set_variable", label: "Set Variable", hint: "Assign a value to a variable", accent: "bg-teal-50 text-teal-700", chip: "bg-teal-100 text-teal-700", creatable: true, hasInput: true, hasOutput: true },
-  { kind: "handoff", label: "Handoff", hint: "Assign to a human agent", accent: "bg-rose-50 text-rose-700", chip: "bg-rose-100 text-rose-700", creatable: true, hasInput: true, hasOutput: true },
+  { kind: "handoff", label: "Transfer to human", hint: "Hand the conversation to a person", accent: "bg-rose-50 text-rose-700", chip: "bg-rose-100 text-rose-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "ai", label: "AI Response", hint: "Generate a reply with AI", accent: "bg-indigo-50 text-indigo-700", chip: "bg-indigo-100 text-indigo-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "end", label: "End", hint: "Terminates the flow", accent: "bg-slate-100 text-slate-600", chip: "bg-slate-200 text-slate-600", creatable: true, hasInput: true, hasOutput: false },
 ];
