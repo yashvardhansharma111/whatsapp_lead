@@ -47,3 +47,6 @@ next-env.d.ts
 
 # NestJS backend (microservices — separate deployment, tracked separately)
 /backend
+
+# A correctness build that must not disturb the dev server's .next
+.next-check

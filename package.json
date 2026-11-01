@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:check": "node scripts/build-check.mjs",
     "start": "next start",
     "lint": "eslint",
     "tunnel": "ngrok http 4000 --url=louetta-intercounty-dwarfishly.ngrok-free.dev"

@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["lvh.me", "*.lvh.me"],
   // Native Node.js packages that Turbopack must not bundle — use require() at runtime.
   serverExternalPackages: ["exceljs"],
+  // A build and the dev server both write here, and a build run while dev is up
+  // replaces the chunks the open browser is still asking for — which it reports as a
+  // ChunkLoadError that looks like broken code rather than a clobbered directory.
+  // `npm run build:check` sets this so a correctness build can run alongside dev.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
 };
 
 export default nextConfig;
