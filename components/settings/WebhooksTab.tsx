@@ -1,12 +1,66 @@
 "use client";
 
-import { Skeleton } from "@/components/ui";
+import { Card, Skeleton } from "@/components/ui";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, ChevronUp, Circle, Copy, ExternalLink, Key, Plus, RefreshCw, Trash2, Webhook, XCircle } from "lucide-react";
+import {
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Circle, Code2, Copy, ExternalLink,
+  Key, Plus, RefreshCw, Trash2, Webhook, XCircle,
+} from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
+import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
+import { CodeBlock, MethodPill, type HttpMethod } from "@/components/settings/CodeBlock";
+
+/** What the public API exposes, as a glance rather than a document. */
+const API_SURFACE: { method: HttpMethod; path: string; what: string }[] = [
+  { method: "GET",  path: "/v1/templates", what: "approved templates" },
+  { method: "GET",  path: "/v1/contacts",  what: "search and page" },
+  { method: "POST", path: "/v1/contacts",  what: "create one" },
+  { method: "POST", path: "/v1/messages",  what: "send a message" },
+];
+
+const API_EXAMPLES: { title: string; method: HttpMethod; path: string; code: string }[] = [
+  {
+    title: "Send a text message",
+    method: "POST",
+    path: "/v1/messages",
+    code: `curl -X POST https://api.example.com/v1/messages \
+  -H "X-Api-Key: <your_api_key>" \
+  -H "Content-Type: application/json" \
+  -d '{ "to": "+919876543210", "text": "Hello!" }'`,
+  },
+  {
+    title: "Send a template message",
+    method: "POST",
+    path: "/v1/messages",
+    code: `{
+  "to": "+919876543210",
+  "templateName": "order_confirmed",
+  "variables": { "body": ["ORD-123", "₹500"] }
+}`,
+  },
+  {
+    title: "Find a contact",
+    method: "GET",
+    path: "/v1/contacts?search=rahul&page=1",
+    code: `curl https://api.example.com/v1/contacts?search=rahul \
+  -H "X-Api-Key: <your_api_key>"`,
+  },
+  {
+    title: "Create a contact",
+    method: "POST",
+    path: "/v1/contacts",
+    code: `{ "name": "Rahul", "phone": "+919876543210" }`,
+  },
+  {
+    title: "List approved templates",
+    method: "GET",
+    path: "/v1/templates?search=order",
+    code: `curl https://api.example.com/v1/templates?search=order \
+  -H "X-Api-Key: <your_api_key>"`,
+  },
+];
 
 const WEBHOOK_EVENTS = [
   { key: "campaign.completed", label: "Campaign Completed" },
@@ -82,32 +136,38 @@ function ApiKeySection() {
   const displayKey = revealedKey ?? data?.maskedKey;
 
   return (
-    <section className="rounded-lg border border-slate-200 p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <Key className="h-4 w-4 text-slate-500" />
-        <h3 className="font-semibold text-slate-800">Incoming API Key</h3>
-      </div>
-      <p className="mb-3 text-sm text-slate-500">
-        Use this key to call the public REST API from your CRM or external tools.
-        Pass it as the <code className="rounded bg-slate-100 px-1 py-0.5 text-xs font-mono">X-Api-Key</code> request header.
-      </p>
+    <Card className="p-4 transition-shadow hover:shadow-md sm:p-5">
+      <CardHead
+        icon={Key}
+        tone="amber"
+        title="API key"
+        description="One secret, sent as the X-Api-Key header, that lets your own code act in this workspace."
+      />
+      <div className="mt-4 space-y-4">
 
       {data && !data.planAllows && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          API access is not included in your current plan. Upgrade to a plan with the <strong>API Access</strong> feature to generate and use API keys.
+        <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-inset ring-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            Your plan does not include API access. Upgrade to one with the{" "}
+            <strong className="font-semibold">API Access</strong> feature to generate a key.
+          </span>
         </div>
       )}
 
-      <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-600 space-y-1">
-        <div><span className="text-slate-400">GET</span>  /v1/templates</div>
-        <div><span className="text-slate-400">GET</span>  /v1/contacts?page=1&amp;limit=50&amp;search=</div>
-        <div><span className="text-slate-400">POST</span> /v1/contacts  <span className="text-slate-400">{"{ phone, name, email? }"}</span></div>
-        <div><span className="text-slate-400">POST</span> /v1/messages  <span className="text-slate-400">{"{ to, templateName, variables: { body: [\"val1\"] } }"}</span></div>
+      <div className="space-y-1.5">
+        {API_SURFACE.map((e) => (
+          <div key={`${e.method}${e.path}`} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-inset ring-slate-200/70">
+            <MethodPill method={e.method} />
+            <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-700">{e.path}</code>
+            <span className="hidden shrink-0 text-[11px] text-slate-400 sm:inline">{e.what}</span>
+          </div>
+        ))}
       </div>
 
       {displayKey ? (
-        <div className="mb-3 flex items-center gap-2">
-          <code className="flex-1 rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-700 break-all">
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 break-all rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-xs text-emerald-300 ring-1 ring-inset ring-slate-900/10">
             {displayKey}
           </code>
           {revealedKey && (
@@ -123,12 +183,13 @@ function ApiKeySection() {
       ) : null}
 
       {revealedKey && (
-        <p className="mb-3 text-xs text-amber-600">
-          Save this key now — it will not be shown again after you leave this page.
+        <p className="flex items-start gap-1.5 text-xs text-amber-700">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          Copy it now. Leaving this page is the last you will see of it.
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 pt-1">
         <button
           onClick={() => generate.mutate()}
           disabled={generate.isPending || data?.planAllows === false}
@@ -149,7 +210,8 @@ function ApiKeySection() {
           </button>
         )}
       </div>
-    </section>
+      </div>
+    </Card>
   );
 }
 
@@ -172,7 +234,7 @@ function EndpointRow({
   });
 
   return (
-    <div className="rounded-lg border border-slate-200">
+    <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 transition hover:ring-slate-300">
       <div className="flex items-start gap-3 p-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -337,9 +399,14 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
       </div>
 
       {revealSecret && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
-          <p className="mb-1 text-xs font-medium text-amber-800">Signing Secret — save now, won&apos;t be shown again</p>
-          <code className="block break-all font-mono text-xs text-amber-900">{revealSecret}</code>
+        <div className="rounded-lg bg-amber-50 p-3 ring-1 ring-inset ring-amber-200">
+          <p className="mb-2 flex items-start gap-1.5 text-xs font-medium text-amber-900">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+            Signing secret — copy it now, it is not shown again.
+          </p>
+          <code className="block break-all rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-xs text-amber-300">
+            {revealSecret}
+          </code>
           <button
             type="button"
             onClick={() => {
@@ -416,31 +483,27 @@ export function WebhooksTab() {
 
       <ApiKeySection />
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Webhook className="h-4 w-4 text-slate-500" />
-            <h3 className="font-semibold text-slate-800">Outgoing Webhooks</h3>
-            {data?.endpoints?.length ? (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                {data.endpoints.length}
-              </span>
-            ) : null}
-          </div>
-          <button
-            onClick={() => setShowAdd((v) => !v)}
-            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-          >
-            <Plus className="h-4 w-4" />
-            Add
-          </button>
-        </div>
+      <Card className="p-4 transition-shadow hover:shadow-md sm:p-5">
+        <CardHead
+          icon={Webhook}
+          tone="blue"
+          title={`Outgoing webhooks${data?.endpoints?.length ? ` (${data.endpoints.length})` : ""}`}
+          description="We POST to your URL the moment a chosen event happens, signed so you can prove it came from us."
+          action={
+            <button
+              onClick={() => setShowAdd((v) => !v)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add endpoint
+            </button>
+          }
+        />
 
-        <p className="mb-4 text-sm text-slate-500">
-          We send a signed POST request to your URL whenever selected events occur. Verify the
-          signature with{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">X-Webhook-Signature: sha256=…</code>{" "}
-          using HMAC-SHA256 with your endpoint&apos;s secret.
+        <div className="mt-4 space-y-4">
+        <p className="text-sm leading-relaxed text-slate-500">
+          Check the <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs">X-Webhook-Signature</code>{" "}
+          header against an HMAC-SHA256 of the raw body, keyed with that endpoint&apos;s secret.
         </p>
 
         {showAdd && (
@@ -461,9 +524,12 @@ export function WebhooksTab() {
             ))}
           </div>
         ) : !data?.endpoints?.length ? (
-          <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center">
-            <Webhook className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-400">No webhook endpoints yet. Add one to get started.</p>
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-10 text-center">
+            <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
+              <Webhook className="h-5 w-5" />
+            </span>
+            <p className="mt-3 text-sm font-medium text-slate-700">Nothing is listening yet</p>
+            <p className="mt-1 text-xs text-slate-500">Add a URL and we will post your events to it as they happen.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -477,53 +543,36 @@ export function WebhooksTab() {
             ))}
           </div>
         )}
-      </section>
-
-      <section className="rounded-lg border border-slate-200 p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Incoming API Reference</h3>
-          <a
-            href="/api-docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
-          >
-            Full docs <ExternalLink className="h-3 w-3" />
-          </a>
         </div>
-        <div className="space-y-4 text-sm">
-          <div>
-            <p className="mb-1 font-medium text-slate-700">Send a text message</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /v1/messages
-X-Api-Key: <your_api_key>
+      </Card>
 
-{ "to": "+919876543210", "text": "Hello!" }`}</pre>
-          </div>
-          <div>
-            <p className="mb-1 font-medium text-slate-700">Send a template message</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`POST /v1/messages
-X-Api-Key: <your_api_key>
+      <Card className="p-4 transition-shadow hover:shadow-md sm:p-5">
+        <CardHead
+          icon={Code2}
+          tone="slate"
+          title="Calling us"
+          description="Every request takes your API key in the X-Api-Key header."
+          action={
+            <a
+              href="/api-docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+            >
+              Full docs <ExternalLink className="h-3 w-3" />
+            </a>
+          }
+        />
 
-{ "to": "+919876543210",
-  "templateName": "order_confirmed",
-  "variables": { "body": ["ORD-123", "₹500"] } }`}</pre>
-          </div>
-          <div>
-            <p className="mb-1 font-medium text-slate-700">Create / list contacts</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET  /v1/contacts?search=rahul&page=1
-X-Api-Key: <your_api_key>
-
-POST /v1/contacts
-X-Api-Key: <your_api_key>
-{ "name": "Rahul", "phone": "+919876543210" }`}</pre>
-          </div>
-          <div>
-            <p className="mb-1 font-medium text-slate-700">List approved templates</p>
-            <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-xs text-slate-600 whitespace-pre">{`GET /v1/templates?search=order
-X-Api-Key: <your_api_key>`}</pre>
-          </div>
+        <div className="mt-4 space-y-4">
+          {API_EXAMPLES.map((ex) => (
+            <div key={ex.title}>
+              <p className="mb-1.5 text-sm font-medium text-slate-800">{ex.title}</p>
+              <CodeBlock method={ex.method} path={ex.path} code={ex.code} />
+            </div>
+          ))}
         </div>
-      </section>
+      </Card>
     </div>
   );
 }
