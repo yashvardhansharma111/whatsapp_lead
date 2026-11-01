@@ -17,20 +17,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  CircleCheck,
-  ExternalLink,
-  Mail,
-  MessageCircle,
-  Plus,
-  RotateCcw,
-  Save,
-  Trash2,
-  TriangleAlert,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, CircleCheck, ExternalLink, Eye, Mail, MessageCircle, Plus, RotateCcw, Save, Trash2, TriangleAlert } from "lucide-react";
 import { Modal } from "@/components/ui";
 import { Toggle } from "@/components/ui/Toggle";
 import {
@@ -47,10 +34,13 @@ import { CMS_SECTIONS, CMS_SECTION_KEYS, type SectionKey } from "@/lib/cms/secti
 import {
   describeIssue,
   sectionPayloadSchema,
+  toEditorSection,
   type EditorItem,
   type EditorSection,
   type SectionPayload,
+  type StoredSection,
 } from "@/lib/cms/store";
+import { SectionPreview } from "@/components/admin/cms/SectionPreview";
 import { cn } from "@/lib/utils";
 import { FieldInput, IconButton, isWideField } from "./FieldInput";
 
@@ -87,6 +77,30 @@ interface Draft {
 }
 
 type Notice = { tone: "success" | "error"; text: string } | null;
+
+/**
+ * The API's shape turned back into a stored row, so the same merge the public page uses
+ * can run here. `null` means the section has never been saved, and the defaults stand in
+ * whole.
+ */
+function toStored(api: EditorSection): StoredSection | null {
+  if (api.source !== "saved") return null;
+  return {
+    isActive:  api.isActive,
+    content:   api.content,
+    itemKinds: Object.keys(api.items).filter((kind) => (api.items[kind] ?? []).length > 0),
+    items: Object.entries(api.items).flatMap(([kind, list]) =>
+      (list ?? []).map((item, sortOrder) => ({
+        id: item.id ?? `${kind}-${sortOrder}`,
+        kind,
+        sortOrder,
+        isActive: item.isActive,
+        data: item.data,
+      })),
+    ),
+    updatedAt: api.updatedAt ? new Date(api.updatedAt) : new Date(),
+  };
+}
 
 function toDraft(section: EditorSection): Draft {
   return {
@@ -198,15 +212,6 @@ export function CmsSectionPage({ sectionKey }: { sectionKey: SectionKey }) {
           <span className="mx-1.5 text-slate-300">/</span>
           <span className="font-medium text-slate-900">{CMS_SECTIONS[sectionKey].label}</span>
         </span>
-        <a
-          href={`/#${sectionKey}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Preview section
-        </a>
       </nav>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-start">
@@ -308,7 +313,15 @@ function SectionEditor({
   const [notice, setNotice] = useState<Notice>(null);
   const query = useQuery({
     queryKey: sectionQueryKey(sectionKey),
-    queryFn: () => request<EditorSection>(`/api/admin/cms/sections/${sectionKey}`),
+    queryFn: async () => {
+      const api = await request<EditorSection>(`/api/admin/cms/sections/${sectionKey}`);
+      // The API returns only what is stored, and nothing is stored until a section has
+      // been saved once — so the form opened blank on text that is plainly on the live
+      // site. Merging against the defaults gives the editor the same content the page
+      // is rendering, which is what "edit" should start from. It also fills in a field
+      // added to the spec after a section was last saved.
+      return toEditorSection(sectionKey, toStored(api));
+    },
     staleTime: 0,
   });
 
@@ -374,6 +387,7 @@ function SectionForm({
   const [issues, setIssues] = useState<string[]>([]);
   const [conflict, setConflict] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
 
   const baseline = useMemo(() => JSON.stringify(toPayload(key, toDraft(section))), [key, section]);
   const dirty = JSON.stringify(toPayload(key, draft)) !== baseline;
@@ -391,8 +405,14 @@ function SectionForm({
 
   const published = (data: EditorSection, text: string) => {
     onNotice({ tone: "success", text });
-    queryClient.setQueryData(sectionQueryKey(key), data);
+    // The server copy is what the editor shows next, run through the same merge the
+    // fetch uses so a field the save left out still reads as its default.
+    queryClient.setQueryData(sectionQueryKey(key), toEditorSection(key, toStored(data)));
     queryClient.invalidateQueries({ queryKey: SECTIONS_QUERY_KEY });
+    // The public page caches this content by tag. Without dropping it, a save lands in
+    // the database and the site keeps serving the copy it already had — which reads as
+    // the save not having worked.
+    void fetch("/api/cms/revalidate", { method: "POST" }).catch(() => {});
   };
 
   const save = useMutation({
@@ -546,12 +566,38 @@ function SectionForm({
             Turn off to hide it for visitors. Its content is kept for later.
           </p>
         </div>
-        <Toggle
-          checked={draft.isActive}
-          onChange={(value) => setDraft((current) => ({ ...current, isActive: value }))}
-          label="Show this section on the website"
-        />
+        <div className="flex shrink-0 items-center gap-3">
+          <AdminButton variant="secondary" onClick={() => setPreviewing(true)}>
+            <Eye className="h-4 w-4" />
+            Preview
+          </AdminButton>
+          <Toggle
+            checked={draft.isActive}
+            onChange={(value) => setDraft((current) => ({ ...current, isActive: value }))}
+            label="Show this section on the website"
+          />
+        </div>
       </AdminCard>
+
+      {previewing && (
+        <SectionPreview
+          sectionKey={key}
+          stored={{
+            isActive:  draft.isActive,
+            content:   draft.content,
+            itemKinds: Object.keys(draft.items).filter((kind) => (draft.items[kind] ?? []).length > 0),
+            items: Object.entries(draft.items).flatMap(([kind, list]) =>
+              (list ?? [])
+                .filter((item) => item.isActive)
+                .map((item, sortOrder) => ({
+                  id: item.id ?? item.uid, kind, sortOrder, isActive: item.isActive, data: item.data,
+                })),
+            ),
+            updatedAt: new Date(),
+          }}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
 
       {spec.fields.length > 0 && (
         <AdminPanel title="Content" subtitle="Headings, text and buttons">

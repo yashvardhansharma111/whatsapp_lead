@@ -126,6 +126,7 @@ export default auth((req) => {
       "/api/v1",
       "/api/ping",
       "/api/debug",      // debug endpoints — never proxy to NestJS
+      "/api/cms",        // clears the cached homepage content after a save
       "/api/realtime",   // mints the Socket.IO handshake ticket from the session
       "/api/workspace",  // switches workspace and rewrites the business cookie
     ];
