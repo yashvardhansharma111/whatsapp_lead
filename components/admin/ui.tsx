@@ -10,8 +10,9 @@
  * the shared `@/components/ui` kit are still reused directly.
  */
 
-import type { ComponentType, ReactNode } from "react";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Minus, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
@@ -418,3 +419,92 @@ export const tooltipStyle = {
   itemStyle: { color: "#0f172a" },
   cursor: { fill: "rgba(15,23,42,.04)", stroke: CHART.grid },
 } as const;
+// ─── Row actions menu ─────────────────────────────────────────────────────────
+
+/**
+ * A row's "…" menu, drawn outside the table.
+ *
+ * A table scrolls sideways, and an element that scrolls on one axis clips the other
+ * too — so a menu positioned inside a row is cut off at the table's edge, which on the
+ * last row hides the first item people reach for. Rendering it into the document and
+ * positioning it against the button's measured place on screen avoids the clipping
+ * entirely, and lets it flip above the button when there is no room below.
+ */
+export function RowMenu({
+  label,
+  children,
+  width = 192,
+}: {
+  label: string;
+  /** Receives `close`, so an item can dismiss the menu as it acts. */
+  children: (close: () => void) => ReactNode;
+  width?: number;
+}) {
+  const [at, setAt] = useState<{ top: number; left: number; flip: boolean } | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+
+  const place = useCallback(() => {
+    const el = trigger.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const estimatedHeight = 260;
+    const flip = r.bottom + estimatedHeight > window.innerHeight && r.top > estimatedHeight;
+    setAt({
+      top:  flip ? r.top - 6 : r.bottom + 6,
+      // Right-aligned to the button, and never off the left edge on a narrow screen.
+      left: Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8)),
+      flip,
+    });
+  }, [width]);
+
+  // The menu is anchored to a place on screen, so it has to go when that place moves.
+  useEffect(() => {
+    if (!at) return;
+    const close = () => setAt(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [at]);
+
+  return (
+    <>
+      <button
+        ref={trigger}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (at) setAt(null);
+          else place();
+        }}
+        aria-label={label}
+        aria-expanded={Boolean(at)}
+        aria-haspopup="menu"
+        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 md:p-1.5"
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+
+      {at && typeof document !== "undefined" && createPortal(
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setAt(null)} aria-hidden />
+          <div
+            role="menu"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              top: at.top,
+              left: at.left,
+              width,
+              transform: at.flip ? "translateY(-100%)" : undefined,
+            }}
+            className="fixed z-[61] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg"
+          >
+            {children(() => setAt(null))}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  );
+}

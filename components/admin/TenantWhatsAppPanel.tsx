@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, PlugZap, RefreshCw, Unplug } from "lucide-react";
+import { CheckCircle2, KeyRound, Loader2, PlugZap, RefreshCw, Unplug } from "lucide-react";
 import { AdminBadge, AdminButton, AdminPanel, AdminSkeletonRows, type AdminTone } from "@/components/admin/ui";
 import { formatDate, timeAgo } from "@/lib/utils";
 
@@ -24,6 +24,10 @@ interface WaNumber {
   createdAt: string;
   conversations: number;
   lastMessageAt: string | null;
+  hasToken: boolean;
+  tokenReadable: boolean;
+  tokenHint: string | null;
+  hasAppSecret: boolean;
 }
 
 interface WaBusiness {
@@ -166,6 +170,9 @@ export function TenantWhatsAppPanel({ tenantId }: { tenantId: string }) {
                             {n.lastMessageAt ? timeAgo(n.lastMessageAt) : "never"}
                           </div>
                           {n.codeVerificationStatus && <div>Verification: {n.codeVerificationStatus.toLowerCase().replace(/_/g, " ")}</div>}
+                          <div className="sm:col-span-2">
+                            <TokenState number={n} tenantId={tenantId} onError={(text) => setNotice({ tone: "error", text })} />
+                          </div>
                         </dl>
                       </div>
                       {n.isActive && (
@@ -223,5 +230,82 @@ export function TenantWhatsAppPanel({ tenantId }: { tenantId: string }) {
         </div>
       )}
     </AdminPanel>
+  );
+}
+
+/**
+ * Whether this number's credentials are usable, and a way to read the token.
+ *
+ * The hint is the last few characters — enough to match a token against the one in a
+ * customer's screenshot without putting the credential on screen for everyone walking
+ * past. Reading the whole thing is a separate click, and the server records it.
+ */
+function TokenState({
+  number,
+  tenantId,
+  onError,
+}: {
+  number: WaNumber;
+  tenantId: string;
+  onError: (text: string) => void;
+}) {
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function reveal() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${tenantId}/whatsapp/${number.id}/reveal-token`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Couldn't read that token");
+      setToken((json.data ?? json).token);
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!number.hasToken) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-amber-700">
+        <KeyRound className="h-3.5 w-3.5" />
+        No access token stored — this number cannot send.
+      </span>
+    );
+  }
+
+  if (!number.tokenReadable) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-rose-700">
+        <KeyRound className="h-3.5 w-3.5" />
+        Token stored but unreadable — it likely predates the current encryption key.
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+        <KeyRound className="h-3.5 w-3.5 text-slate-400" />
+        Token <span className="font-mono text-slate-700">{number.tokenHint}</span>
+        {number.hasAppSecret && <span className="text-slate-400">· app secret stored</span>}
+      </span>
+
+      {token ? (
+        <code className="min-w-0 max-w-full break-all rounded bg-slate-900 px-2 py-1 font-mono text-[11px] text-emerald-300">
+          {token}
+        </code>
+      ) : (
+        <button
+          type="button"
+          onClick={reveal}
+          disabled={loading}
+          className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {loading ? "Reading…" : "Reveal"}
+        </button>
+      )}
+    </div>
   );
 }

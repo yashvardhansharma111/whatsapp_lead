@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  MoreHorizontal,
   Pause,
   Pencil,
   Play,
@@ -27,6 +26,7 @@ import {
   AdminPageHeader,
   AdminSkeletonRows,
   AdminTable,
+  RowMenu,
   UsageBar,
   adminInputClass,
   adminSelectClass,
@@ -203,7 +203,6 @@ export default function AdminTenantsPage() {
   const [accountType, setAccountType] = useState("");
   const [page, setPage] = useState(1);
   const [provisionOpen, setProvisionOpen] = useState(false);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editTenant, setEditTenant] = useState<AdminTenant | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState<AdminTenant | null>(null);
 
@@ -246,92 +245,49 @@ export default function AdminTenantsPage() {
   }
 
   const renderRowMenu = (t: AdminTenant) => (
-    <>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setMenuFor(menuFor === t.id ? null : t.id);
-        }}
-        aria-label={`Actions for ${t.name}`}
-        aria-expanded={menuFor === t.id}
-        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 md:p-1.5"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
-
-      {menuFor === t.id && (
+    <RowMenu label={`Actions for ${t.name}`}>
+      {(close) => (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuFor(null);
-            }}
-            aria-hidden
+          <MenuItem
+            icon={Eye}
+            label="View details"
+            onClick={() => { close(); router.push(`/tenants/${t.id}`); }}
           />
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="absolute right-0 top-11 z-20 w-48 md:right-4 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg"
-          >
+          <MenuItem
+            icon={Pencil}
+            label="Edit name"
+            onClick={() => { close(); setEditTenant(t); }}
+          />
+          <MenuItem
+            icon={RefreshCcw}
+            label="Change plan"
+            onClick={() => { close(); router.push(`/tenants/${t.id}?tab=plan`); }}
+          />
+          {t.accountType !== "PLATFORM" && t.isActive && (
             <MenuItem
-              icon={Eye}
-              label="View details"
-              onClick={() => {
-                setMenuFor(null);
-                router.push(`/tenants/${t.id}`);
-              }}
+              icon={UserCheck}
+              label="View as this account"
+              onClick={() => { close(); void startViewAs(t.id); }}
             />
+          )}
+          <div className="my-1 border-t border-slate-100" />
+          {t.isActive ? (
             <MenuItem
-              icon={Pencil}
-              label="Edit name"
-              onClick={() => {
-                setMenuFor(null);
-                setEditTenant(t);
-              }}
+              icon={Pause}
+              label="Suspend"
+              danger
+              onClick={() => { close(); setSuspendConfirm(t); }}
             />
+          ) : (
             <MenuItem
-              icon={RefreshCcw}
-              label="Change plan"
-              onClick={() => {
-                setMenuFor(null);
-                router.push(`/tenants/${t.id}?tab=plan`);
-              }}
+              icon={Play}
+              label="Activate"
+              onClick={() => { close(); updateTenant.mutate({ id: t.id, isActive: true }); }}
             />
-            {t.accountType !== "PLATFORM" && t.isActive && (
-              <MenuItem
-                icon={UserCheck}
-                label="View as this account"
-                onClick={() => {
-                  setMenuFor(null);
-                  void startViewAs(t.id);
-                }}
-              />
-            )}
-            <div className="my-1 border-t border-slate-100" />
-            {t.isActive ? (
-              <MenuItem
-                icon={Pause}
-                label="Suspend"
-                danger
-                onClick={() => {
-                  setMenuFor(null);
-                  setSuspendConfirm(t);
-                }}
-              />
-            ) : (
-              <MenuItem
-                icon={Play}
-                label="Activate"
-                onClick={() => {
-                  setMenuFor(null);
-                  updateTenant.mutate({ id: t.id, isActive: true });
-                }}
-              />
-            )}
-          </div>
+          )}
         </>
       )}
-    </>
+    </RowMenu>
   );
 
   return (
