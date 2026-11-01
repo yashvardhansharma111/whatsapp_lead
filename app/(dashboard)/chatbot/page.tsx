@@ -339,19 +339,20 @@ function NewFlowModal({
   const create = useCreateFlow();
   const { showToast } = useToast();
   const [name, setName] = useState("");
-  const [trigger, setTrigger] = useState("KEYWORD");
-  const [keywords, setKeywords] = useState("");
   const [description, setDescription] = useState("");
 
-  function reset() { setName(""); setTrigger("KEYWORD"); setKeywords(""); setDescription(""); }
+  function reset() { setName(""); setDescription(""); }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    // When it fires is decided on the canvas, on the start node, next to everything else
+    // about the flow. A new flow starts on the keyword trigger with nothing to match, so
+    // it cannot run until that is filled in.
     const input = {
       name: name.trim(),
       description: description.trim() || undefined,
-      trigger,
-      keywords: trigger === "KEYWORD" ? keywords.split(",").map((k) => k.trim()).filter(Boolean) : [],
+      trigger: "KEYWORD",
+      keywords: [] as string[],
       isActive: false,
     };
     create.mutate(
@@ -368,33 +369,12 @@ function NewFlowModal({
       open={open}
       onClose={onClose}
       title="New Flow"
-      description="Choose when this flow fires, then design the steps on the canvas."
+      description="Name it, then design the steps — and set when it fires — on the canvas."
     >
       <form className="space-y-4" onSubmit={submit}>
         <Field label="Flow name" htmlFor="flow-name" required>
           <input id="flow-name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Pricing enquiry bot" />
         </Field>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="flow-trigger">Trigger</label>
-          <select id="flow-trigger" value={trigger} onChange={(e) => setTrigger(e.target.value)} className={inputClass}>
-            <option value="KEYWORD">Keyword match</option>
-            <option value="INBOUND">Any inbound message</option>
-            <option value="FIRST_MESSAGE">First message from contact</option>
-          </select>
-          <p className="mt-1.5 text-xs text-slate-500">
-            {trigger === "KEYWORD" && "Only fires when the customer's message contains one of the keywords below."}
-            {trigger === "INBOUND" && "Fires on any inbound message that doesn't match a keyword flow. Acts as a catch-all."}
-            {trigger === "FIRST_MESSAGE" && "Fires only when a contact sends their very first message to this business."}
-          </p>
-        </div>
-
-        {trigger === "KEYWORD" && (
-          <Field label="Keywords" htmlFor="flow-keywords">
-            <input id="flow-keywords" value={keywords} onChange={(e) => setKeywords(e.target.value)} className={inputClass} placeholder="pricing, cost, plan" />
-            <p className="mt-1.5 text-xs text-slate-500">Comma separated. Matching is case-insensitive.</p>
-          </Field>
-        )}
 
         <Field label="Description" htmlFor="flow-description">
           <textarea id="flow-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={cn(inputClass, "resize-y")} placeholder="What this flow does…" />

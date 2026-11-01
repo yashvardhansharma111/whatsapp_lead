@@ -27,6 +27,8 @@ export type TriggerType = "KEYWORD" | "INBOUND" | "FIRST_MESSAGE";
 export interface StartNodeData {
   label?: string;
   triggerType?: TriggerType;
+  /** Words that set the flow running, when the trigger is KEYWORD. */
+  keywords?: string[];
 }
 
 export interface MessageNodeData {
@@ -338,7 +340,7 @@ export function defaultNodeData<K extends NodeKind>(kind: K): NodeDataMap[K] {
     case "ai":
       return { prompt: "", temperature: 0.7, model: "", saveAs: "" } as NodeDataMap[K];
     case "start":
-      return {} as NodeDataMap[K];
+      return { triggerType: "KEYWORD", keywords: [] } as NodeDataMap[K];
     case "end":
       return {} as NodeDataMap[K];
     default:

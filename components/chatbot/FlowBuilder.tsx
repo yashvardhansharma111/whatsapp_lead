@@ -99,12 +99,51 @@ function serializeEdges(edges: Edge[]) {
   }));
 }
 
-function ensureStart(nodes: Node[]): Node[] {
-  if (nodes.some((n) => n.type === "start")) return nodes;
-  return [
-    { id: uid("start"), type: "start", position: { x: 80, y: 160 }, data: { label: "Start" } },
-    ...nodes,
-  ];
+/**
+ * The trigger as the runtime reads it.
+ *
+ * Matching happens against the flow's own columns, not the canvas, so what the start
+ * node says has to travel back with every save. Without this the keyword typed into the
+ * builder would look saved and never fire.
+ */
+function triggerOf(nodes: Node[]): { trigger: string; keywords: string[] } {
+  const start = nodes.find((n) => n.type === "start");
+  const data = (start?.data ?? {}) as { triggerType?: string; keywords?: string[] };
+  const trigger = data.triggerType ?? "KEYWORD";
+  return {
+    trigger,
+    keywords: trigger === "KEYWORD" ? (data.keywords ?? []).filter(Boolean) : [],
+  };
+}
+
+/**
+ * Guarantees a start node, and fills in the trigger it should be showing.
+ *
+ * The trigger used to be set when the flow was created and lived only on the flow row,
+ * so a flow made before the editor existed has a start node that knows nothing about it.
+ * Seeding from the row means opening such a flow shows the keywords it really fires on,
+ * rather than an empty box that would overwrite them on the first save.
+ */
+function ensureStart(nodes: Node[], flow: { trigger?: string; keywords?: string[] }): Node[] {
+  const withStart = nodes.some((n) => n.type === "start")
+    ? nodes
+    : [
+        { id: uid("start"), type: "start", position: { x: 80, y: 160 }, data: { label: "Start" } } as Node,
+        ...nodes,
+      ];
+
+  return withStart.map((n) => {
+    if (n.type !== "start") return n;
+    const data = (n.data ?? {}) as { triggerType?: string; keywords?: string[] };
+    return {
+      ...n,
+      data: {
+        ...data,
+        triggerType: data.triggerType ?? flow.trigger ?? "KEYWORD",
+        keywords:    data.keywords    ?? flow.keywords ?? [],
+      },
+    };
+  });
 }
 
 export function FlowBuilder({
@@ -183,7 +222,7 @@ function FlowCanvas({
     if (!flow || loadedFor.current === flow.id) return;
     loadedFor.current = flow.id;
     const doc = toFlowDocument(flow.nodes, flow.edges);
-    const initialNodes = ensureStart(doc.nodes as unknown as Node[]);
+    const initialNodes = ensureStart(doc.nodes as unknown as Node[], flow);
     const initialEdges = doc.edges as unknown as Edge[];
     reset(initialNodes, initialEdges);
     const sig = JSON.stringify({ n: serializeNodes(initialNodes), e: serializeEdges(initialEdges) });
@@ -209,7 +248,7 @@ function FlowCanvas({
       }
       inFlightSig.current = sig;
       autosave.mutate(
-        { id: flowId, nodes: serializeNodes(nodes), edges: serializeEdges(edges) },
+        { id: flowId, nodes: serializeNodes(nodes), edges: serializeEdges(edges), ...triggerOf(nodes) },
         {
           onSuccess: () => markSaved(sig),
           onSettled: () => {
@@ -230,7 +269,9 @@ function FlowCanvas({
     }
     inFlightSig.current = sig;
     try {
-      await autosave.mutateAsync({ id: flowId, nodes: serializeNodes(nodes), edges: serializeEdges(edges) });
+      await autosave.mutateAsync({
+        id: flowId, nodes: serializeNodes(nodes), edges: serializeEdges(edges), ...triggerOf(nodes),
+      });
       markSaved(sig);
     } finally {
       inFlightSig.current = "";

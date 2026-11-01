@@ -121,11 +121,13 @@ export function useUpdateFlow() {
 export function useAutosaveFlow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, nodes, edges }: { id: string; nodes?: unknown[]; edges?: unknown[] }) => {
+    mutationFn: async ({ id, nodes, edges, trigger, keywords }: {
+      id: string; nodes?: unknown[]; edges?: unknown[]; trigger?: string; keywords?: string[];
+    }) => {
       const res = await fetch(`/api/chatbot/flows/${id}/autosave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodes, edges }),
+        body: JSON.stringify({ nodes, edges, trigger, keywords }),
       });
       return unwrap<ChatbotFlow>(res, "Failed to autosave flow");
     },

@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, MessageSquare, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { Button, Skeleton, SkeletonCard } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { ChipInput, ResetButton, SettingsCard, SettingsIntro } from "@/components/settings/SettingsPrimitives";
+import { ResetButton, SettingsCard, SettingsIntro } from "@/components/settings/SettingsPrimitives";
+import { ChipInput } from "@/components/ui/ChipInput";
 
 const DEFAULT_OPT_OUT = ["STOP", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT"];
 const DEFAULT_OPT_IN  = ["START", "SUBSCRIBE", "YES"];

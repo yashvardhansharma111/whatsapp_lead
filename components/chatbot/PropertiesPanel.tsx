@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Copy, Trash2, X } from "lucide-react";
 import { Button, Field, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { ChipInput } from "@/components/ui/ChipInput";
 import { NODE_META } from "@/lib/chatbot/types";
 import type {
   AnyNodeData,
@@ -123,19 +124,44 @@ const TRIGGER_LABELS: Record<string, string> = {
 
 function StartFields({ data, set }: { data: StartNodeData; set: Setter }) {
   const type = data.triggerType ?? "KEYWORD";
+  const keywords = data.keywords ?? [];
   return (
-    <div className="space-y-2">
-      <span className={labelCls}>Trigger type</span>
-      <select
-        className={inputClass}
-        value={type}
-        onChange={(e) => set({ triggerType: e.target.value as StartNodeData["triggerType"] })}
-      >
-        <option value="KEYWORD">Keyword match</option>
-        <option value="INBOUND">Any inbound message</option>
-        <option value="FIRST_MESSAGE">First message from contact</option>
-      </select>
-      <p className="text-[11px] text-slate-400">{TRIGGER_LABELS[type]}</p>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <span className={labelCls}>Trigger type</span>
+        <select
+          className={inputClass}
+          value={type}
+          onChange={(e) => set({ triggerType: e.target.value as StartNodeData["triggerType"] })}
+        >
+          <option value="KEYWORD">Keyword match</option>
+          <option value="INBOUND">Any inbound message</option>
+          <option value="FIRST_MESSAGE">First message from contact</option>
+        </select>
+        <p className="text-[11px] text-slate-400">{TRIGGER_LABELS[type]}</p>
+      </div>
+
+      {/* Only a keyword trigger has keywords, and showing the editor for the others
+          would imply they are consulted. */}
+      {type === "KEYWORD" && (
+        <div className="space-y-2">
+          <span className={labelCls}>Keywords</span>
+          <ChipInput
+            inputId="np-keyword"
+            values={keywords}
+            onChange={(next) => set({ keywords: next })}
+            placeholder="e.g. pricing"
+            // A keyword is matched against ordinary words, so it keeps its spaces and
+            // its case is folded at match time rather than here.
+            normalise={(raw) => raw.trim().toLowerCase()}
+            emptyHint="No keywords yet — this flow will never start."
+          />
+          <p className="text-[11px] leading-snug text-slate-400">
+            Matching ignores case. A single word matches as a whole word; a phrase matches
+            anywhere in the message.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
