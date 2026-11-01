@@ -81,7 +81,7 @@ export function BusinessSwitcher({
         setUpgrade(reason);
         return;
       }
-      setError(err instanceof Error ? err.message : "Failed to create business");
+      setError(err instanceof Error ? err.message : "Failed to create department");
     }
   };
 
@@ -98,10 +98,10 @@ export function BusinessSwitcher({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-slate-900">
-            {current?.name ?? "Business"}
+            {current?.name ?? "Department"}
           </span>
           <span className="block truncate text-[11px] text-slate-400">
-            {businesses.length} {businesses.length === 1 ? "business" : "businesses"}
+            {businesses.length} {businesses.length === 1 ? "department" : "departments"}
           </span>
         </span>
         {switchBusiness.isPending ? (
@@ -117,7 +117,7 @@ export function BusinessSwitcher({
           className="absolute bottom-full left-0 z-40 mb-1.5 w-full min-w-[15rem] overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-slate-900/5"
         >
           <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Businesses
+            Departments
           </p>
           <div className="max-h-64 overflow-y-auto">
             {businesses.map((b) => (
@@ -155,7 +155,7 @@ export function BusinessSwitcher({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
               <Plus className="h-3.5 w-3.5" />
             </span>
-            Create business
+            Create department
           </button>
           <button
             role="menuitem"
@@ -168,7 +168,7 @@ export function BusinessSwitcher({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
               <Settings2 className="h-3.5 w-3.5" />
             </span>
-            Manage businesses
+            Manage departments
           </button>
         </div>
       )}
@@ -176,11 +176,11 @@ export function BusinessSwitcher({
       <Modal
         open={creating}
         onClose={() => setCreating(false)}
-        title="Create business"
-        description="A new WhatsApp business account with its own contacts, chats, campaigns, knowledge base and AI settings."
+        title="Create department"
+        description="A new WhatsApp account with its own contacts, chats, campaigns, knowledge base and AI settings."
       >
         <form onSubmit={onCreate} className="space-y-4">
-          <Field label="Business name" htmlFor="biz-name" required error={error ?? undefined}>
+          <Field label="Department name" htmlFor="biz-name" required error={error ?? undefined}>
             <input
               id="biz-name"
               value={name}
@@ -192,14 +192,14 @@ export function BusinessSwitcher({
           </Field>
           <p className="text-xs text-slate-500">
             You can connect its WhatsApp number and configure AI after creating it, from{" "}
-            <span className="font-medium text-slate-600">Manage businesses</span>.
+            <span className="font-medium text-slate-600">Manage departments</span>.
           </p>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={createBusiness.isPending || name.trim().length < 2}>
-              {createBusiness.isPending ? "Creating…" : "Create business"}
+              {createBusiness.isPending ? "Creating…" : "Create department"}
             </Button>
           </div>
         </form>

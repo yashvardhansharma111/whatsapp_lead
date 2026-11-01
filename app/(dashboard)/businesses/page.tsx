@@ -134,8 +134,8 @@ export default function BusinessesPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="Businesses"
-        description="Each business is an independent WhatsApp account with its own contacts, conversations, campaigns, templates, knowledge base and AI settings."
+        title="Departments"
+        description="Each department is an independent WhatsApp account with its own contacts, conversations, campaigns, templates, knowledge base and AI settings."
         action={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -230,7 +230,7 @@ export default function BusinessesPage() {
                     className="ml-auto text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                     onClick={() => setConfirmDelete(b)}
                     disabled={businesses.length <= 1}
-                    title={businesses.length <= 1 ? "You can't delete your only business" : "Delete"}
+                    title={businesses.length <= 1 ? "You can't delete your only department" : "Delete"}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -245,11 +245,11 @@ export default function BusinessesPage() {
       <Modal
         open={showForm}
         onClose={() => setShowForm(false)}
-        title={editing ? "Edit business" : "New business"}
-        description="Connect a WhatsApp number and configure this business's own AI chatbot."
+        title={editing ? "Edit department" : "New department"}
+        description="Connect a WhatsApp number and configure this department's own AI chatbot."
       >
         <form onSubmit={submit} className="space-y-5">
-          <Field label="Business name" htmlFor="b-name" required>
+          <Field label="Department name" htmlFor="b-name" required>
             <input
               id="b-name"
               value={form.name}
@@ -314,9 +314,9 @@ export default function BusinessesPage() {
               <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-3 py-2.5 hover:bg-white/70">
                 <div>
                   <span className="text-sm font-medium text-slate-700">Enable AI</span>
-                  <p className="text-xs text-slate-500">Allow AI to process conversations for this business.</p>
+                  <p className="text-xs text-slate-500">Allow AI to process conversations for this department.</p>
                 </div>
-                <Toggle checked={!!form.aiEnabled} onChange={(v) => set("aiEnabled", v)} label="Enable AI for this business" />
+                <Toggle checked={!!form.aiEnabled} onChange={(v) => set("aiEnabled", v)} label="Enable AI for this department" />
               </label>
               <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-3 py-2.5 hover:bg-white/70">
                 <div>
@@ -340,7 +340,7 @@ export default function BusinessesPage() {
                   value={form.aiSystemPrompt ?? ""}
                   onChange={(e) => set("aiSystemPrompt", e.target.value)}
                   rows={3}
-                  placeholder="How this business's chatbot should behave…"
+                  placeholder="How this department's chatbot should behave…"
                   className={inputClass}
                 />
               </Field>
@@ -377,7 +377,7 @@ export default function BusinessesPage() {
               Cancel
             </Button>
             <Button type="submit" disabled={saving || form.name.trim().length < 2}>
-              {saving ? "Saving…" : editing ? "Save changes" : "Create business"}
+              {saving ? "Saving…" : editing ? "Save changes" : "Create department"}
             </Button>
           </div>
         </form>
@@ -387,7 +387,7 @@ export default function BusinessesPage() {
       <Modal
         open={!!confirmDelete}
         onClose={() => { if (!deleteBusiness.isPending) setConfirmDelete(null); }}
-        title="Delete business?"
+        title="Delete department?"
         description={
           confirmDelete
             ? `This permanently deletes "${confirmDelete.name}" and all of its contacts, conversations, campaigns, templates and knowledge. This cannot be undone.`
@@ -399,7 +399,7 @@ export default function BusinessesPage() {
             Cancel
           </Button>
           <Button variant="danger" onClick={onDelete} disabled={deleteBusiness.isPending}>
-            {deleteBusiness.isPending ? "Deleting…" : "Delete business"}
+            {deleteBusiness.isPending ? "Deleting…" : "Delete department"}
           </Button>
         </div>
       </Modal>
