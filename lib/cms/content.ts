@@ -19,9 +19,15 @@ export function buildHomeContent(stored: Map<string, StoredSection>): HomeConten
 
 type CachedSection = Omit<StoredSection, "updatedAt"> & { key: string; updatedAt: string };
 
+/**
+ * @param host whose homepage to load. A white-label brand's host returns that brand's
+ *   own sections; anything it has not edited is absent and filled in from the defaults
+ *   below, so a brand that has changed nothing still reads as the product.
+ */
 const loadSavedSections = unstable_cache(
-  async (): Promise<CachedSection[]> => {
-    const res = await fetch(`${BACKEND}/cms/sections/public`, { cache: "no-store" });
+  async (host?: string): Promise<CachedSection[]> => {
+    const query = host ? `?host=${encodeURIComponent(host)}` : "";
+    const res = await fetch(`${BACKEND}/cms/sections/public${query}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`CMS fetch failed: ${res.status}`);
     const json = await res.json();
     const rows: any[] = json?.data ?? [];
@@ -38,10 +44,14 @@ const loadSavedSections = unstable_cache(
   { tags: [CMS_CACHE_TAG] },
 );
 
-/** Published homepage content: active sections and items, in order, defaults filled in. */
-export async function getHomeContent(): Promise<HomeContent> {
+/**
+ * Published homepage content: active sections and items, in order, defaults filled in.
+ *
+ * @param host the brand whose page this is. The platform's own site passes nothing.
+ */
+export async function getHomeContent(host?: string): Promise<HomeContent> {
   try {
-    const saved = await loadSavedSections();
+    const saved = await loadSavedSections(host);
     return buildHomeContent(
       new Map(saved.map(({ key, updatedAt, ...row }) => [key, { ...row, updatedAt: new Date(updatedAt) }])),
     );
@@ -54,8 +64,8 @@ export async function getHomeContent(): Promise<HomeContent> {
   }
 }
 
-export async function getSection<K extends SectionKey>(key: K): Promise<PublicSection<K>> {
-  const content = await getHomeContent();
+export async function getSection<K extends SectionKey>(key: K, host?: string): Promise<PublicSection<K>> {
+  const content = await getHomeContent(host);
   return content[key];
 }
 

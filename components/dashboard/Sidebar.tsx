@@ -5,33 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  MessageSquare,
-  Users,
-  Target,
-  Megaphone,
-  Bot,
-  Ticket,
-  BarChart2,
-  BookOpen,
-  Sparkles,
-  UserCheck,
-  UserCog,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  FileText,
-  Send,
-  Ban,
-  LayoutDashboard,
-  Building2,
-  CreditCard,
-  Palette,
-  Filter,
-  ChevronRight,
-  FileBarChart2,
-  Tag,
-  Phone,
+  Ban, BarChart2, BookOpen, Bot, Building2, ChevronRight, CreditCard, FileBarChart2, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Send, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X,
 } from "lucide-react";
 import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -95,6 +69,7 @@ const RESELLER_NAV = [
       { href: "/reseller/plans", label: "Plans", icon: CreditCard, permission: "reseller.plans.manage" },
       { href: "/billing", label: "Billing & Plan", icon: CreditCard, permission: "billing.manage" },
       { href: "/reseller/branding", label: "Branding", icon: Palette, permission: "whitelabel.manage", whiteLabelOnly: true },
+      { href: "/reseller/website", label: "Website", icon: LayoutTemplate, permission: "whitelabel.manage", whiteLabelOnly: true },
     ],
   },
   {

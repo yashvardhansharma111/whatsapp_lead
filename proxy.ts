@@ -80,7 +80,13 @@ const AGENT_BLOCKED_PREFIXES = [
  * The session's accountType is refreshed from the database every few minutes.
  */
 const RESELLER_PAGE_PREFIXES = ["/reseller", "/team", "/settings", "/billing", "/wallet"];
-const RESELLER_API_PREFIXES = ["/api/reseller", "/api/team", "/api/settings", "/api/billing", "/api/wallet", "/api/account", "/api/auth"];
+const RESELLER_API_PREFIXES = [
+  "/api/reseller", "/api/team", "/api/settings", "/api/billing", "/api/wallet", "/api/account", "/api/auth",
+  // A white-label reseller edits its own brand's homepage through the same CMS endpoints
+  // the platform uses. Which rows it reaches is decided by the backend from who is
+  // asking, not by the path — this only stops the proxy refusing it on sight.
+  "/api/admin/cms",
+];
 /** Client-only corners inside otherwise-allowed API areas. */
 const RESELLER_API_BLOCKED = ["/api/settings/whatsapp"];
 

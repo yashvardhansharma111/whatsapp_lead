@@ -185,7 +185,14 @@ function siteHref(key: SectionKey) {
 
 // ─── Page shell: navigation + editor ──────────────────────────────────────────
 
-export function CmsSectionPage({ sectionKey }: { sectionKey: SectionKey }) {
+export function CmsSectionPage({
+  sectionKey,
+  /** Where this editor lives, so the breadcrumb and the section list link correctly. */
+  basePath = "/admin/cms",
+}: {
+  sectionKey: SectionKey;
+  basePath?: string;
+}) {
   const router = useRouter();
   const dirty = useRef(false);
 
@@ -199,7 +206,7 @@ export function CmsSectionPage({ sectionKey }: { sectionKey: SectionKey }) {
       <nav aria-label="Breadcrumb" className="mb-4 flex items-center justify-between text-xs text-slate-500">
         <span className="flex items-center">
           <Link
-            href="/admin/cms"
+            href={basePath}
             onClick={(event) => {
               if (!confirmLeave()) event.preventDefault();
             }}
@@ -218,7 +225,7 @@ export function CmsSectionPage({ sectionKey }: { sectionKey: SectionKey }) {
         <SectionNav
           current={sectionKey}
           confirmLeave={confirmLeave}
-          onSelect={(key) => router.push(`/admin/cms/${key}`)}
+          onSelect={(key) => router.push(`${basePath}/${key}`)}
         />
         <SectionEditor
           key={sectionKey}

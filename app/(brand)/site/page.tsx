@@ -1,40 +1,42 @@
 // ============================================================================
 // PAGE : White-label landing page
 //
-// The public home of a white-label brand: hero, features, how it works, the
-// reseller's own plans (or the platform's if it has none), contact details and a
-// closing call to action. All wording is generic or the reseller's own; nothing
-// names the platform. A reseller that switched the landing page off sends
-// visitors straight to its login page.
+// The public home of a white-label brand, built from that brand's own CMS content.
+// The reseller edits the same sections the platform edits for its own site, under its
+// own tenant; anything it has not touched falls back to the platform's defaults, so a
+// brand that has changed nothing still reads as a finished product.
+//
+// Pricing is the one section not taken from the CMS: the plans shown have to be the
+// plans a visitor is actually charged for, so they come from the reseller's billing
+// plans. Contact details come from the brand record for the same reason.
+//
+// A reseller that switched the landing page off sends visitors straight to its login.
 // ============================================================================
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight, BarChart3, Bot, Check, Globe, Inbox, Mail, MapPin, Megaphone, Phone,
-  ShieldCheck, Target, UploadCloud, Users,
-} from "lucide-react";
+import { Check, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { headers } from "next/headers";
 import { getRequestBrand } from "@/lib/branding";
-import { Container, GridBackdrop, Reveal, SectionHeading, Spotlight } from "@/components/marketing/home/primitives";
+import { getHomeContent } from "@/lib/cms/content";
+import { AiSpotlight } from "@/components/marketing/home/AiSpotlight";
+import { Capabilities } from "@/components/marketing/home/Capabilities";
+import { DarkBand } from "@/components/marketing/home/DarkBand";
+import { Faq } from "@/components/marketing/home/Faq";
+import { Hero } from "@/components/marketing/home/Hero";
+import { Industries } from "@/components/marketing/home/Industries";
+import { Integrations } from "@/components/marketing/home/Integrations";
+import { MessageTypes } from "@/components/marketing/home/MessageTypes";
+import { Problem } from "@/components/marketing/home/Problem";
+import { Stats } from "@/components/marketing/home/Stats";
+import { Testimonials } from "@/components/marketing/home/Testimonials";
+import { TrustedLogos } from "@/components/marketing/home/TrustedLogos";
+import { Workflow } from "@/components/marketing/home/Workflow";
+import { Reveal, SectionHeading } from "@/components/marketing/home/primitives";
 import { PageCta, Section } from "@/components/marketing/PageShell";
 
 // Branding and plans change; render per request.
 export const dynamic = "force-dynamic";
-
-const FEATURES = [
-  { icon: Inbox, title: "Shared WhatsApp inbox", text: "Your whole team answers customers from one inbox, with assignment and notes." },
-  { icon: Megaphone, title: "Bulk broadcasts", text: "Paste numbers or import a sheet and send approved WhatsApp templates in minutes." },
-  { icon: Users, title: "Personalised messages", text: "Every contact gets their own details — names, results, due dates — filled in automatically." },
-  { icon: Bot, title: "AI replies & chatbot", text: "Answer common questions instantly from your own documents, day and night." },
-  { icon: Target, title: "Leads & pipeline", text: "Turn conversations into leads and follow each one through to a sale." },
-  { icon: BarChart3, title: "Reports", text: "See what was sent, delivered, read and replied to, for every campaign." },
-];
-
-const STEPS = [
-  { icon: UploadCloud, title: "Sign up", text: "Create your account in a minute and connect your WhatsApp number." },
-  { icon: Megaphone, title: "Reach customers", text: "Import contacts and send your first campaign or broadcast." },
-  { icon: ShieldCheck, title: "Grow safely", text: "Opt-outs, blacklists and approved templates keep every send compliant." },
-];
 
 const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
@@ -49,90 +51,37 @@ export default async function BrandLandingPage() {
   const qs = brand.resellerId ? `?resellerId=${encodeURIComponent(brand.resellerId)}` : "";
   const plansRes = await fetch(`${BACKEND}/billing/plans/public${qs}`, { cache: "no-store" }).catch(() => null);
   const plansJson = plansRes?.ok ? await plansRes.json() : null;
-  const plans: any[] = plansJson?.data?.plans ?? [];
+  // Only the fields this page draws; the endpoint returns more.
+  const plans: {
+    id: string; displayName: string; description?: string | null; priceMonthly: number;
+    maxContacts: number; maxMsgPerMonth: number; maxAgents: number;
+  }[] = plansJson?.data?.plans ?? [];
 
-  const title = brand.landingTitle || brand.loginHeadline;
-  const subtitle = brand.landingSubtitle || brand.loginSubtext;
+  // Scoped to this host, so each brand gets its own sections.
+  const host = (await headers()).get("x-forwarded-host") ?? (await headers()).get("host") ?? undefined;
+  const home = await getHomeContent(host);
+
   const hasContact = brand.supportEmail || brand.supportPhone || brand.address || brand.website;
 
   return (
     <>
-      {/* ── Hero ── */}
-      <section className="relative isolate overflow-hidden bg-gradient-to-b from-white via-emerald-50/60 to-white pb-16 pt-14 sm:pb-20 sm:pt-20">
-        <GridBackdrop />
-        <Spotlight />
-        <Container className="relative">
-          <div className="mx-auto max-w-3xl text-center">
-            <Reveal>
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700 shadow-sm ring-1 ring-inset ring-emerald-600/20 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                {brand.name}
-              </span>
-            </Reveal>
-            <Reveal delay={80}>
-              <h1 className="mt-5 text-[2.1rem] font-bold leading-[1.08] tracking-tight text-balance text-slate-900 sm:text-5xl">
-                {title}
-              </h1>
-            </Reveal>
-            <Reveal delay={160}>
-              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">{subtitle}</p>
-            </Reveal>
-            <Reveal delay={240}>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link
-                  href="/register"
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:w-auto"
-                >
-                  Get started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition hover:-translate-y-0.5 hover:bg-slate-50 sm:w-auto"
-                >
-                  Sign in
-                </Link>
-              </div>
-            </Reveal>
-          </div>
-        </Container>
-      </section>
-
-      {/* ── Features ── */}
-      <Section id="features" tone="plain">
-        <SectionHeading align="center" eyebrow="Features" title="Everything you need to sell on WhatsApp" description="One place for conversations, campaigns and leads." />
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <li key={f.title}>
-              <Reveal delay={i * 60} className="h-full rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-md">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/15">
-                  <f.icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{f.text}</p>
-              </Reveal>
-            </li>
-          ))}
-        </ul>
-      </Section>
-
-      {/* ── How it works ── */}
-      <Section tone="soft" glow>
-        <SectionHeading align="center" eyebrow="How it works" title="Up and running in three steps" />
-        <ol className="mt-10 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <li key={s.title}>
-              <Reveal delay={i * 80} className="h-full rounded-2xl bg-white/80 p-6 text-center shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
-                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md shadow-emerald-600/30">
-                  <s.icon className="h-5 w-5" />
-                </span>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-emerald-700">Step {i + 1}</p>
-                <h3 className="mt-1 font-semibold text-slate-900">{s.title}</h3>
-                <p className="mt-1 text-sm text-slate-600">{s.text}</p>
-              </Reveal>
-            </li>
-          ))}
-        </ol>
-      </Section>
+      {/* The brand's own content, section for section — the same editor the platform
+          uses for its site, scoped to this reseller. */}
+      {home.hero.isActive && <Hero section={home.hero} />}
+      {home.logos.isActive && <TrustedLogos section={home.logos} />}
+      {home.stats.isActive && <Stats section={home.stats} />}
+      {home.problem.isActive && <Problem section={home.problem} />}
+      {home.howItWorks.isActive && <Workflow section={home.howItWorks} />}
+      {home.products.isActive && (
+        <DarkBand>
+          <Capabilities section={home.products} />
+        </DarkBand>
+      )}
+      {home.ai.isActive && <AiSpotlight section={home.ai} />}
+      {home.messageTypes.isActive && <MessageTypes section={home.messageTypes} />}
+      {home.integrations.isActive && <Integrations section={home.integrations} />}
+      {home.industries.isActive && <Industries section={home.industries} />}
+      {home.testimonials.isActive && <Testimonials section={home.testimonials} />}
 
       {/* ── Pricing ── */}
       {plans.length > 0 && (
@@ -190,6 +139,8 @@ export default async function BrandLandingPage() {
           </div>
         </Section>
       )}
+
+      {home.faq.isActive && <Faq section={home.faq} />}
 
       <PageCta
         title={`Start with ${brand.name} today`}
