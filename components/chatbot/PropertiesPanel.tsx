@@ -17,6 +17,10 @@ import type {
   DelayNodeData,
   FlowNode,
   HandoffNodeData,
+  QualifyLeadNodeData,
+  TagNodeData,
+  LeadStageNodeData,
+  NotifyNodeData,
   MessageNodeData,
   NodeKind,
   QuestionNodeData,
@@ -90,6 +94,10 @@ export function PropertiesPanel({
         {node.type === "delay" && <DelayFields data={data as DelayNodeData} set={set} />}
         {node.type === "set_variable" && <SetVariableFields data={data as SetVariableNodeData} set={set} />}
         {node.type === "handoff" && <HandoffFields data={data as HandoffNodeData} set={set} />}
+        {node.type === "qualify_lead" && <QualifyLeadFields data={data as QualifyLeadNodeData} set={set} />}
+        {node.type === "tag" && <TagFields data={data as TagNodeData} set={set} />}
+        {node.type === "lead_stage" && <LeadStageFields data={data as LeadStageNodeData} set={set} />}
+        {node.type === "notify" && <NotifyFields data={data as NotifyNodeData} set={set} />}
         {node.type === "ai" && <AiFields data={data as AiNodeData} set={set} />}
         {node.type === "end" && (
           <p className="text-xs text-slate-400">This node has no extra configuration.</p>
@@ -856,6 +864,137 @@ function HandoffFields({ data, set }: { data: HandoffNodeData; set: Setter }) {
           onChange={(e) => set({ note: e.target.value })}
           placeholder="Context for whoever picks this up…"
         />
+      </Field>
+    </>
+  );
+}
+
+function QualifyLeadFields({ data, set }: { data: QualifyLeadNodeData; set: Setter }) {
+  return (
+    <>
+      <p className="rounded-lg bg-lime-50 px-3 py-2 text-[11px] leading-relaxed text-lime-900 ring-1 ring-inset ring-lime-100">
+        Reads the conversation so far and grades it. Nothing branches here — put a{" "}
+        <strong className="font-semibold">Condition</strong> after this node and test the
+        variables below.
+      </p>
+      <Field label="Store the score in" htmlFor="np-score-var">
+        <input
+          id="np-score-var"
+          className={inputClass}
+          value={data.saveScoreAs ?? ""}
+          onChange={(e) => set({ saveScoreAs: e.target.value })}
+          placeholder="lead_score"
+        />
+        <p className="mt-1 text-[11px] text-slate-400">A number from 0 to 100.</p>
+      </Field>
+      <Field label="Store the grade in" htmlFor="np-label-var">
+        <input
+          id="np-label-var"
+          className={inputClass}
+          value={data.saveLabelAs ?? ""}
+          onChange={(e) => set({ saveLabelAs: e.target.value })}
+          placeholder="lead_label"
+        />
+        <p className="mt-1 text-[11px] text-slate-400">One of COLD, WARM, HOT or QUALIFIED.</p>
+      </Field>
+    </>
+  );
+}
+
+function TagFields({ data, set }: { data: TagNodeData; set: Setter }) {
+  return (
+    <>
+      <div>
+        <span className={labelCls}>What to do</span>
+        <select
+          className={inputClass}
+          value={data.action ?? "add"}
+          onChange={(e) => set({ action: e.target.value as TagNodeData["action"] })}
+        >
+          <option value="add">Add these tags</option>
+          <option value="remove">Remove these tags</option>
+        </select>
+      </div>
+      <div className="space-y-2">
+        <span className={labelCls}>Tags</span>
+        <ChipInput
+          inputId="np-tags"
+          values={data.tags ?? []}
+          onChange={(tags) => set({ tags })}
+          placeholder="e.g. pricing-enquiry"
+          normalise={(raw) => raw.trim()}
+          emptyHint="No tags yet — this node will do nothing."
+        />
+        <p className="text-[11px] text-slate-400">A tag that does not exist yet is created.</p>
+      </div>
+    </>
+  );
+}
+
+function LeadStageFields({ data, set }: { data: LeadStageNodeData; set: Setter }) {
+  return (
+    <Field label="Move the lead to" htmlFor="np-stage">
+      <input
+        id="np-stage"
+        className={inputClass}
+        value={data.stageName ?? ""}
+        onChange={(e) => set({ stageName: e.target.value })}
+        placeholder="e.g. Qualified"
+      />
+      <p className="mt-1 text-[11px] leading-snug text-slate-400">
+        The stage name as it appears in Settings &rarr; Lead stages. If the contact has no
+        lead yet, one is created.
+      </p>
+    </Field>
+  );
+}
+
+function NotifyFields({ data, set }: { data: NotifyNodeData; set: Setter }) {
+  const target = data.target ?? "assignee";
+  return (
+    <>
+      <div>
+        <span className={labelCls}>Tell</span>
+        <select
+          className={inputClass}
+          value={target}
+          onChange={(e) => set({ target: e.target.value as NotifyNodeData["target"] })}
+        >
+          <option value="assignee">Whoever is assigned to the chat</option>
+          <option value="managers">Managers and owners</option>
+          <option value="department">A department</option>
+        </select>
+      </div>
+      {target === "department" && (
+        <Field label="Department" htmlFor="np-notify-dept">
+          <input
+            id="np-notify-dept"
+            className={inputClass}
+            value={data.departmentName ?? ""}
+            onChange={(e) => set({ departmentName: e.target.value })}
+            placeholder="e.g. Sales"
+          />
+        </Field>
+      )}
+      <Field label="Title" htmlFor="np-notify-title">
+        <input
+          id="np-notify-title"
+          className={inputClass}
+          value={data.title ?? ""}
+          onChange={(e) => set({ title: e.target.value })}
+          placeholder="Hot lead waiting"
+        />
+      </Field>
+      <Field label="Details" htmlFor="np-notify-body">
+        <textarea
+          id="np-notify-body"
+          rows={3}
+          className={cn(inputClass, "resize-y")}
+          value={data.body ?? ""}
+          onChange={(e) => set({ body: e.target.value })}
+          placeholder="{{name}} asked about pricing"
+        />
+        <p className="mt-1 text-[11px] text-slate-400">Use {"{{variable}}"} to include stored answers.</p>
       </Field>
     </>
   );

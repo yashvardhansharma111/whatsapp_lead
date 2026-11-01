@@ -19,6 +19,10 @@ export type NodeKind =
   | "delay"
   | "set_variable"
   | "handoff"
+  | "qualify_lead"
+  | "tag"
+  | "lead_stage"
+  | "notify"
   | "ai"
   | "end";
 
@@ -217,6 +221,43 @@ export interface EndNodeData {
   label?: string;
 }
 
+/**
+ * Scores the conversation with the lead-qualification model and keeps the result in the
+ * flow's variables, so an ordinary condition node can branch on it. Branching is left to
+ * `condition` rather than built in here: a flow that only wants to record the score
+ * should not have to draw an unused edge.
+ */
+export interface QualifyLeadNodeData {
+  label?: string;
+  /** Variable to hold the 0-100 score. Defaults to `lead_score`. */
+  saveScoreAs?: string;
+  /** Variable to hold COLD / WARM / HOT / QUALIFIED. Defaults to `lead_label`. */
+  saveLabelAs?: string;
+}
+
+/** Adds or removes tags on the contact the flow is talking to. */
+export interface TagNodeData {
+  label?: string;
+  action?: "add" | "remove";
+  tags?: string[];
+}
+
+/** Moves this contact's lead to a stage of the pipeline. */
+export interface LeadStageNodeData {
+  label?: string;
+  /** Matched against the stage name, so a renamed stage keeps working by id. */
+  stageName?: string;
+}
+
+/** Tells someone on the team that this conversation wants attention. */
+export interface NotifyNodeData {
+  label?: string;
+  target?: "assignee" | "managers" | "department";
+  departmentName?: string;
+  title?: string;
+  body?: string;
+}
+
 export interface NodeDataMap {
   start: StartNodeData;
   message: MessageNodeData;
@@ -228,6 +269,10 @@ export interface NodeDataMap {
   delay: DelayNodeData;
   set_variable: SetVariableNodeData;
   handoff: HandoffNodeData;
+  qualify_lead: QualifyLeadNodeData;
+  tag: TagNodeData;
+  lead_stage: LeadStageNodeData;
+  notify: NotifyNodeData;
   ai: AiNodeData;
   end: EndNodeData;
 }
@@ -289,6 +334,10 @@ export const NODE_KINDS: NodeKindMeta[] = [
   { kind: "delay", label: "Delay", hint: "Wait before continuing", accent: "bg-orange-50 text-orange-700", chip: "bg-orange-100 text-orange-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "set_variable", label: "Set Variable", hint: "Assign a value to a variable", accent: "bg-teal-50 text-teal-700", chip: "bg-teal-100 text-teal-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "handoff", label: "Transfer to human", hint: "Hand the conversation to a person", accent: "bg-rose-50 text-rose-700", chip: "bg-rose-100 text-rose-700", creatable: true, hasInput: true, hasOutput: true },
+  { kind: "qualify_lead", label: "Score the lead", hint: "Grade the conversation and store the result", accent: "bg-lime-50 text-lime-700", chip: "bg-lime-100 text-lime-700", creatable: true, hasInput: true, hasOutput: true },
+  { kind: "tag", label: "Tag contact", hint: "Add or remove tags", accent: "bg-pink-50 text-pink-700", chip: "bg-pink-100 text-pink-700", creatable: true, hasInput: true, hasOutput: true },
+  { kind: "lead_stage", label: "Move lead stage", hint: "Advance the lead in the pipeline", accent: "bg-purple-50 text-purple-700", chip: "bg-purple-100 text-purple-700", creatable: true, hasInput: true, hasOutput: true },
+  { kind: "notify", label: "Notify the team", hint: "Tell a colleague this needs attention", accent: "bg-yellow-50 text-yellow-800", chip: "bg-yellow-100 text-yellow-800", creatable: true, hasInput: true, hasOutput: true },
   { kind: "ai", label: "AI Response", hint: "Generate a reply with AI", accent: "bg-indigo-50 text-indigo-700", chip: "bg-indigo-100 text-indigo-700", creatable: true, hasInput: true, hasOutput: true },
   { kind: "end", label: "End", hint: "Terminates the flow", accent: "bg-slate-100 text-slate-600", chip: "bg-slate-200 text-slate-600", creatable: true, hasInput: true, hasOutput: false },
 ];
@@ -337,6 +386,16 @@ export function defaultNodeData<K extends NodeKind>(kind: K): NodeDataMap[K] {
       return { variable: "", value: "" } as NodeDataMap[K];
     case "handoff":
       return { team: "", queue: "", note: "" } as NodeDataMap[K];
+    case "qualify_lead":
+      // Named defaults, so the very next condition node can branch without the author
+      // first having to invent variable names.
+      return { saveScoreAs: "lead_score", saveLabelAs: "lead_label" } as NodeDataMap[K];
+    case "tag":
+      return { action: "add", tags: [] } as NodeDataMap[K];
+    case "lead_stage":
+      return { stageName: "" } as NodeDataMap[K];
+    case "notify":
+      return { target: "assignee", title: "", body: "" } as NodeDataMap[K];
     case "ai":
       return { prompt: "", temperature: 0.7, model: "", saveAs: "" } as NodeDataMap[K];
     case "start":

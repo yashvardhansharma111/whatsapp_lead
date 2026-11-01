@@ -6,6 +6,10 @@ import type {
   FlowDocument,
   FlowNode,
   HandoffNodeData,
+  LeadStageNodeData,
+  NotifyNodeData,
+  QualifyLeadNodeData,
+  TagNodeData,
   MenuNodeData,
   MessageNodeData,
   QuestionNodeData,
@@ -74,7 +78,11 @@ export type EngineActionType =
   | "ai"
   | "handoff"
   | "template"
-  | "menu";
+  | "menu"
+  | "qualify_lead"
+  | "tag"
+  | "lead_stage"
+  | "notify";
 
 export interface EngineAction {
   type: EngineActionType;
@@ -91,6 +99,8 @@ export interface EngineAction {
   template?: { templateName?: string; language?: string; headerVar?: string; bodyVars?: string[] };
   /** The interactive payload and its plain-text fallback, for a menu action. */
   menu?: { interactive: Record<string, unknown>; text: string; mode: "buttons" | "list" };
+  /** What a side-effect node did, for the preview and the run log. */
+  effect?: { summary: string };
 }
 
 export type EngineStatus = "awaiting_input" | "ended" | "dead_end" | "error";
@@ -302,6 +312,45 @@ export async function runFlowStep(doc: FlowDocument, opts: RunOptions = {}): Pro
           }
         }
         actions.push({ type: "ai", nodeId: node.id, text });
+        currentId = nextNodeId(doc, node.id);
+        break;
+      }
+      // The preview runs with no executors, so these report what would happen rather
+      // than doing it — nothing here should touch a real contact.
+      case "qualify_lead": {
+        const d = node.data as QualifyLeadNodeData;
+        actions.push({
+          type: "qualify_lead", nodeId: node.id,
+          effect: { summary: `Would score the lead into {{${d.saveScoreAs || "lead_score"}}} and {{${d.saveLabelAs || "lead_label"}}}` },
+        });
+        currentId = nextNodeId(doc, node.id);
+        break;
+      }
+      case "tag": {
+        const d = node.data as TagNodeData;
+        const tags = (d.tags ?? []).filter(Boolean);
+        actions.push({
+          type: "tag", nodeId: node.id,
+          effect: { summary: tags.length ? `Would ${d.action === "remove" ? "remove" : "add"} ${tags.join(", ")}` : "No tags set" },
+        });
+        currentId = nextNodeId(doc, node.id);
+        break;
+      }
+      case "lead_stage": {
+        const d = node.data as LeadStageNodeData;
+        actions.push({
+          type: "lead_stage", nodeId: node.id,
+          effect: { summary: d.stageName ? `Would move the lead to ${d.stageName}` : "No stage set" },
+        });
+        currentId = nextNodeId(doc, node.id);
+        break;
+      }
+      case "notify": {
+        const d = node.data as NotifyNodeData;
+        const who = d.target === "managers" ? "managers"
+          : d.target === "department" ? (d.departmentName || "a department")
+          : "the assignee";
+        actions.push({ type: "notify", nodeId: node.id, effect: { summary: `Would notify ${who}` } });
         currentId = nextNodeId(doc, node.id);
         break;
       }

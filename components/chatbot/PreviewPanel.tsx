@@ -52,6 +52,12 @@ function stepToLines(step: Step): ChatLine[] {
     if (a.type === "delay") return [{ from: "system", text: `⏱ waits ${a.seconds ?? 0}s` }];
     if (a.type === "api") return [{ from: "system", text: `🔗 ${a.api?.method ?? "GET"} ${a.api?.url ?? ""}` }];
     if (a.type === "handoff") return [{ from: "system", text: `👤 Transferred to a person${a.handoff?.department ? ` → ${a.handoff.department}` : ""}` }];
+    // Nodes that change records rather than say anything. The preview never runs them,
+    // so it reports what they would do.
+    if (a.type === "qualify_lead") return [{ from: "system", text: `📊 ${a.effect?.summary ?? "Scores the lead"}` }];
+    if (a.type === "tag")          return [{ from: "system", text: `🏷 ${a.effect?.summary ?? "Tags the contact"}` }];
+    if (a.type === "lead_stage")   return [{ from: "system", text: `📁 ${a.effect?.summary ?? "Moves the lead"}` }];
+    if (a.type === "notify")       return [{ from: "system", text: `🔔 ${a.effect?.summary ?? "Notifies the team"}` }];
     if (a.type === "menu" && a.menu) {
       // The rows are read back out of the payload that would go to Meta, so the
       // preview cannot drift from what a customer would actually be sent.

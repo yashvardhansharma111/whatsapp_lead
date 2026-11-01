@@ -71,7 +71,7 @@ const SURFACES: { Icon: LucideIcon; title: string; body: string; href: string }[
   {
     Icon: Workflow,
     title: "Automation flows",
-    body: "A drag-and-drop canvas with twelve block types — conditions, delays, handoffs, webhooks.",
+    body: "A drag-and-drop canvas with sixteen block types — conditions, delays, transfers, lead scoring, webhooks.",
     href: "/features#ai-auto-reply",
   },
   {

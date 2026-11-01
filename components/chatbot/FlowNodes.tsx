@@ -15,6 +15,10 @@ import {
   type TemplateNodeData,
   type SetVariableNodeData,
   type HandoffNodeData,
+  type QualifyLeadNodeData,
+  type TagNodeData,
+  type LeadStageNodeData,
+  type NotifyNodeData,
   type AiNodeData,
 } from "@/lib/chatbot/types";
 import { NODE_ICON } from "./nodeMeta";
@@ -234,6 +238,58 @@ const HandoffNode = memo(({ data, selected, width, height }: NodeProps) => {
 });
 HandoffNode.displayName = "HandoffNode";
 
+const QualifyLeadNode = memo(({ data, selected, width, height }: NodeProps) => {
+  const d = data as QualifyLeadNodeData;
+  return (
+    <NodeShell kind="qualify_lead" title={d.label || "Score the lead"} selected={selected} width={width} height={height}>
+      {summary(`Into {{${d.saveScoreAs || "lead_score"}}} and {{${d.saveLabelAs || "lead_label"}}}`)}
+      <Handle type="target" position={Position.Left} className={handleClass} />
+      <Handle type="source" position={Position.Right} className={handleClass} />
+    </NodeShell>
+  );
+});
+QualifyLeadNode.displayName = "QualifyLeadNode";
+
+const TagNode = memo(({ data, selected, width, height }: NodeProps) => {
+  const d = data as TagNodeData;
+  const tags = d.tags ?? [];
+  return (
+    <NodeShell kind="tag" title={d.label || "Tag contact"} selected={selected} width={width} height={height}>
+      {summary(tags.length ? `${d.action === "remove" ? "Remove" : "Add"}: ${tags.join(", ")}` : "No tags chosen")}
+      <Handle type="target" position={Position.Left} className={handleClass} />
+      <Handle type="source" position={Position.Right} className={handleClass} />
+    </NodeShell>
+  );
+});
+TagNode.displayName = "TagNode";
+
+const LeadStageNode = memo(({ data, selected, width, height }: NodeProps) => {
+  const d = data as LeadStageNodeData;
+  return (
+    <NodeShell kind="lead_stage" title={d.label || "Move lead stage"} selected={selected} width={width} height={height}>
+      {summary(d.stageName ? `To: ${d.stageName}` : "No stage chosen")}
+      <Handle type="target" position={Position.Left} className={handleClass} />
+      <Handle type="source" position={Position.Right} className={handleClass} />
+    </NodeShell>
+  );
+});
+LeadStageNode.displayName = "LeadStageNode";
+
+const NotifyNode = memo(({ data, selected, width, height }: NodeProps) => {
+  const d = data as NotifyNodeData;
+  const who = d.target === "managers" ? "Managers"
+    : d.target === "department" ? (d.departmentName || "A department")
+    : "Whoever is assigned";
+  return (
+    <NodeShell kind="notify" title={d.label || "Notify the team"} selected={selected} width={width} height={height}>
+      {summary(who)}
+      <Handle type="target" position={Position.Left} className={handleClass} />
+      <Handle type="source" position={Position.Right} className={handleClass} />
+    </NodeShell>
+  );
+});
+NotifyNode.displayName = "NotifyNode";
+
 const AiNode = memo(({ data, selected, width, height }: NodeProps) => {
   const d = data as AiNodeData;
   return (
@@ -418,6 +474,10 @@ export const nodeTypes: NodeTypes = {
   delay: DelayNode,
   set_variable: SetVariableNode,
   handoff: HandoffNode,
+  qualify_lead: QualifyLeadNode,
+  tag: TagNode,
+  lead_stage: LeadStageNode,
+  notify: NotifyNode,
   ai: AiNode,
   end: EndNode,
 };
