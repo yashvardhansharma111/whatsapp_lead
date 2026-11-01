@@ -101,7 +101,25 @@ export default auth((req) => {
   const isLoggedIn = !!session?.user;
   const isReseller = session?.user?.accountType === "RESELLER" && session.user.role !== "SUPER_ADMIN";
 
-  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
+  // Anything served straight from `public/`, plus Next's own build output.
+  //
+  // The page rules below fail closed, which is right for pages and wrong for a file the
+  // browser fetches on its own: `/manifest.webmanifest` was being redirected to the
+  // login page, so the browser parsed an HTML document as JSON and reported the manifest
+  // as a syntax error at line 1. The same applies to the service worker, the icons and
+  // the sample downloads — none of them are secrets, and none of them can follow a
+  // redirect to a sign-in form.
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/sounds/") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|ico|pdf|csv|xlsx|txt|woff2?)$/.test(pathname)
+  ) {
     return NextResponse.next();
   }
 

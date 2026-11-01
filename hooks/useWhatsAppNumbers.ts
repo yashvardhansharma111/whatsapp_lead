@@ -42,6 +42,10 @@ export function useWhatsAppNumbers() {
     queryKey: ["whatsapp-integrations"],
     queryFn: async () => {
       const res = await fetch("/api/integrations/whatsapp");
+      // A role that may not read this has no chooser to show — which is the same as
+      // having one number. Treating it as an error would put a red failure on every
+      // page that merely offers the filter.
+      if (res.status === 403) return [] as WhatsAppNumber[];
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((json as { error?: string }).error ?? "Couldn't load your WhatsApp numbers");
       const data = json.data ?? json;
