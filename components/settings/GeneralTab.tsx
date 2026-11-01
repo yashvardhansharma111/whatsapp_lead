@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Building2, ImagePlus, Save } from "lucide-react";
+import { AlertTriangle, Building2, ImagePlus, Mail, Save } from "lucide-react";
 import { Button, Card, Field, SkeletonCard, inputClass } from "@/components/ui";
 import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,12 @@ type SettingsData = {
   tenant: { name: string; slug: string; logo?: string; domain?: string };
   timezone: string;
   socialLinks?: SocialLinks;
+  smtpHost?: string | null;
+  smtpPort?: number | null;
+  smtpUser?: string | null;
+  smtpFrom?: string | null;
+  /** A password is stored; its value is never sent back. */
+  smtpPassSet?: boolean;
 };
 
 type CategoryData = {
@@ -55,6 +61,11 @@ export function GeneralTab() {
   const [categoryId, setCategoryId] = useState("");
   const [domain, setDomain] = useState("");
   const [timezone, setTimezone] = useState("Asia/Kolkata");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("587");
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpFrom, setSmtpFrom] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -80,6 +91,10 @@ export function GeneralTab() {
     setTwitter(data.socialLinks?.twitter     ?? "");
     setLinkedin(data.socialLinks?.linkedin   ?? "");
     setWebsite(data.socialLinks?.website     ?? "");
+    setSmtpHost(data.smtpHost ?? "");
+    setSmtpPort(data.smtpPort ? String(data.smtpPort) : "587");
+    setSmtpUser(data.smtpUser ?? "");
+    setSmtpFrom(data.smtpFrom ?? "");
   }
   const [categorySeeded, setCategorySeeded] = useState(false);
   if (categoryData && !categorySeeded) {
@@ -105,6 +120,13 @@ export function GeneralTab() {
           domain: domain || undefined,
           timezone,
           socialLinks: { facebook, instagram, twitter, linkedin, website },
+          smtpHost: smtpHost.trim() || null,
+          smtpPort: smtpPort.trim() ? Number(smtpPort) : null,
+          smtpUser: smtpUser.trim() || null,
+          smtpFrom: smtpFrom.trim() || null,
+          // Blank leaves the stored password alone, so saving the rest of this form
+          // does not wipe a value the field deliberately never shows.
+          ...(smtpPass.trim() ? { smtpPass: smtpPass.trim() } : {}),
         }),
       });
       if (!r.ok) { const j = await r.json(); throw new Error(j.error ?? "Save failed"); }
@@ -220,6 +242,78 @@ export function GeneralTab() {
             <Save className="h-4 w-4" />
             {save.isPending ? "Saving…" : saved ? "Saved!" : "Save Changes"}
           </Button>
+        </div>
+      </Card>
+
+      <Card className="p-5 transition-shadow hover:shadow-md">
+        <CardHead
+          icon={Mail}
+          tone="blue"
+          title="Email delivery"
+          description="The mail server used for messages this workspace sends, such as adding someone to the team."
+        />
+        <div className="mt-4 space-y-4">
+          <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600 ring-1 ring-inset ring-slate-200">
+            Leave this empty to use the platform&apos;s own mail server. A reseller that sets its
+            own is used for its customers too, so the message arrives in that brand&apos;s name
+            rather than the platform&apos;s.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Server" htmlFor="smtp-host">
+              <input
+                id="smtp-host"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                className={inputClass}
+                placeholder="smtp.yourprovider.com"
+              />
+            </Field>
+            <Field label="Port" htmlFor="smtp-port">
+              <input
+                id="smtp-port"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(e.target.value.replace(/[^0-9]/g, ""))}
+                className={inputClass}
+                placeholder="587"
+                inputMode="numeric"
+              />
+              <p className="mt-1 text-xs text-slate-500">587 for most providers, 465 for implicit TLS.</p>
+            </Field>
+            <Field label="Username" htmlFor="smtp-user">
+              <input
+                id="smtp-user"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                className={inputClass}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Password" htmlFor="smtp-pass">
+              <input
+                id="smtp-pass"
+                type="password"
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
+                className={inputClass}
+                placeholder={data?.smtpPassSet ? "Stored — leave blank to keep it" : ""}
+                autoComplete="new-password"
+              />
+            </Field>
+          </div>
+
+          <Field label="From address" htmlFor="smtp-from">
+            <input
+              id="smtp-from"
+              value={smtpFrom}
+              onChange={(e) => setSmtpFrom(e.target.value)}
+              className={inputClass}
+              placeholder="Your Company &lt;hello@yourcompany.com&gt;"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              What recipients see as the sender. Most providers require it to match the account above.
+            </p>
+          </Field>
         </div>
       </Card>
 
