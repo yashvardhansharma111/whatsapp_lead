@@ -49,6 +49,8 @@ export default function AdminWhiteLabelPage() {
   const [fee, setFee] = useState<string | null>(null);
   const [grace, setGrace] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  // The address being typed for one reseller, before it is saved.
+  const [addresses, setAddresses] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "white-label"],
@@ -70,8 +72,27 @@ export default function AdminWhiteLabelPage() {
   });
   const act = useMutation({
     mutationFn: (v: { id: string; body: Record<string, unknown> }) => call(`/api/admin/white-label/${v.id}`, "PATCH", v.body),
-    onSuccess: (_d, v) => { setOverrides((o) => { const n = { ...o }; delete n[v.id]; return n; }); refresh(); },
+    onSuccess: (_d, v) => {
+      setOverrides((o) => { const n = { ...o }; delete n[v.id]; return n; });
+      setAddresses((a) => { const n = { ...a }; delete n[v.id]; return n; });
+      refresh();
+    },
   });
+
+  /**
+   * One box for both kinds of address: a bare label is a free subdomain on the
+   * platform's root, anything with a dot is the reseller's own domain. Asking an
+   * operator which of the two they are typing is a question the text already answers.
+   */
+  function saveAddress(id: string) {
+    const raw = (addresses[id] ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    act.mutate({
+      id,
+      body: raw.includes(".")
+        ? { domain: raw, subdomain: null }
+        : { subdomain: raw || null, domain: null },
+    });
+  }
 
   return (
     <>
@@ -144,7 +165,27 @@ export default function AdminWhiteLabelPage() {
                       <p className="font-medium text-slate-900">{r.brand?.brandName ?? r.name}</p>
                       <p className="text-xs text-slate-500">{r.name}</p>
                     </td>
-                    <td className={tdClass}>{address ?? <span className="text-slate-400">—</span>}</td>
+                    <td className={tdClass}>
+                      {r.brand ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <input
+                            value={addresses[r.id] ?? address ?? ""}
+                            onChange={(e) => setAddresses((a) => ({ ...a, [r.id]: e.target.value }))}
+                            onKeyDown={(e) => { if (e.key === "Enter") saveAddress(r.id); }}
+                            placeholder={data.rootDomain ? `name or crm.acme.com` : "crm.acme.com"}
+                            className={cn(inputCls, "w-52")}
+                            aria-label={`Address for ${r.name}`}
+                          />
+                          {r.id in addresses && (
+                            <AdminButton size="sm" onClick={() => saveAddress(r.id)} disabled={act.isPending}>
+                              Save
+                            </AdminButton>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Branding not set up</span>
+                      )}
+                    </td>
                     <td className={tdClass}>{r.clients}</td>
                     <td className={tdClass}>{inr(r.walletMinor)}</td>
                     <td className={tdClass}>
