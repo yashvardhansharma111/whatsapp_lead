@@ -29,6 +29,11 @@ export interface ValidationIssue {
     | "menu_option_unwired"
     | "menu_no_prompt"
     | "dead_end"
+    | "tag_no_tags"
+    | "stage_not_chosen"
+    | "notify_no_department"
+    | "notify_no_title"
+    | "start_no_keywords"
     | "empty_flow";
   severity: ValidationSeverity;
   message: string;
@@ -165,6 +170,40 @@ export function validateFlow(doc: FlowDocument): ValidationResult {
         }
       }
     }
+    // The blocks that change a record rather than say something. Each does nothing at all
+    // when its one setting is blank, and does it silently — the flow runs on and the
+    // author has no way of knowing the step was skipped.
+    if (node.type === "tag") {
+      const d = node.data as { tags?: string[] };
+      if (!(d.tags ?? []).filter(Boolean).length) {
+        issues.push({ code: "tag_no_tags", severity: "error", message: `"${labelOf(node)}" has no tags, so it would do nothing.`, nodeId: node.id });
+      }
+    }
+    if (node.type === "lead_stage") {
+      const d = node.data as { stageName?: string };
+      if (!d.stageName?.trim()) {
+        issues.push({ code: "stage_not_chosen", severity: "error", message: `"${labelOf(node)}" has no stage chosen, so the lead would not move.`, nodeId: node.id });
+      }
+    }
+    if (node.type === "notify") {
+      const d = node.data as { target?: string; departmentName?: string; title?: string };
+      if (d.target === "department" && !d.departmentName?.trim()) {
+        issues.push({ code: "notify_no_department", severity: "error", message: `"${labelOf(node)}" sends to a department but none is named.`, nodeId: node.id });
+      }
+      if (!d.title?.trim()) {
+        issues.push({ code: "notify_no_title", severity: "warning", message: `"${labelOf(node)}" has no title, so the notification falls back to a generic one.`, nodeId: node.id });
+      }
+    }
+
+    // A keyword trigger with no keywords can never fire, which looks like a flow that is
+    // published and simply ignored.
+    if (node.type === "start") {
+      const d = node.data as { triggerType?: string; keywords?: string[] };
+      if ((d.triggerType ?? "KEYWORD") === "KEYWORD" && !(d.keywords ?? []).filter(Boolean).length) {
+        issues.push({ code: "start_no_keywords", severity: "error", message: "The trigger is set to keyword match but no keywords are listed, so this flow can never start.", nodeId: node.id });
+      }
+    }
+
     if (node.type === "condition") {
       const d = node.data as { routes?: unknown[] };
       if (!Array.isArray(d.routes) || d.routes.length === 0) {

@@ -50,3 +50,6 @@ next-env.d.ts
 
 # A correctness build that must not disturb the dev server's .next
 .next-check
+
+# Client-facing reports generated on demand, not source.
+*-Report.pdf
