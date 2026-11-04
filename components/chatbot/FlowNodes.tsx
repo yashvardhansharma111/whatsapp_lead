@@ -81,6 +81,11 @@ const TRIGGER_HINT: Record<string, string> = {
   KEYWORD: "Keyword match",
   INBOUND: "Any inbound message",
   FIRST_MESSAGE: "First message from contact",
+  CONTACT_CREATED: "Contact created",
+  LEAD_CREATED: "Lead created",
+  LEAD_STATUS_CHANGED: "Lead status changed",
+  LEAD_CLOSED: "Lead closed",
+  WEBHOOK: "Custom webhook",
 };
 
 const StartNode = memo(({ data, selected }: NodeProps) => {

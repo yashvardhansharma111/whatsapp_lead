@@ -36,6 +36,7 @@ export function BusinessSwitcher({
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const [upgrade, setUpgrade] = useState<UpgradeReason | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,11 @@ export function BusinessSwitcher({
       setOpen(false);
       return;
     }
-    switchBusiness.mutate(id, { onSuccess: () => setOpen(false) });
+    setSwitchError(null);
+    switchBusiness.mutate(id, {
+      onSuccess: () => setOpen(false),
+      onError: (err) => setSwitchError(err.message || "Failed to switch department"),
+    });
   };
 
   const onCreate = async (e: React.FormEvent) => {
@@ -142,6 +147,11 @@ export function BusinessSwitcher({
               </button>
             ))}
           </div>
+          {switchError && (
+            <p role="alert" className="px-3 py-2 text-xs text-rose-700">
+              {switchError}
+            </p>
+          )}
 
           <div className="my-1 border-t border-slate-100" />
           <button

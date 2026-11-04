@@ -72,7 +72,7 @@ export default function TemplatesPage() {
   // workspace with numbers on different accounts the full list is not sendable from any
   // one of them.
   const { numberId, setNumberId } = useNumberFilter("templates");
-  const { data, isLoading, isError } = useTemplates(numberId || undefined);
+  const { data, isLoading, isError, refetch } = useTemplates(numberId || undefined);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
   const [rejection, setRejection] = useState<TemplateDTO | null>(null);
   const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<TemplateDTO | null>(null);
@@ -303,10 +303,17 @@ export default function TemplatesPage() {
                 : "Create your first template and submit it to Meta for approval."
             }
             action={
-              <Button onClick={() => setModal({ open: true, editing: null })}>
-                <Plus className="h-4 w-4" />
-                Create Template
-              </Button>
+              isError ? (
+                <Button variant="secondary" onClick={() => void refetch()}>
+                  <RefreshCw className="h-4 w-4" />
+                  Try again
+                </Button>
+              ) : (
+                <Button onClick={() => setModal({ open: true, editing: null })}>
+                  <Plus className="h-4 w-4" />
+                  Create Template
+                </Button>
+              )
             }
           />
         ) : (

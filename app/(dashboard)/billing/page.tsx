@@ -114,6 +114,11 @@ export default function BillingPage() {
                 Billing portal
               </Button>
             )}
+            {data?.status === "ACTIVE" && (data.priceMonthly ?? 0) > 0 && (
+              <Link href="/billing/plans">
+                <Button variant="secondary">Renew early</Button>
+              </Link>
+            )}
             <Link href="/billing/plans">
               <Button>
                 <ArrowUpRight className="h-4 w-4" />

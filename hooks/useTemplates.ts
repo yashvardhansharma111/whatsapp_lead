@@ -79,7 +79,14 @@ export function useTemplates(whatsappIntegrationId?: string, enabled = true) {
         if (whatsappIntegrationId) params.set("whatsappIntegrationId", whatsappIntegrationId);
 
         const res = await fetch(`/api/templates?${params}`);
-        const batch = await unwrap<TemplateDTO[]>(res, "Couldn't load your templates");
+        const result = await unwrap<TemplateDTO[] | { templates?: TemplateDTO[] }>(
+          res,
+          "Couldn't load your templates",
+        );
+        const batch = Array.isArray(result) ? result : result?.templates;
+        if (!Array.isArray(batch)) {
+          throw new Error("The templates response was invalid. Please try again.");
+        }
         all.push(...batch);
         if (batch.length < TEMPLATE_PAGE_SIZE) break;
       }

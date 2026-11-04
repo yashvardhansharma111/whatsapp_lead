@@ -682,6 +682,8 @@ function FlowCanvas({
 
         <PropertiesPanel
           node={selectedNode as never}
+          flowId={flowId}
+          localOnly={localOnly}
           onChange={(id, data) => updateNodeData(id, data as Record<string, unknown>)}
           onDelete={deleteNode}
           onDuplicate={(id) => duplicateNodes([id])}

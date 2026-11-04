@@ -6,6 +6,12 @@ export interface UsageMetric {
   limit: number;
 }
 
+export function useRenewSubscription() {
+  return useMutation({
+    mutationFn: () => post("/api/billing/renew"),
+  });
+}
+
 export interface BillingSummary {
   planId: string | null;
   planName: string;
@@ -203,6 +209,7 @@ export interface VerifyPaymentInput {
   razorpay_signature: string;
   planId: string;
   planChangeId?: string;
+  renewSubscription?: boolean;
 }
 
 export function useVerifyPayment() {

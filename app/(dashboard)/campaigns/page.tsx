@@ -553,8 +553,17 @@ function CreateCampaignModal({
 
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
-  // Which connected number sends it. Empty uses the workspace's default.
-  const { numberId, setNumberId } = useNumberFilter("campaigns");
+  // Use the sole/default number automatically; require an explicit choice when multiple exist.
+  const {
+    numberId,
+    setNumberId,
+    hasChoice,
+    defaultNumber,
+    numbers,
+    isLoading: numbersLoading,
+    isError: numbersError,
+  } = useNumberFilter("campaigns");
+  const sendFromId = numberId || (!hasChoice ? defaultNumber?.id ?? "" : "");
   const [bodyVarMapping, setBodyVarMapping] = useState<string[]>([]);
   // Dynamic URL buttons: a contact field ("name" / "phone" / "company") or literal text per link.
   const [urlSource, setUrlSource] = useState<string[]>([]);
@@ -568,7 +577,11 @@ function CreateCampaignModal({
   const [headerMediaUrl, setHeaderMediaUrl] = useState("");
   const [headerMediaId, setHeaderMediaId] = useState("");
 
-  const { data: templatesData, isLoading: tplLoading } = useTemplates(numberId || undefined, open);
+  const {
+    data: templatesData,
+    isLoading: tplLoading,
+    isError: tplError,
+  } = useTemplates(sendFromId || undefined, open && Boolean(sendFromId));
   const { data: contactsData, isLoading: contactsLoading } = useCampaignContacts(
     open && audienceMode === "selected",
     contactSearch,
@@ -698,6 +711,10 @@ function CreateCampaignModal({
   function submit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!sendFromId) {
+      showToast("Select a WhatsApp number to send from.", "error");
+      return;
+    }
     if (audienceMode === "selected" && selectedIds.length === 0) {
       showToast("Select at least one contact, or choose Select all.", "error");
       return;
@@ -725,7 +742,7 @@ function CreateCampaignModal({
       ...(when && !Number.isNaN(when.getTime()) && { scheduledAt: when.toISOString() }),
       ...(headerMediaId && { headerMediaId }),
       ...(headerMediaUrl.trim() && !headerMediaId && { headerMediaUrl: headerMediaUrl.trim() }),
-      ...(numberId && { whatsappIntegrationId: numberId }),
+      whatsappIntegrationId: sendFromId,
     };
   }
 
@@ -752,6 +769,7 @@ function CreateCampaignModal({
 
   const canSubmit =
     !missingUrl &&
+    sendFromId &&
     name.trim() &&
     templateId &&
     !create.isPending &&
@@ -787,20 +805,39 @@ function CreateCampaignModal({
           id="campaign-number"
           value={numberId}
           onChange={(id) => { setNumberId(id); setTemplateId(""); setShowPreview(false); }}
-          anyLabel="The default number"
+          anyLabel="Select a WhatsApp number"
           label="Send from"
           hint="Only templates this number can send are offered below."
         />
+        {numbersLoading ? (
+          <p className="text-xs text-slate-500">Loading connected WhatsApp numbers…</p>
+        ) : numbersError ? (
+          <p className="text-xs text-rose-600">Couldn’t load WhatsApp numbers. Reload this page and try again.</p>
+        ) : !sendFromId ? (
+          <p className="text-xs text-amber-700">
+            {numbers.length === 0
+              ? "Connect a WhatsApp number in Settings before creating a campaign."
+              : "Select the number this campaign will send from to load compatible templates."}
+          </p>
+        ) : null}
 
         {/* Template picker */}
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="campaign-tpl">
             Template <span className="text-rose-500">*</span>
           </label>
-          {tplLoading ? (
+          {!sendFromId ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+              Choose a WhatsApp number above to load its approved templates.
+            </div>
+          ) : tplLoading ? (
             <div className={cn(inputClass, "flex items-center gap-2 text-slate-400")}>
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading templates…
+            </div>
+          ) : tplError ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+              Couldn’t load templates for this number. Try again after checking its WhatsApp connection.
             </div>
           ) : approvedTemplates.length === 0 ? (
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">

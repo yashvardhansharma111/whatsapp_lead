@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Copy, Trash2, X } from "lucide-react";
+import { useState } from "react";
 import { Button, Field, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { ChipInput } from "@/components/ui/ChipInput";
@@ -35,12 +36,16 @@ const labelCls = "mb-1.5 block text-sm font-medium text-slate-700";
 
 export function PropertiesPanel({
   node,
+  flowId,
+  localOnly,
   onChange,
   onDelete,
   onDuplicate,
   onClose,
 }: {
   node: FlowNode | null;
+  flowId: string;
+  localOnly: boolean;
   onChange: (id: string, data: AnyNodeData) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
@@ -85,6 +90,9 @@ export function PropertiesPanel({
         </Field>
 
         {node.type === "start" && <StartFields data={data as StartNodeData} set={set} />}
+        {node.type === "start" && (data as StartNodeData).triggerType === "WEBHOOK" && !localOnly && (
+          <WebhookFields flowId={flowId} />
+        )}
         {node.type === "message" && <MessageFields data={data as MessageNodeData} set={set} />}
         {node.type === "template" && <TemplateFields data={data as TemplateNodeData} set={set} />}
         {node.type === "question" && <QuestionFields data={data as QuestionNodeData} set={set} />}
@@ -128,6 +136,11 @@ const TRIGGER_LABELS: Record<string, string> = {
   KEYWORD: "Keyword match — set keywords in the flow list.",
   INBOUND: "Any inbound message — fires when no keyword flow matches.",
   FIRST_MESSAGE: "First message — fires only on the contact's very first message.",
+  CONTACT_CREATED: "When a new contact is added to this department.",
+  LEAD_CREATED: "When a lead is created for this department.",
+  LEAD_STATUS_CHANGED: "When a lead moves to another pipeline stage.",
+  LEAD_CLOSED: "When a lead moves to a Won or Lost stage.",
+  WEBHOOK: "When your custom webhook URL receives a request.",
 };
 
 function StartFields({ data, set }: { data: StartNodeData; set: Setter }) {
@@ -145,6 +158,11 @@ function StartFields({ data, set }: { data: StartNodeData; set: Setter }) {
           <option value="KEYWORD">Keyword match</option>
           <option value="INBOUND">Any inbound message</option>
           <option value="FIRST_MESSAGE">First message from contact</option>
+          <option value="CONTACT_CREATED">Contact created</option>
+          <option value="LEAD_CREATED">Lead created</option>
+          <option value="LEAD_STATUS_CHANGED">Lead status changed</option>
+          <option value="LEAD_CLOSED">Lead closed</option>
+          <option value="WEBHOOK">Custom webhook</option>
         </select>
         <p className="text-[11px] text-slate-400">{TRIGGER_LABELS[type]}</p>
       </div>
@@ -170,6 +188,74 @@ function StartFields({ data, set }: { data: StartNodeData; set: Setter }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function WebhookFields({ flowId }: { flowId: string }) {
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const generate = async () => {
+    setBusy(true);
+    setError(null);
+    setCopied(false);
+    try {
+      const res = await fetch(`/api/chatbot/flows/${encodeURIComponent(flowId)}/webhook-token`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Could not generate webhook URL");
+      const path = json.data?.url ?? json.url;
+      if (typeof path !== "string") throw new Error("The server did not return a webhook URL");
+      setUrl(new URL(path, window.location.origin).toString());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate webhook URL");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setError("Could not copy the URL. Select and copy it manually.");
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-medium text-slate-700">Webhook URL</p>
+      <p className="text-[11px] leading-snug text-slate-500">
+        POST an existing contactId, or a phone number. A new contact is created when that
+        phone is not found. The URL is a secret; publish the flow before using it.
+      </p>
+      {url ? (
+        <div className="space-y-2">
+          <input aria-label="Webhook URL" readOnly value={url} className={inputClass} onFocus={(e) => e.currentTarget.select()} />
+          <Button type="button" size="sm" variant="secondary" className="w-full" onClick={copy}>
+            <Copy className="h-3.5 w-3.5" />
+            {copied ? "Copied" : "Copy URL"}
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" size="sm" variant="secondary" className="w-full" disabled={busy} onClick={generate}>
+          {busy ? "Generating…" : "Generate webhook URL"}
+        </Button>
+      )}
+      {url && (
+        <Button type="button" size="sm" variant="ghost" className="w-full" disabled={busy} onClick={generate}>
+          {busy ? "Rotating…" : "Rotate URL"}
+        </Button>
+      )}
+      {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
+      <p className="text-[11px] text-slate-400">
+        Example body: {"{ \"phone\": \"+15551234567\", \"variables\": { \"source\": \"website\" } }"}
+      </p>
     </div>
   );
 }

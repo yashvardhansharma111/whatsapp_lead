@@ -45,6 +45,7 @@ import {
   type ExclusionReport,
 } from "@/components/campaigns/RecipientReview";
 import { useTemplates, type TemplateDTO } from "@/hooks/useTemplates";
+import { useWhatsAppNumbers } from "@/hooks/useWhatsAppNumbers";
 import {
   analyzeNumbers,
   BROADCAST_MAX_NUMBERS,
@@ -238,11 +239,15 @@ export default function BroadcastPage() {
 
   // WhatsApp number selector — which number to send this broadcast from
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>("");
-  const { data: integrationsData } = useQuery<{ integrations: { id: string; displayName: string | null; phoneNumber: string | null; isDefault: boolean; isActive: boolean }[] }>({
-    queryKey: ["whatsapp-integrations"],
-    queryFn: () => fetch("/api/integrations/whatsapp").then((r) => r.json()).then((j) => j.data ?? { integrations: [] }),
-  });
-  const integrations = (integrationsData?.integrations ?? []).filter((i) => i.isActive);
+  const {
+    numbers: integrations,
+    hasChoice,
+    defaultNumber,
+    isLoading: integrationsLoading,
+    isError: integrationsError,
+  } = useWhatsAppNumbers();
+  const selectedIntegration = integrations.find((integration) => integration.id === selectedIntegrationId);
+  const sendFromId = selectedIntegration?.id || (!hasChoice ? defaultNumber?.id ?? "" : "");
 
   // 2. Template
   const [name, setName] = useState("");
@@ -292,7 +297,11 @@ export default function BroadcastPage() {
   const approachingTier = isFinite(tierLimit) && finalNumbers.length > tierLimit * 0.8;
   const overTier        = isFinite(tierLimit) && finalNumbers.length > tierLimit;
 
-  const { data: templatesData, isLoading: tplLoading } = useTemplates();
+  const {
+    data: templatesData,
+    isLoading: tplLoading,
+    isError: tplError,
+  } = useTemplates(sendFromId || undefined, Boolean(sendFromId));
   const approved = (templatesData ?? []).filter((t) => t.status === "APPROVED");
   // In Meta's review: re-checked each time the list loads, listed here so a missing
   // template is explained rather than silently absent.
@@ -357,6 +366,7 @@ export default function BroadcastPage() {
   } else {
     if (!selectedSegmentId) blockers.push("Choose a segment");
   }
+  if (!sendFromId) blockers.push("Select a WhatsApp number to send from");
   if (!template) blockers.push("Select an approved template");
   if (mediaHeader && !media.mediaId && !media.mediaUrl.trim()) blockers.push(`Add the template's ${mediaHeader.toLowerCase()}`);
   if (missingVar) blockers.push("Fill in every template variable");
@@ -434,7 +444,7 @@ export default function BroadcastPage() {
       ...(asSchedule && scheduleDate && { scheduledAt: scheduleDate.toISOString() }),
       ...(media.mediaId && { headerMediaId: media.mediaId }),
       ...(!media.mediaId && media.mediaUrl.trim() && { headerMediaUrl: media.mediaUrl.trim() }),
-      ...(selectedIntegrationId && { whatsappIntegrationId: selectedIntegrationId }),
+      whatsappIntegrationId: sendFromId,
       ...(ttlHours && Number(ttlHours) > 0 && { ttlSeconds: Number(ttlHours) * 3600 }),
     };
     if (audienceMode === "segment") {
@@ -744,13 +754,70 @@ export default function BroadcastPage() {
           </Field>
 
           <div>
+            <label htmlFor="bc-send-from" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Send from <span className="text-rose-500">*</span>
+            </label>
+            {integrationsLoading ? (
+              <div className={cn(inputClass, "flex items-center gap-2 text-slate-400")}>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading WhatsApp numbers…
+              </div>
+            ) : integrationsError ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+                Couldn’t load WhatsApp numbers. Reload this page and try again.
+              </p>
+            ) : hasChoice ? (
+              <select
+                id="bc-send-from"
+                value={selectedIntegration?.id ?? ""}
+                onChange={(e) => {
+                  setSelectedIntegrationId(e.target.value);
+                  setTemplateId("");
+                  setVarSource([]);
+                  setVarText([]);
+                  setUrlSource([]);
+                  setUrlText([]);
+                  setMedia({ mediaId: "", mediaUrl: "" });
+                }}
+                className={inputClass}
+              >
+                <option value="">— Select a WhatsApp number —</option>
+                {integrations.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.displayName ? `${i.displayName} (${i.phoneNumber ?? i.id})` : (i.phoneNumber ?? i.id)}
+                    {i.isDefault ? " · default" : ""}
+                  </option>
+                ))}
+              </select>
+            ) : defaultNumber ? (
+              <div className={cn(inputClass, "flex items-center text-slate-700")}>
+                {defaultNumber.displayName
+                  ? `${defaultNumber.displayName} (${defaultNumber.phoneNumber ?? defaultNumber.id})`
+                  : defaultNumber.phoneNumber ?? defaultNumber.id}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                Connect a WhatsApp number in Settings before creating a broadcast.
+              </p>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
             <label htmlFor="bc-tpl" className="mb-1.5 block text-sm font-medium text-slate-700">
               WhatsApp template <span className="text-rose-500">*</span>
             </label>
-            {tplLoading ? (
+            {!sendFromId ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                Choose a WhatsApp number above to load compatible templates.
+              </div>
+            ) : tplLoading ? (
               <div className={cn(inputClass, "flex items-center gap-2 text-slate-400")}>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading templates…
+              </div>
+            ) : tplError ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+                Couldn’t load templates for this number. Check its WhatsApp connection and try again.
               </div>
             ) : approved.length === 0 ? (
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
@@ -972,25 +1039,6 @@ export default function BroadcastPage() {
             </select>
             <p className="mt-1 text-[11px] text-slate-400">If the recipient is offline, WhatsApp will stop retrying after this time.</p>
           </div>
-
-          {integrations.length > 1 && (
-            <div className="mb-4">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Send from number</label>
-              <select
-                value={selectedIntegrationId}
-                onChange={(e) => setSelectedIntegrationId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">Default number</option>
-                {integrations.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.displayName ? `${i.displayName} (${i.phoneNumber ?? i.id})` : (i.phoneNumber ?? i.id)}
-                    {i.isDefault ? " ★" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           {blockers.length > 0 && (
             <p className="mb-3 flex items-center gap-1.5 text-xs text-slate-500">

@@ -12,6 +12,7 @@ import {
   useBillingPlans,
   useCheckout,
   useChangePlan,
+  useRenewSubscription,
   useVerifyPayment,
   QuoteRefusalError,
   type PlanChangeQuote,
@@ -21,7 +22,6 @@ import {
 
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Razorpay: new (options: Record<string, unknown>) => { open(): void };
   }
 }
@@ -45,6 +45,7 @@ export default function PlansPage() {
   const { data, isLoading } = useBillingPlans();
   const checkout = useCheckout();
   const change = useChangePlan();
+  const renewSubscription = useRenewSubscription();
   const verifyPayment = useVerifyPayment();
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function PlansPage() {
 
   /** Open the Razorpay checkout modal and verify the payment on success. */
   const openRazorpayModal = useCallback(
-    (orderData: RazorpayOrderData, planId: string): Promise<void> => {
+    (orderData: RazorpayOrderData, planId: string, renewal = false): Promise<boolean> => {
       return new Promise(async (resolve, reject) => {
         try {
           await loadRazorpayScript();
@@ -86,14 +87,15 @@ export default function PlansPage() {
                 razorpay_signature: response.razorpay_signature,
                 planId,
                 planChangeId: orderData.planChangeId,
+                renewSubscription: renewal,
               });
-              resolve();
+              resolve(true);
             } catch (e) {
               reject(e);
             }
           },
           modal: {
-            ondismiss: () => resolve(),
+            ondismiss: () => resolve(false),
           },
         });
         rzp.open();
@@ -127,9 +129,23 @@ export default function PlansPage() {
       // Full checkout: new subscription, trial upgrade, or free plan.
       const res = await checkout.mutateAsync(plan.id);
       if (res?.orderId) {
-        await openRazorpayModal(res as RazorpayOrderData, plan.id);
+        const paid = await openRazorpayModal(res as RazorpayOrderData, plan.id);
+        if (!paid) return;
       }
       showToast("Your plan is now active.", "success");
+    } catch (e) {
+      showToast((e as Error).message, "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const renew = async (plan: PlanDTO) => {
+    setBusyId(plan.id);
+    try {
+      const order = await renewSubscription.mutateAsync();
+      const paid = await openRazorpayModal(order as RazorpayOrderData, plan.id, true);
+      if (paid) showToast("Your plan was renewed. The new time is added after your current period.", "success");
     } catch (e) {
       showToast((e as Error).message, "error");
     } finally {
@@ -143,10 +159,11 @@ export default function PlansPage() {
     try {
       const res = await change.mutateAsync(quote.targetPlan.id);
       if (res?.orderId) {
-        await openRazorpayModal(
+        const paid = await openRazorpayModal(
           { ...(res as RazorpayOrderData), planChangeId: res.planChangeId },
           quote.targetPlan.id,
         );
+        if (!paid) return;
         setQuote(null);
         showToast(`You're now on ${quote.targetPlan.displayName}.`, "success");
         return;
@@ -281,8 +298,11 @@ export default function PlansPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => {
             const isCurrent = plan.id === currentPlanId;
+            const canRenew = isCurrent && ["ACTIVE", "TRIALING"].includes(data?.status ?? "") && plan.priceMonthly > 0;
             const isDowngrade = currentPlan ? plan.priceMonthly < currentPlan.priceMonthly : false;
-            const cta = isCurrent
+            const cta = canRenew
+              ? "Renew early"
+              : isCurrent
               ? "Current plan"
               : plan.priceMonthly <= 0
                 ? "Switch to Free"
@@ -329,8 +349,8 @@ export default function PlansPage() {
                 <Button
                   className="mt-5 h-10 w-full justify-center sm:h-9"
                   variant={isCurrent ? "secondary" : "primary"}
-                  disabled={isCurrent || busyId === plan.id || (plan.priceMonthly > 0 && !data?.billingEnabled)}
-                  onClick={() => choose(plan)}
+                  disabled={(isCurrent && !canRenew) || busyId === plan.id || (plan.priceMonthly > 0 && !data?.billingEnabled)}
+                  onClick={() => canRenew ? renew(plan) : choose(plan)}
                 >
                   {busyId === plan.id ? "Working…" : cta}
                 </Button>
