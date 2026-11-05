@@ -38,6 +38,7 @@ import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/com
 import { COUNTRIES } from "@/components/ui/PhoneInput";
 import { useToast } from "@/components/ui/toast";
 import { useSegments } from "@/hooks/useSegments";
+import { useContactLists } from "@/hooks/useContactLists";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import {
   ExcludedSummary,
@@ -93,6 +94,8 @@ interface BroadcastPayload {
   urlButtonMapping: string[];
   numbers?: string[];
   segmentId?: string;
+  /** Hand-picked groups. The members are resolved at send time, not stored as a link. */
+  contactListIds?: string[];
   recipientFields?: Record<string, Record<string, string>>;
   defaultCountryCode: string;
   scheduledAt?: string;
@@ -232,10 +235,12 @@ export default function BroadcastPage() {
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
   // Audience mode: paste numbers or use a saved segment
-  const [audienceMode, setAudienceMode] = useState<"numbers" | "segment">("numbers");
+  const [audienceMode, setAudienceMode] = useState<"numbers" | "segment" | "list">("numbers");
+  const [selectedListId, setSelectedListId] = useState("");
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>("");
 
   const { data: segments } = useSegments();
+  const { data: contactLists } = useContactLists();
 
   // WhatsApp number selector — which number to send this broadcast from
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>("");
@@ -449,6 +454,8 @@ export default function BroadcastPage() {
     };
     if (audienceMode === "segment") {
       review.mutate({ ...basePayload, segmentId: selectedSegmentId });
+    } else if (audienceMode === "list") {
+      review.mutate({ ...basePayload, contactListIds: [selectedListId] });
     } else {
       const recipientFields = recipientFieldsFor(finalNumbers);
       review.mutate({
@@ -583,9 +590,50 @@ export default function BroadcastPage() {
             >
               Use Segment
             </button>
+            <button
+              type="button"
+              onClick={() => setAudienceMode("list")}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                audienceMode === "list"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700",
+              )}
+            >
+              Contact List
+            </button>
           </div>
 
-          {audienceMode === "segment" ? (
+          {audienceMode === "list" ? (
+            <div className="space-y-2">
+              <select
+                value={selectedListId}
+                onChange={(e) => setSelectedListId(e.target.value)}
+                className={inputClass}
+                aria-label="Contact list"
+              >
+                <option value="">— Choose a contact list —</option>
+                {(contactLists ?? []).map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name} ({l.contactCount})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Sends to the people in the list as it stands now. Anyone added later is not
+                part of this send.
+              </p>
+              {(contactLists ?? []).length === 0 && (
+                <p className="text-xs text-slate-500">
+                  No lists yet.{" "}
+                  <Link href="/contact-lists" className="font-medium text-emerald-700 hover:underline">
+                    Build one first
+                  </Link>
+                  .
+                </p>
+              )}
+            </div>
+          ) : audienceMode === "segment" ? (
             <div className="space-y-2">
               <select
                 value={selectedSegmentId}

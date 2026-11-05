@@ -31,6 +31,7 @@ const NAV = [
     items: [
       { href: "/campaigns", label: "Campaigns", icon: Megaphone, permission: "campaigns.view" },
       { href: "/segments", label: "Segments", icon: Filter, permission: "contacts.view" },
+      { href: "/contact-lists", label: "Contact lists", icon: Users, permission: "contacts.view" },
       { href: "/broadcast", label: "Bulk Broadcast", icon: Send, permission: "campaigns.send" },
       { href: "/templates", label: "Templates", icon: FileText, permission: "campaigns.view" },
       { href: "/chatbot", label: "Chatbot", icon: Bot, permission: "settings.manage" },

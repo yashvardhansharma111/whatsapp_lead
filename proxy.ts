@@ -58,6 +58,7 @@ const AGENT_BLOCKED_PREFIXES = [
   "/settings",
   "/campaigns",
   "/segments",
+  "/contact-lists",
   "/broadcast",
   "/blacklist",
   "/wallet",
