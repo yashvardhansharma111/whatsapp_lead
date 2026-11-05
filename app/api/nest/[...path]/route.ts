@@ -72,6 +72,20 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   let body: BodyInit | undefined;
   if (req.method !== "GET" && req.method !== "HEAD") {
     body = isMultipart ? await req.blob() : await req.text();
+
+    // A file upload that arrives empty at the backend has three possible culprits — the
+    // browser, this hop, or the backend — and they are indistinguishable from either
+    // end. Recording the size and the boundary here says which side lost it.
+    if (isMultipart) {
+      const blob = body as Blob;
+      console.log(
+        `[nest-proxy] multipart ${req.method} ${pathStr} → ${blob.size} bytes, type="${blob.type || "(none)"}"`,
+      );
+      if (!blob.size) console.warn(`[nest-proxy] multipart body is EMPTY for ${pathStr}`);
+      if (!blob.type.includes("boundary")) {
+        console.warn(`[nest-proxy] multipart body has no boundary for ${pathStr} — the backend cannot parse it`);
+      }
+    }
   }
 
   let upstream: Response;

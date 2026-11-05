@@ -118,14 +118,24 @@ function CallManager() {
       if (a.recorder) {
         const rec = a.recorder;
         const seconds = rec.elapsed();
+        console.log(`[call-rec] call ${a.call.id} ended after ${seconds}s — finishing recording`);
         void rec.stop().then((blob) => {
-          if (!blob) return;
+          if (!blob) {
+            console.warn("[call-rec] nothing captured — no upload for call", a.call.id);
+            showToast("Recording not saved: the call captured no audio.", "error");
+            return;
+          }
           void uploadCallRecording(a.call.id, blob, seconds).then((why) => {
             // Said once, after the call has already ended, so it never interrupts one.
             // A recording that silently failed to save is worse than a brief message.
             if (why) showToast(`Recording not saved: ${why}`, "error");
+            else console.log("[call-rec] stored for call", a.call.id);
           });
         });
+      } else {
+        // The common cause of a missing recording, and the one with no trace of its own:
+        // the remote track never arrived, so recording never began.
+        console.warn(`[call-rec] call ${a.call.id} ended with no recorder — it never started`);
       }
     }
     if (remoteAudio.current) remoteAudio.current.srcObject = null;
@@ -194,7 +204,9 @@ function CallManager() {
           // Recording starts with the remote audio, not with the answer: before the
           // customer's track arrives there is only one side to capture.
           if (!recorder) {
+            console.log("[call-rec] remote track arrived for inbound call", call.id);
             recorder = startCallRecorder(micStream, stream);
+            if (!recorder) console.warn("[call-rec] recorder could not start — this call will have no recording");
             setActive((prev) => (prev && prev.call.id === call.id ? { ...prev, recorder } : prev));
           }
         },
@@ -274,7 +286,11 @@ function CallManager() {
             remoteAudio.current.srcObject = stream;
             remoteAudio.current.play().catch(() => {});
           }
-          if (!recorder) recorder = startCallRecorder(micStream, stream);
+          if (!recorder) {
+            console.log("[call-rec] remote track arrived for outgoing call");
+            recorder = startCallRecorder(micStream, stream);
+            if (!recorder) console.warn("[call-rec] recorder could not start — this call will have no recording");
+          }
         },
       });
       pc = built.pc;
