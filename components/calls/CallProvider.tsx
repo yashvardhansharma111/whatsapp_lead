@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, Mic, MicOff, Phone, PhoneOff } from "lucide-react";
@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { useFeature } from "@/hooks/useFeature";
 import { useRealtimeEvent } from "@/hooks/useRealtime";
 import { callApi } from "@/hooks/useCalls";
-import { buildAnswer, formatCallDuration, type PeerConnectionLike } from "@/lib/calls/webrtc";
+import { buildAnswer, buildOffer, formatCallDuration, type PeerConnectionLike } from "@/lib/calls/webrtc";
 import { startCallRecorder, uploadCallRecording, type CallRecorder } from "@/lib/calls/recorder";
 import { showBrowserNotice } from "@/lib/notifications/browser";
 import type { RtCallIncoming, RtCallStatus } from "@/lib/realtime/events";
@@ -29,6 +29,20 @@ interface ActiveCall {
  * ringing call; one connected call at a time. Mounted once in the dashboard layout
  * and inert when the plan has no calling.
  */
+interface CallControls {
+  /** Places a call to a contact. Resolves once it is ringing, not once answered. */
+  placeCall: (contactId: string, displayName?: string) => Promise<void>;
+  /** True while a call is connected or being placed, so callers can disable their button. */
+  busy: boolean;
+}
+
+const CallControlsContext = createContext<CallControls | null>(null);
+
+/** Null outside the dashboard layout, so a caller can hide its button rather than crash. */
+export function useCallControls(): CallControls | null {
+  return useContext(CallControlsContext);
+}
+
 export function CallProvider({ children }: { children: ReactNode }) {
   const enabled = useFeature("callingEnabled");
   return (
@@ -226,10 +240,67 @@ function CallManager() {
     setMuted(next);
   }
 
+  /**
+   * Places a call from anywhere in the dashboard.
+   *
+   * The microphone is asked for before Meta is, so a refused permission fails without
+   * having placed a call that then has to be cancelled.
+   */
+  const placeCall = useCallback(async (contactId: string, displayName?: string) => {
+    if (activeRef.current || connectingId) {
+      showToast("Finish the current call first", "error");
+      return;
+    }
+    setConnectingId(contactId);
+    let mic: MediaStream | null = null;
+    let pc: PeerConnectionLike | null = null;
+    try {
+      mic = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      const iceServers = await callApi.iceServers();
+
+      let recorder: CallRecorder | null = null;
+      const micStream = mic;
+      const built = await buildOffer({
+        iceServers, stream: mic,
+        onRemoteTrack: (stream) => {
+          if (remoteAudio.current) {
+            remoteAudio.current.srcObject = stream;
+            remoteAudio.current.play().catch(() => {});
+          }
+          if (!recorder) recorder = startCallRecorder(micStream, stream);
+        },
+      });
+      pc = built.pc;
+
+      const placed = await callApi.initiate(contactId, built.sdp);
+      setActive({
+        call: {
+          id: placed.id,
+          contactName: displayName ?? null,
+          fromPhone: "", conversationId: null, expiresAt: new Date().toISOString(),
+        } as unknown as RtCallIncoming,
+        pc, mic, answeredAt: Date.now(), recorder,
+      });
+    } catch (err) {
+      mic?.getTracks().forEach((t) => t.stop());
+      try { pc?.close(); } catch { /* ignore */ }
+      const denied = err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "NotFoundError");
+      showToast(
+        denied ? "Microphone access is needed to place calls"
+               : err instanceof Error ? err.message : "Couldn't place the call",
+        "error",
+      );
+    } finally {
+      setConnectingId(null);
+    }
+  }, [connectingId, showToast]);
+
   const banner = ringing.find((c) => c.id !== active?.call.id);
 
   return (
-    <>
+    <CallControlsContext.Provider value={{ placeCall, busy: Boolean(active) || Boolean(connectingId) }}>
       <audio ref={remoteAudio} autoPlay playsInline className="hidden" />
       {banner && (
         <IncomingCallBanner
@@ -251,7 +322,7 @@ function CallManager() {
           onOpen={() => active.call.conversationId && router.push(`/inbox?c=${active.call.conversationId}`)}
         />
       )}
-    </>
+    </CallControlsContext.Provider>
   );
 }
 

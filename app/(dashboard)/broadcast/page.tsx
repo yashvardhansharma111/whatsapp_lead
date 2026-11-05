@@ -242,6 +242,7 @@ export default function BroadcastPage() {
   const { data: segments } = useSegments();
   const { data: contactLists } = useContactLists();
 
+
   // WhatsApp number selector — which number to send this broadcast from
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>("");
   const {
@@ -253,6 +254,21 @@ export default function BroadcastPage() {
   } = useWhatsAppNumbers();
   const selectedIntegration = integrations.find((integration) => integration.id === selectedIntegrationId);
   const sendFromId = selectedIntegration?.id || (!hasChoice ? defaultNumber?.id ?? "" : "");
+
+  // What is left of this number's 24-hour tier, shown while the audience is still being
+  // chosen rather than discovered when the send is refused.
+  const { data: allowance } = useQuery<{
+    tier: number; cap: number | null; used: number; remaining: number | null; unlimited: boolean;
+  }>({
+    queryKey: ["tier-allowance", sendFromId],
+    queryFn: async () => {
+      const q = sendFromId ? `?whatsappIntegrationId=${encodeURIComponent(sendFromId)}` : "";
+      const res = await fetch(`/api/campaigns/tier-allowance${q}`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error ?? "Couldn't read the sending allowance");
+      return json?.data ?? json;
+    },
+  });
 
   // 2. Template
   const [name, setName] = useState("");
@@ -563,6 +579,25 @@ export default function BroadcastPage() {
               </label>
             )}
           </div>
+
+          {allowance && !allowance.unlimited && (
+            <div
+              className={cn(
+                "mb-3 rounded-lg border px-3 py-2 text-xs",
+                (allowance.remaining ?? 0) === 0
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : (allowance.remaining ?? 0) < 50
+                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                    : "border-slate-200 bg-slate-50 text-slate-600",
+              )}
+            >
+              <span className="font-medium">
+                {(allowance.remaining ?? 0).toLocaleString()} of {allowance.cap?.toLocaleString()} left
+              </span>{" "}
+              in this number&apos;s 24-hour limit ({allowance.used.toLocaleString()} already used,
+              tier {allowance.tier}). An audience larger than this is refused.
+            </div>
+          )}
 
           {/* Audience mode toggle */}
           <div className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1">

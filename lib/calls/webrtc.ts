@@ -83,6 +83,49 @@ export async function buildAnswer(input: BuildAnswerInput): Promise<{ pc: PeerCo
   return { pc, sdp };
 }
 
+export interface BuildOfferInput {
+  iceServers: IceServer[];
+  /** The agent's microphone. */
+  stream: MediaStream;
+  onRemoteTrack: (stream: MediaStream) => void;
+  createPeerConnection?: (config: { iceServers: IceServer[] }) => PeerConnectionLike;
+}
+
+/**
+ * Builds the SDP offer for a call we are placing.
+ *
+ * The mirror of buildAnswer: answering responds to Meta's offer, placing a call makes
+ * one. ICE is gathered fully before returning for the same reason as there — Meta takes
+ * a single SDP rather than trickled candidates, so a half-gathered offer connects on
+ * some networks and silently fails on others.
+ */
+export async function buildOffer(input: BuildOfferInput): Promise<{ pc: PeerConnectionLike; sdp: string }> {
+  const create =
+    input.createPeerConnection ??
+    ((config: { iceServers: IceServer[] }) =>
+      new RTCPeerConnection({ iceServers: config.iceServers, bundlePolicy: "max-bundle" }) as unknown as PeerConnectionLike);
+
+  const pc = create({ iceServers: input.iceServers });
+
+  pc.addEventListener("track", (ev) => {
+    const track = (ev as { track?: MediaStreamTrack }).track;
+    if (track) input.onRemoteTrack(new MediaStream([track]));
+  });
+
+  for (const track of input.stream.getTracks()) pc.addTrack(track, input.stream);
+
+  const offer = await (pc as unknown as RTCPeerConnection).createOffer();
+  await pc.setLocalDescription(offer);
+  await waitForIceGathering(pc);
+
+  const sdp = pc.localDescription?.sdp ?? offer.sdp ?? "";
+  if (!sdp) {
+    pc.close();
+    throw new Error("Could not build a WebRTC offer");
+  }
+  return { pc, sdp };
+}
+
 export function formatCallDuration(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;

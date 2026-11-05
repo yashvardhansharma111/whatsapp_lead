@@ -30,6 +30,12 @@ async function unwrap<T>(res: Response, fallback: string): Promise<T> {
 export const callApi = {
   iceServers: async (): Promise<IceServer[]> =>
     (await unwrap<{ iceServers: IceServer[] }>(await fetch("/api/calls/ice-servers"), "Couldn't load call settings")).iceServers,
+  /** Places a call. Meta decides whether the customer may be called; failures say why. */
+  initiate: (contactId: string, sdpOffer: string) =>
+    fetch("/api/calls", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, sdpOffer }),
+    }).then((r) => unwrap<{ id: string }>(r, "Couldn't place the call")),
   accept: (id: string, sdp: string) =>
     fetch(`/api/calls/${id}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sdp }) })
       .then((r) => unwrap<{ ok: boolean }>(r, "Couldn't answer the call")),

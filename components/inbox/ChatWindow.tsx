@@ -29,8 +29,7 @@ import {
   StickyNote,
   Trash2,
   UserRound,
-  X,
-} from "lucide-react";
+  X, Phone,} from "lucide-react";
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
 import { NumberBadge } from "@/components/NumberPicker";
@@ -44,6 +43,7 @@ import { FaqMenuPicker } from "./FaqMenuPicker";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
 import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
 import { useAttachmentComposer } from "./useAttachmentComposer";
+import { useCallControls } from "@/components/calls/CallProvider";
 
 // Lazy-load the picker so its ~400 KB data bundle only downloads when the Smile
 // button is first clicked, not on every inbox load.
@@ -125,6 +125,7 @@ export function ChatWindow({
   };
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const callControls = useCallControls();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
@@ -375,6 +376,25 @@ export function ChatWindow({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {/* Only offered where calling is actually usable: the provider is absent outside
+              the dashboard shell, and the contact needs a number to be reachable on. */}
+          {callControls && conversation.contact?.id && (
+            <button
+              type="button"
+              onClick={() =>
+                callControls.placeCall(
+                  conversation.contact!.id,
+                  conversation.contact?.name ?? conversation.contact?.phone ?? undefined,
+                )
+              }
+              disabled={callControls.busy}
+              title={callControls.busy ? "Finish the current call first" : "Call this contact"}
+              aria-label="Call this contact"
+              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Phone className="h-4 w-4" />
+            </button>
+          )}
           <span className="hidden text-xs font-medium text-slate-600 sm:inline">AI Auto-Reply</span>
           <Sparkles
             className={cn("h-4 w-4 sm:hidden", aiActive ? "text-emerald-600" : "text-slate-400")}
