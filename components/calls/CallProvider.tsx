@@ -10,6 +10,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useRealtimeEvent } from "@/hooks/useRealtime";
 import { callApi } from "@/hooks/useCalls";
 import { buildAnswer, formatCallDuration, type PeerConnectionLike } from "@/lib/calls/webrtc";
+import { startCallRecorder, uploadCallRecording, type CallRecorder } from "@/lib/calls/recorder";
 import { showBrowserNotice } from "@/lib/notifications/browser";
 import type { RtCallIncoming, RtCallStatus } from "@/lib/realtime/events";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ interface ActiveCall {
   pc: PeerConnectionLike;
   mic: MediaStream;
   answeredAt: number;
+  /** Null when the browser cannot record; the call still runs. */
+  recorder: CallRecorder | null;
 }
 
 /**
@@ -96,6 +99,15 @@ function CallManager() {
     if (a) {
       try { a.pc.close(); } catch { /* already closed */ }
       a.mic.getTracks().forEach((t) => t.stop());
+      // Deliberately not awaited: ending the call must feel immediate, and the upload
+      // has nothing left to tell the agent. A failure is the recorder's to swallow.
+      if (a.recorder) {
+        const rec = a.recorder;
+        const seconds = rec.elapsed();
+        void rec.stop().then((blob) => {
+          if (blob) void uploadCallRecording(a.call.id, blob, seconds);
+        });
+      }
     }
     if (remoteAudio.current) remoteAudio.current.srcObject = null;
     setActive(null);
@@ -151,6 +163,8 @@ function CallManager() {
       mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       const iceServers = await callApi.iceServers();
       const offerSdp = await fetchOffer(call.id);
+      let recorder: CallRecorder | null = null;
+      const micStream = mic;
       const built = await buildAnswer({
         offerSdp, iceServers, stream: mic,
         onRemoteTrack: (stream) => {
@@ -158,12 +172,18 @@ function CallManager() {
             remoteAudio.current.srcObject = stream;
             remoteAudio.current.play().catch(() => {});
           }
+          // Recording starts with the remote audio, not with the answer: before the
+          // customer's track arrives there is only one side to capture.
+          if (!recorder) {
+            recorder = startCallRecorder(micStream, stream);
+            setActive((prev) => (prev && prev.call.id === call.id ? { ...prev, recorder } : prev));
+          }
         },
       });
       pc = built.pc;
       await callApi.accept(call.id, built.sdp);
       setRinging((prev) => prev.filter((c) => c.id !== call.id));
-      setActive({ call, pc, mic, answeredAt: Date.now() });
+      setActive({ call, pc, mic, answeredAt: Date.now(), recorder });
 
       const native = pc as unknown as RTCPeerConnection;
       native.addEventListener?.("connectionstatechange", () => {

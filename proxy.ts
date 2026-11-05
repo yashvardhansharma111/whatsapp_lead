@@ -52,7 +52,7 @@ const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password
 const ADMIN_ROUTE_PREFIX = "/admin";
 
 /** Agents only get ops surfaces — not Team / Settings / Automate admin. */
-const AGENT_ALLOWED_PREFIXES = ["/inbox", "/contacts", "/leads", "/tickets"];
+const AGENT_ALLOWED_PREFIXES = ["/inbox", "/contacts", "/leads", "/tickets", "/recordings"];
 const AGENT_BLOCKED_PREFIXES = [
   "/team",
   "/settings",
