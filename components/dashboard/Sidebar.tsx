@@ -22,7 +22,7 @@ const NAV = [
       { href: "/inbox", label: "Inbox", icon: MessageSquare, permission: "conversations.view" },
       { href: "/calls", label: "Calls", icon: Phone, permission: "conversations.view", feature: "callingEnabled" as keyof PlanFeatures },
       { href: "/contacts", label: "Contacts", icon: Users, permission: "contacts.view" },
-      { href: "/tags", label: "Tags", icon: Tag, permission: "contacts.view" },
+      { href: "/tags", label: "Labels", icon: Tag, permission: "contacts.view" },
       { href: "/leads", label: "Leads", icon: Target, permission: "contacts.view" },
     ],
   },

@@ -173,7 +173,7 @@ export function ContactPanel({
       </Section>
 
       {/* Tags */}
-      <Section title="Tags">
+      <Section title="Labels">
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => {
@@ -194,7 +194,7 @@ export function ContactPanel({
             })}
           </div>
         ) : (
-          <p className="text-xs text-slate-400">No tags.</p>
+          <p className="text-xs text-slate-400">No labels.</p>
         )}
       </Section>
 

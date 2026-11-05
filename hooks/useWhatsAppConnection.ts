@@ -34,15 +34,27 @@ export interface WhatsAppConnectionDTO {
 }
 
 /** Result returned by the WhatsApp connection test. */
-export interface WhatsAppTestDTO {
-  integrationId: string | null;
-  phoneNumberId: string;
-  wabaId: string | null;
-  displayPhoneNumber: string | null;
-  verifiedName: string | null;
-  qualityRating: string | null;
-  codeVerificationStatus: string | null;
-}
+/**
+ * The result of testing one number against Meta.
+ *
+ * A rejected credential is a valid answer to "is this connected?", not a failed request,
+ * so the endpoint answers 200 in both cases and `ok` carries the verdict. Modelled as a
+ * union rather than an interface with an `ok` field because the two shapes genuinely
+ * differ — and because reading `displayPhoneNumber` off a failed test is exactly the
+ * mistake that reported a dead number as "Connection successful".
+ */
+export type WhatsAppTestDTO =
+  | {
+      ok: true;
+      integrationId: string | null;
+      phoneNumberId: string;
+      wabaId: string | null;
+      displayPhoneNumber: string | null;
+      verifiedName: string | null;
+      qualityRating: string | null;
+      codeVerificationStatus: string | null;
+    }
+  | { ok: false; error: string };
 
 /**
  * A persisted WhatsApp number connected to a Business.

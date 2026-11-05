@@ -211,7 +211,7 @@ export function ContactTable({
             {!showingDeleted && permissions.manage && (
               <Button variant="secondary" size="sm" onClick={() => onAction("addTag", selectedRows)}>
                 <TagIcon className="h-3.5 w-3.5" />
-                Add tag
+                Add label
               </Button>
             )}
             {permissions.block && (
@@ -340,7 +340,7 @@ export function ContactTable({
                     onChange={toggleAll}
                   />
                 </th>
-                {["Name", "Phone", "Email", "Company", "Tags", "Lead stage", "Last activity"].map(
+                {["Name", "Phone", "Email", "Company", "Labels", "Lead stage", "Last activity"].map(
                   (h) => (
                     <th
                       key={h}

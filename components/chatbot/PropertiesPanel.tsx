@@ -1002,7 +1002,7 @@ function TagFields({ data, set }: { data: TagNodeData; set: Setter }) {
         </select>
       </div>
       <div className="space-y-2">
-        <span className={labelCls}>Tags</span>
+        <span className={labelCls}>Labels</span>
         <ChipInput
           inputId="np-tags"
           values={data.tags ?? []}

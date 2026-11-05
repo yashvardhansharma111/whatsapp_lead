@@ -34,7 +34,7 @@ export default function TagsPage() {
     queryFn: async () => {
       const r = await fetch("/api/tags");
       const j = await r.json();
-      if (!r.ok) throw new Error(j.message ?? j.error ?? "Failed to load tags");
+      if (!r.ok) throw new Error(j.message ?? j.error ?? "Failed to load labels");
       const payload = j?.data ?? j;
       return { tags: Array.isArray(payload?.tags) ? payload.tags : [] };
     },
@@ -71,13 +71,13 @@ export default function TagsPage() {
         body: JSON.stringify({ name: name.trim(), color }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to save tag");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to save label");
       return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       closeModal();
-      showToast(editing ? "Tag updated." : "Tag created.", "success");
+      showToast(editing ? "Label updated." : "Label created.", "success");
     },
     onError: (err: Error) => showToast(err.message, "error"),
   });
@@ -86,13 +86,13 @@ export default function TagsPage() {
     mutationFn: async (tag: TagItem) => {
       const res = await fetch(`/api/tags/${tag.id}`, { method: "DELETE" });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to delete tag");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to delete label");
       return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       setConfirmDelete(null);
-      showToast("Tag deleted.", "success");
+      showToast("Label deleted.", "success");
     },
     onError: (err: Error) => { setConfirmDelete(null); showToast(err.message, "error"); },
   });
@@ -100,12 +100,12 @@ export default function TagsPage() {
   return (
     <div>
       <PageHeader
-        title="Tag Master"
-        description="Create and manage tags to organise your contacts."
+        title="Labels"
+        description="The full set of labels for organising chats and contacts. Labels can only be applied from this list — they are never created by typing one onto a contact."
         action={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
-            New tag
+            New label
           </Button>
         }
       />
@@ -123,12 +123,12 @@ export default function TagsPage() {
       ) : tags.length === 0 ? (
         <EmptyState
           icon={Tag}
-          title="No tags yet"
-          description="Create tags to label and filter your contacts."
+          title="No labels yet"
+          description="Create labels to organise and filter your chats and contacts."
           action={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              New tag
+              New label
             </Button>
           }
         />
@@ -168,7 +168,7 @@ export default function TagsPage() {
       )}
 
       {/* Create / Edit modal */}
-      <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit tag" : "New tag"}>
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? "Edit label" : "New label"}>
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Name</label>

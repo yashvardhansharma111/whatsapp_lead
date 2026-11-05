@@ -475,7 +475,7 @@ function OverviewTab({ contact }: { contact: ContactDetail }) {
         <Card className="p-5">
           <div className="mb-3 flex items-center gap-2">
             <TagIcon className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-slate-900">Tags</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Labels</h2>
           </div>
 
           {tagError && (

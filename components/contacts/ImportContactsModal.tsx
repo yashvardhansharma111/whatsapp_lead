@@ -36,7 +36,7 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
         { header: "Location",    example: "Mumbai" },
         { header: "Source",      example: "Website" },
         { header: "Notes",       example: "Interested in plan A" },
-        { header: "Tags",        example: "hot, vip" },
+        { header: "Labels",      example: "hot, vip" },
       ],
       mappingHint: (
         <>

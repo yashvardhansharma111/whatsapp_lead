@@ -137,7 +137,9 @@ function FacebookGlyph() {
 }
 
 /** Per-number outcome of the last Test press, shown on that number's card. */
-type TestOutcome = { ok: true; data: WhatsAppTestDTO } | { ok: false; error: string };
+type TestOutcome =
+  | { ok: true; data: Extract<WhatsAppTestDTO, { ok: true }> }
+  | { ok: false; error: string };
 
 /** A copy of `record` without `key`. */
 function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> {
@@ -581,8 +583,16 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const runTest = (integration: WhatsAppIntegrationDTO) => {
     setTestOutcomes((prev) => withoutKey(prev, integration.id));
     test.mutate(integration.id, {
+      // The request succeeding only means Meta answered. Whether it accepted the
+      // credentials is `data.ok`, and skipping that check is what showed a dead number
+      // as "Connection successful".
       onSuccess: (result) =>
-        setTestOutcomes((prev) => ({ ...prev, [integration.id]: { ok: true, data: result.data } })),
+        setTestOutcomes((prev) => ({
+          ...prev,
+          [integration.id]: result.data.ok
+            ? { ok: true, data: result.data }
+            : { ok: false, error: result.data.error },
+        })),
       onError: (err) =>
         setTestOutcomes((prev) => ({
           ...prev,

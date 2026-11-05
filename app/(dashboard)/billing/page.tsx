@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { cn, formatCompact, formatCurrency, formatDate } from "@/lib/utils";
 import {
+  type BillingSummary,
   useBilling,
   useBillingPortal,
   useCancelSubscription,
@@ -65,6 +66,33 @@ function UsageCard({ metric }: { metric: UsageMetric }) {
       </div>
     </Card>
   );
+}
+
+/**
+ * The paying-now action, which is always offered — only its wording changes.
+ *
+ * Hiding it was the old behaviour and it was the wrong instinct: the moment someone most
+ * wants to pay is when their plan is about to lapse or already has, and that is exactly
+ * when the button disappeared. Someone on a trial could not pay early either, which
+ * described most accounts.
+ *
+ * So the button always renders, and the label says what will actually happen. The server
+ * takes an early renewal only while the period is still running; once it has elapsed the
+ * payment is a fresh subscription, so that case is sent to the plans page under a label
+ * that says so rather than failing after the click.
+ */
+function renewAction(data: BillingSummary | undefined): { label: string; hint: string } {
+  const lapsed =
+    !data?.renewsAt || new Date(data.renewsAt).getTime() <= Date.now() ||
+    data.status === "EXPIRED" || data.status === "PAST_DUE";
+
+  if ((data?.priceMonthly ?? 0) <= 0) {
+    return { label: "Upgrade", hint: "Move off the free plan to a paid one." };
+  }
+  if (lapsed) {
+    return { label: "Renew plan", hint: "This period has ended — choose a plan to continue." };
+  }
+  return { label: "Renew early", hint: "Pay now; the new time is added after the current period." };
 }
 
 export default function BillingPage() {
@@ -114,11 +142,9 @@ export default function BillingPage() {
                 Billing portal
               </Button>
             )}
-            {data?.status === "ACTIVE" && (data.priceMonthly ?? 0) > 0 && (
-              <Link href="/billing/plans">
-                <Button variant="secondary">Renew early</Button>
-              </Link>
-            )}
+            <Link href="/billing/plans" title={renewAction(data).hint}>
+              <Button variant="secondary">{renewAction(data).label}</Button>
+            </Link>
             <Link href="/billing/plans">
               <Button>
                 <ArrowUpRight className="h-4 w-4" />

@@ -45,7 +45,7 @@ interface PendingAction {
 const ACTION_COPY: Record<"delete" | "block" | "addTag", { title: string; confirm: string }> = {
   delete: { title: "Delete", confirm: "Delete" },
   block: { title: "Block", confirm: "Block" },
-  addTag: { title: "Add a tag to", confirm: "Add tag" },
+  addTag: { title: "Add a label to", confirm: "Add label" },
 };
 
 const who = (contacts: ContactRow[]) =>
@@ -137,8 +137,8 @@ export default function ContactsPage() {
             restore: `${n} contact${s} restored.`,
             block: `${n} number${s} blocked. No message will be sent to ${n === 1 ? "it" : "them"}.`,
             unblock: `${n} number${s} unblocked.`,
-            addTag: `Tag added to ${n} contact${s}.`,
-            removeTag: `Tag removed from ${n} contact${s}.`,
+            addTag: `Label added to ${n} contact${s}.`,
+            removeTag: `Label removed from ${n} contact${s}.`,
           };
           let message = done[action];
           if (action === "block" && r.unchanged > 0) message += ` ${r.unchanged} were already blocked.`;
@@ -386,23 +386,35 @@ export default function ContactsPage() {
         {pending?.action === "addTag" && (
           <div className="mb-4">
             <label className="mb-1.5 block text-sm font-medium text-slate-700" htmlFor="contact-tag-name">
-              Tag
+              Label
             </label>
-            <input
+            {/* A chooser, not a text box. This was a free-text field with suggestions, so
+                every typo and half-typed word became a new label for the whole workspace
+                and the list stopped being usable for segmenting. Labels are made on the
+                Labels screen; here they are only applied. */}
+            <select
               id="contact-tag-name"
-              list="contact-tag-options"
               value={actionText}
               onChange={(e) => setActionText(e.target.value)}
-              maxLength={50}
               className={inputClass}
-              placeholder="e.g. VIP"
               autoFocus
-            />
-            <datalist id="contact-tag-options">
+            >
+              <option value="">Choose a label…</option>
               {tagOptions.map((t) => (
-                <option key={t.id} value={t.name} />
+                <option key={t.id} value={t.name}>
+                  {t.name}
+                </option>
               ))}
-            </datalist>
+            </select>
+            {tagOptions.length === 0 && (
+              <p className="mt-1.5 text-xs text-slate-500">
+                No labels yet.{" "}
+                <Link href="/tags" className="font-medium text-emerald-700 hover:underline">
+                  Create one first
+                </Link>
+                .
+              </p>
+            )}
           </div>
         )}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

@@ -414,7 +414,7 @@ function SegmentsPageInner() {
                       <th className="px-4 py-2.5 font-medium sm:px-6">Name</th>
                       <th className="px-3 py-2 font-medium">Phone</th>
                       <th className="px-3 py-2 font-medium">City</th>
-                      <th className="px-3 py-2 font-medium">Tags</th>
+                      <th className="px-3 py-2 font-medium">Labels</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

@@ -58,7 +58,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
         { header: "Source",      example: "Website" },
         { header: "Value",       example: "50000" },
         { header: "Notes",       example: "Hot lead" },
-        { header: "Tags",        example: "hot, vip" },
+        { header: "Labels",      example: "hot, vip" },
       ],
       mappingHint: (
         <>
