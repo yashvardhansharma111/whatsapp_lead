@@ -119,7 +119,12 @@ function CallManager() {
         const rec = a.recorder;
         const seconds = rec.elapsed();
         void rec.stop().then((blob) => {
-          if (blob) void uploadCallRecording(a.call.id, blob, seconds);
+          if (!blob) return;
+          void uploadCallRecording(a.call.id, blob, seconds).then((why) => {
+            // Said once, after the call has already ended, so it never interrupts one.
+            // A recording that silently failed to save is worse than a brief message.
+            if (why) showToast(`Recording not saved: ${why}`, "error");
+          });
         });
       }
     }

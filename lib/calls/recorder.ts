@@ -97,20 +97,31 @@ export function startCallRecorder(
   }
 }
 
-/** Sends a finished recording to the server. Failure is logged, never surfaced mid-call. */
+/**
+ * Sends a finished recording to the server.
+ *
+ * @returns null on success, or the reason it failed. The caller decides whether that is
+ *   worth telling anyone — it is never raised mid-call. Returning the reason rather than
+ *   a bare false matters because a failed upload is otherwise invisible: the only trace
+ *   is a status code in a console nobody has open.
+ */
 export async function uploadCallRecording(
   callId: string,
   blob: Blob,
   durationSec: number,
-): Promise<boolean> {
-  if (!blob.size) return false;
+): Promise<string | null> {
+  if (!blob.size) return "The recording captured no audio.";
   try {
     const form = new FormData();
     form.append("file", blob, `call-${callId}.webm`);
     form.append("durationSec", String(durationSec));
+
     const res = await fetch(`/api/calls/${callId}/recording`, { method: "POST", body: form });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return null;
+
+    const json = await res.json().catch(() => null);
+    return json?.error ?? json?.message ?? `Upload failed (${res.status}).`;
+  } catch (err) {
+    return err instanceof Error ? err.message : "Upload failed.";
   }
 }
