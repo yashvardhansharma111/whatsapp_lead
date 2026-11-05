@@ -243,6 +243,8 @@ export default function WalletPage() {
         </Card>
       </div>
 
+      <SpendSummary />
+
       <Card className="overflow-hidden">
         <h2 className="border-b border-slate-100 px-5 py-3 text-sm font-semibold text-slate-900">Statement</h2>
         {w.transactions.length === 0 ? (
@@ -283,5 +285,98 @@ export default function WalletPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+
+interface SpendData {
+  spentMinor: number;
+  toppedUpMinor: number;
+  byReason: { reason: string; count: number; amountMinor: number; direction: "debit" | "credit" }[];
+  byCampaign: { campaignId: string; name: string; messages: number; spentMinor: number }[];
+}
+
+const REASON_LABEL: Record<string, string> = {
+  campaign_message: "Campaign messages",
+  razorpay_payment: "Top-up (Razorpay)",
+  stripe_session:   "Top-up (Stripe)",
+  white_label_fee:  "White-label fee",
+  admin_adjustment: "Adjustment by admin",
+  other:            "Other",
+};
+
+/**
+ * Where the money went, over the last 30 days.
+ *
+ * Credits and debits are kept apart rather than netted: "spent 5,000, topped up 5,000"
+ * is not the same as spending nothing, and netting them hides both halves.
+ */
+function SpendSummary() {
+  const { data } = useQuery<SpendData>({
+    queryKey: ["wallet-spend"],
+    queryFn: async () => {
+      const res = await fetch("/api/wallet/spend");
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error ?? "Couldn't load spend");
+      return (json?.data ?? json) as SpendData;
+    },
+  });
+
+  if (!data) return null;
+  const nothingYet = data.spentMinor === 0 && data.byCampaign.length === 0;
+
+  return (
+    <Card className="mb-4 p-5">
+      <h2 className="text-sm font-semibold text-slate-900">Spend · last 30 days</h2>
+
+      <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Spent</p>
+          <p className="text-xl font-semibold tabular-nums text-slate-900">{money(data.spentMinor)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Topped up</p>
+          <p className="text-xl font-semibold tabular-nums text-emerald-700">{money(data.toppedUpMinor)}</p>
+        </div>
+      </div>
+
+      {nothingYet ? (
+        <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          Nothing has been charged yet. Messages are only billed for categories that have a
+          price set — until then campaigns send without touching the wallet.
+        </p>
+      ) : (
+        <>
+          {data.byReason.length > 0 && (
+            <ul className="mt-3 space-y-1 text-sm">
+              {data.byReason.map((r) => (
+                <li key={r.reason} className="flex justify-between gap-4">
+                  <span className="text-slate-600">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                  <span className={cn("tabular-nums", r.direction === "debit" ? "text-slate-900" : "text-emerald-700")}>
+                    {r.direction === "debit" ? "−" : "+"}{money(r.amountMinor)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {data.byCampaign.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">By campaign</p>
+              <ul className="space-y-1 text-sm">
+                {data.byCampaign.map((c) => (
+                  <li key={c.campaignId} className="flex justify-between gap-4">
+                    <span className="min-w-0 truncate text-slate-700">{c.name}</span>
+                    <span className="shrink-0 tabular-nums text-slate-500">
+                      {c.messages.toLocaleString()} msg · <span className="text-slate-900">{money(c.spentMinor)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
