@@ -65,7 +65,7 @@ export function useCallingSettings(integrationId: string | null) {
     queryKey: ["calls", "settings", integrationId],
     enabled: Boolean(integrationId),
     queryFn: async () =>
-      unwrap<{ integrationId: string; enabled: boolean; error: string | null }>(
+      unwrap<{ integrationId: string; enabled: boolean; followBusinessHours: boolean; error: string | null }>(
         await fetch(`/api/calls/settings/${integrationId}`),
         "Couldn't read calling settings",
       ),
@@ -76,12 +76,12 @@ export function useCallingSettings(integrationId: string | null) {
 export function useSetCalling() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ integrationId, enabled }: { integrationId: string; enabled: boolean }) =>
+    mutationFn: async ({ integrationId, enabled, followBusinessHours }: { integrationId: string; enabled: boolean; followBusinessHours?: boolean }) =>
       unwrap<{ integrationId: string; enabled: boolean }>(
         await fetch(`/api/calls/settings/${integrationId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enabled }),
+          body: JSON.stringify({ enabled, followBusinessHours }),
         }),
         "Couldn't update calling",
       ),

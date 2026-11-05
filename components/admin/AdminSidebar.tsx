@@ -20,8 +20,7 @@ import {
   X,
   BarChart2,
   Palette,
-  Ban,
-} from "lucide-react";
+  Ban, SlidersHorizontal,} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 
@@ -40,6 +39,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/white-label",  label: "White Label",    icon: Palette },
       { href: "/admin/rates",        label: "Message prices", icon: Receipt },
+      { href: "/admin/pricing-policy", label: "Pricing & policy", icon: SlidersHorizontal },
     ],
   },
   {

@@ -21,11 +21,35 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
   const on = settings.data?.enabled ?? false;
   const busy = settings.isLoading || save.isPending;
 
+  const follows = settings.data?.followBusinessHours ?? false;
+
   async function toggle() {
     try {
       const next = !on;
       await save.mutateAsync({ integrationId, enabled: next });
       showToast(next ? "Calling is on. Customers now see a call button on WhatsApp." : "Calling is off for this number.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Couldn't update calling", "error");
+    }
+  }
+
+  /**
+   * Handing the switch to the department's hours.
+   *
+   * Turning it off deliberately leaves calling wherever it currently is rather than
+   * forcing it on, so switching the schedule off at night does not start ringing phones
+   * nobody is sitting at.
+   */
+  async function toggleSchedule() {
+    try {
+      const next = !follows;
+      await save.mutateAsync({ integrationId, enabled: on, followBusinessHours: next });
+      showToast(
+        next
+          ? "Calling now follows this department's business hours."
+          : "Calling no longer follows business hours; it stays as it is now.",
+        "success",
+      );
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Couldn't update calling", "error");
     }
@@ -64,6 +88,23 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
           <span className={cn("inline-block h-5 w-5 rounded-full bg-white shadow transition", on ? "translate-x-5" : "translate-x-0.5")} />
         )}
       </button>
+
+      <label className="flex w-full cursor-pointer items-start gap-2.5 border-t border-slate-200 pt-2.5">
+        <input
+          type="checkbox"
+          checked={follows}
+          disabled={disabled || busy}
+          onChange={toggleSchedule}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600"
+        />
+        <span className="min-w-0">
+          <span className="block text-sm text-slate-800">Follow business hours</span>
+          <span className="block text-xs text-slate-500">
+            Calling opens and closes with this department&apos;s working hours, so nobody
+            calls a phone no one is sitting at. Set the hours in Business profile.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }
