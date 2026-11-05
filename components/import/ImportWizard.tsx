@@ -62,6 +62,14 @@ export interface ImportWizardConfig<T> {
    * exactly what headers and values to use before they build their file.
    */
   columnGuide?: { header: string; example: string; required?: boolean }[];
+  /**
+   * Controls shown on the preview step, just before the import runs.
+   *
+   * For choices that apply to the whole file rather than to a column — a label to put on
+   * every row, say. It belongs on preview rather than upload because that is where
+   * someone can see what they are about to bring in and decide how to mark it.
+   */
+  preImportControls?: ReactNode;
 }
 
 type Step = "upload" | "sheet" | "map" | "preview" | "importing" | "done";
@@ -491,6 +499,7 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
           )}
 
           {config.mappingHint && <div className="text-xs text-slate-500">{config.mappingHint}</div>}
+          {config.preImportControls}
 
           {!requiredMapped && requiredField && (
             <p className="text-xs font-medium text-rose-600">Map a {requiredField.label} column to continue.</p>

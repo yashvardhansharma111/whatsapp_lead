@@ -43,6 +43,7 @@ interface CampaignDetail {
   /** Deliberately not sent to: opted out, or at WhatsApp's own per-person limit. */
   skippedCount: number;
   costMinor: number;
+  estimatedCostMinor: number | null;
   metadata: unknown;
   createdAt: string;
 }
@@ -244,6 +245,30 @@ export default function CampaignReportPage() {
         <StatCard label="Failed"    value={campaign.failedCount}     total={total} barColor="bg-rose-500" />
         {campaign.skippedCount > 0 && (
           <StatCard label="Skipped" value={campaign.skippedCount}    total={total} barColor="bg-slate-300" />
+        )}
+      </div>
+
+      {/* Spend sits apart from the delivery tiles because it is money, not a count, and
+          a progress bar against the recipient total would mean nothing. */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Spent</p>
+          <p className="text-lg font-semibold tabular-nums text-slate-900">
+            ₹{((campaign.costMinor ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        {campaign.estimatedCostMinor != null && (
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Estimated</p>
+            <p className="text-lg font-semibold tabular-nums text-slate-500">
+              ₹{(campaign.estimatedCostMinor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        )}
+        {campaign.sentCount > 0 && (
+          <p className="text-xs text-slate-500">
+            ₹{(((campaign.costMinor ?? 0) / campaign.sentCount) / 100).toFixed(3)} per message sent
+          </p>
         )}
       </div>
 

@@ -15,6 +15,7 @@ interface PolicyOption {
 interface Policy {
   behaviour: string;
   graceDays: number;
+  walletEnabled: boolean;
   options: PolicyOption[];
 }
 interface PriceLine {
@@ -57,6 +58,7 @@ export default function PricingPolicyPage() {
 
   const [behaviour, setBehaviour] = useState<string | null>(null);
   const [graceDays, setGraceDays] = useState<number | null>(null);
+  const [wallet, setWallet] = useState<boolean | null>(null);
 
   const savePolicy = useMutation({
     mutationFn: async () =>
@@ -66,6 +68,7 @@ export default function PricingPolicyPage() {
         body: JSON.stringify({
           behaviour: behaviour ?? policy?.behaviour,
           graceDays: graceDays ?? policy?.graceDays,
+          walletEnabled: wallet ?? policy?.walletEnabled,
         }),
       }), "Couldn't save"),
     onSuccess: () => {
@@ -168,6 +171,23 @@ export default function PricingPolicyPage() {
                 <span className="text-sm text-slate-500">days</span>
               </div>
             )}
+
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={wallet ?? policy.walletEnabled}
+                onChange={(e) => setWallet(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-slate-800">Allow wallet top-ups</span>
+                <span className="block text-xs text-slate-500">
+                  The master switch. Accounts can only top up when this is on, their plan
+                  includes a wallet, and payment keys are configured — a wallet nobody can
+                  fill is worse than no wallet.
+                </span>
+              </span>
+            </label>
 
             <div className="mt-4">
               <Button onClick={() => savePolicy.mutate()} disabled={savePolicy.isPending}>

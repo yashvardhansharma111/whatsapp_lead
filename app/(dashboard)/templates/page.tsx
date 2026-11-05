@@ -11,8 +11,7 @@ import {
   RefreshCw,
   Download,
   AlertCircle,
-  RotateCw,
-} from "lucide-react";
+  RotateCw, BookOpen,} from "lucide-react";
 import {
   Badge,
   Button,
@@ -27,6 +26,7 @@ import { TemplateBuilder } from "@/components/templates/TemplateBuilder";
 import { NumberPicker } from "@/components/NumberPicker";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { cn, formatDate } from "@/lib/utils";
+import { TemplateLibraryModal } from "@/components/templates/TemplateLibraryModal";
 import {
   useTemplates,
   useDeleteTemplate,
@@ -73,6 +73,7 @@ export default function TemplatesPage() {
   // one of them.
   const { numberId, setNumberId } = useNumberFilter("templates");
   const { data, isLoading, isError, refetch } = useTemplates(numberId || undefined);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
   const [rejection, setRejection] = useState<TemplateDTO | null>(null);
   const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<TemplateDTO | null>(null);
@@ -232,6 +233,10 @@ export default function TemplatesPage() {
               <Download className={cn("h-4 w-4", importFromMeta.isPending && "animate-bounce")} />
               Import from Meta
             </Button>
+            <Button variant="secondary" onClick={() => setLibraryOpen(true)} title="Start from a ready-made template">
+              <BookOpen className="h-4 w-4" />
+              Library
+            </Button>
             <Button variant="secondary" onClick={handleSyncAll} disabled={syncAll.isPending || importFromMeta.isPending}>
               <RefreshCw className={cn("h-4 w-4", syncAll.isPending && "animate-spin")} />
               Sync status
@@ -390,6 +395,8 @@ export default function TemplatesPage() {
         onClose={() => setModal({ open: false, editing: null })}
         showToast={showToast}
       />
+
+      <TemplateLibraryModal open={libraryOpen} onClose={() => setLibraryOpen(false)} />
 
       <Modal
         open={Boolean(rejection)}

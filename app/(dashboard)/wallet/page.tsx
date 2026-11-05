@@ -20,6 +20,7 @@ interface WalletData {
   lowBalanceThresholdMinor: number;
   rates: { category: string; priceMinor: number | null; source?: RateSource }[];
   canTopUp: boolean;
+  topUpBlockedReason?: string | null;
   transactions: Txn[];
 }
 
@@ -145,6 +146,14 @@ export default function WalletPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Balance</p>
           <p className={cn("mt-1 break-words text-3xl font-semibold tabular-nums sm:text-4xl", low ? "text-amber-700" : "text-slate-900")}>{money(w.balanceMinor)}</p>
           {low && <p className="mt-1 text-sm text-amber-700">Below your alert level — campaigns pause when it runs out.</p>}
+
+          {!w.canTopUp && w.topUpBlockedReason && (
+            // Says which switch is off rather than leaving a missing button to explain
+            // itself — the reasons differ and only one of them is the customer's to fix.
+            <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              {w.topUpBlockedReason}
+            </p>
+          )}
 
           {w.canTopUp && (
             <div className="mt-5">

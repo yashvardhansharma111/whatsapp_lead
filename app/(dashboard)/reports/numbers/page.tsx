@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Search, Smartphone } from "lucide-react";
 import { Button, Card, EmptyState, PageHeader, Skeleton, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useContactTags } from "@/hooks/useContacts";
 
 interface NumberRow {
   phone: string;
@@ -17,6 +18,7 @@ interface NumberRow {
   failed: number;
   lastSentAt: string | null;
   campaigns: number;
+  spentMinor: number;
 }
 
 type View = "mine" | "clients" | "platform";
@@ -43,6 +45,8 @@ export default function NumberActivityPage() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
+  const [tag, setTag] = useState("");
+  const { data: labels = [] } = useContactTags();
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
@@ -50,10 +54,11 @@ export default function NumberActivityPage() {
   }, [search]);
 
   const { data, isLoading } = useQuery<{ rows: NumberRow[]; total: number }>({
-    queryKey: ["number-activity", view, debounced, page],
+    queryKey: ["number-activity", view, debounced, tag, page],
     queryFn: async () => {
       const q = new URLSearchParams({ view, page: String(page), limit: String(PAGE_SIZE) });
       if (debounced) q.set("search", debounced);
+      if (tag) q.set("tag", tag);
       const res = await fetch(`/api/analytics/number-activity?${q}`);
       const json = await res.json().catch(() => null);
       if (!res.ok) throw new Error(json?.error ?? "Failed to load");
@@ -97,6 +102,17 @@ export default function NumberActivityPage() {
             ))}
           </div>
         )}
+        {labels.length > 0 && (
+          <select
+            value={tag}
+            onChange={(e) => { setTag(e.target.value); setPage(1); }}
+            aria-label="Filter by label"
+            className={cn(inputClass, "w-48 cursor-pointer bg-white")}
+          >
+            <option value="">All labels</option>
+            {labels.map((l) => <option key={l.id} value={l.name}>{l.name}</option>)}
+          </select>
+        )}
         <div className="relative min-w-[14rem] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -131,6 +147,7 @@ export default function NumberActivityPage() {
                   <th className="px-3 py-2 text-right font-medium">Replied</th>
                   <th className="px-3 py-2 text-right font-medium">Failed</th>
                   <th className="px-3 py-2 text-right font-medium">Campaigns</th>
+                  <th className="px-3 py-2 text-right font-medium">Spent</th>
                   <th className="px-3 py-2 font-medium">Last sent</th>
                 </tr>
               </thead>
@@ -149,6 +166,9 @@ export default function NumberActivityPage() {
                       {r.failed}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-600">{r.campaigns}</td>
+                    <td className="px-3 py-2 text-right text-slate-600">
+                      ₹{((r.spentMinor ?? 0) / 100).toFixed(2)}
+                    </td>
                     <td className="px-3 py-2 text-slate-500">
                       {r.lastSentAt ? new Date(r.lastSentAt).toLocaleDateString(undefined, {
                         day: "numeric", month: "short", year: "numeric",

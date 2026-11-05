@@ -42,6 +42,7 @@ export interface AdminPlan {
   allowedAiModels: string[];
   allowExport: boolean;
   callingEnabled?: boolean;
+  walletEnabled?: boolean;
   isPopular: boolean;
   aiEnabled: boolean;
   ragEnabled: boolean;
@@ -115,13 +116,14 @@ const NUMBER_FIELDS: { key: NumericKey; label: string; hint?: string; group: "pr
   { key: "sortOrder", label: "Sort order", hint: "Lower sorts first on the pricing page.", group: "meta" },
 ];
 
-const TOGGLES: { key: "aiEnabled" | "ragEnabled" | "advancedAi" | "whiteLabel" | "allowExport" | "callingEnabled"; label: string }[] = [
+const TOGGLES: { key: "aiEnabled" | "ragEnabled" | "advancedAi" | "whiteLabel" | "allowExport" | "callingEnabled" | "walletEnabled"; label: string }[] = [
   { key: "aiEnabled", label: "AI auto-reply" },
   { key: "ragEnabled", label: "Knowledge base (RAG)" },
   { key: "advancedAi", label: "Advanced AI (lead scoring)" },
   { key: "whiteLabel", label: "White label" },
   { key: "allowExport", label: "CSV export" },
   { key: "callingEnabled", label: "WhatsApp calling" },
+  { key: "walletEnabled",  label: "Wallet top-ups" },
 ];
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -142,6 +144,7 @@ type FormState = Record<NumericKey, number> & {
   advancedAi: boolean;
   allowExport: boolean;
   callingEnabled: boolean;
+  walletEnabled: boolean;
 };
 
 /** A blank tier: everything off, every cap zero-as-unlimited left explicit. */
@@ -168,6 +171,7 @@ function emptyForm(): FormState {
     advancedAi: false,
     allowExport: true,
     callingEnabled: false,
+    walletEnabled: false,
   };
 }
 
@@ -192,6 +196,7 @@ function formFrom(plan: AdminPlan): FormState {
     advancedAi: plan.advancedAi,
     allowExport: plan.allowExport,
     callingEnabled: plan.callingEnabled ?? false,
+    walletEnabled: plan.walletEnabled ?? false,
   };
 }
 
@@ -321,6 +326,7 @@ export function PlanFormModal({
       advancedAi: form.advancedAi,
       allowExport: form.allowExport,
       callingEnabled: form.callingEnabled,
+      walletEnabled: form.walletEnabled,
     };
 
     if (!editing) {

@@ -65,6 +65,8 @@ export interface ImportRequest {
   importId?: string;
   fileName?: string;
   sheetName?: string;
+  /** Labels applied to every row in the file, on top of any Labels column. */
+  importTags?: string[];
 }
 
 export function validateRows(
