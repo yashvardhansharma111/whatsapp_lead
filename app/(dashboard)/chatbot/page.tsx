@@ -38,7 +38,11 @@ import { ExportButton } from "@/components/ExportButton";
 import { useToast } from "@/components/ui/toast";
 
 export default function ChatbotPage() {
-  const { data, isLoading, isError } = useFlows();
+  const { data, isLoading, isError, error } = useFlows();
+  // Only a genuine outage earns the offline treatment; everything else gets its reason.
+  const offline = /unreachable|unavailable|could not reach|network/i.test(
+    (error as Error)?.message ?? "",
+  );
   const updateFlow = useUpdateFlow();
   const duplicateFlow = useDuplicateFlow();
   const deleteFlow = useDeleteFlow();
@@ -149,15 +153,24 @@ export default function ChatbotPage() {
         </div>
       ) : isError ? (
         <Card>
+          {/* The local builder is offered only for an outage, where the work can be
+              resumed once the connection returns. For a refusal — a permission, an ended
+              plan — it would be a dead end, so the reason is shown plainly instead. */}
           <EmptyState
             icon={WifiOff}
-            title="Database is temporarily unreachable"
-            description="You can still design and test a chatbot locally. Saving to the server will work again when the database connection is restored."
+            title={offline ? "Database is temporarily unreachable" : "Could not load your flows"}
+            description={
+              offline
+                ? "You can still design and test a chatbot locally. Saving to the server will work again when the database connection is restored."
+                : (error as Error)?.message ?? "Something went wrong loading the chatbot flows."
+            }
             action={
-              <Button onClick={() => openLocalBuilder()}>
-                <Plus className="h-4 w-4" />
-                Open local builder
-              </Button>
+              offline ? (
+                <Button onClick={() => openLocalBuilder()}>
+                  <Plus className="h-4 w-4" />
+                  Open local builder
+                </Button>
+              ) : undefined
             }
           />
         </Card>

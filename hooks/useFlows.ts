@@ -55,10 +55,16 @@ export function useFlows() {
     queryKey: ["chatbot-flows"],
     queryFn: async () => {
       const res = await fetch("/api/chatbot/flows");
-      if (!res.ok) throw new Error(`Failed to load flows (${res.status})`);
-      const json = await res.json();
-      if (json?.offline) throw new Error("Database unavailable");
-      return Array.isArray(json) ? json : (json.data ?? []);
+      const json = await res.json().catch(() => null);
+
+      // Carry the server's own sentence. The screen used to report every failure as a
+      // database outage, so a permission refusal or an expired plan read as an
+      // infrastructure problem and nobody looked for the real cause.
+      if (!res.ok) {
+        throw new Error(json?.error ?? json?.message ?? `Could not load flows (${res.status}).`);
+      }
+      if (json?.offline) throw new Error("The database is temporarily unreachable.");
+      return Array.isArray(json) ? json : (json?.data ?? []);
     },
     retry: false,
   });
