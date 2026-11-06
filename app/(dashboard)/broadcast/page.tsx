@@ -952,6 +952,7 @@ export default function BroadcastPage() {
           {mediaHeader && template && (
             <HeaderMediaInput
               key={template.id}
+              templateId={template.id}
               headerType={mediaHeader}
               value={media}
               onChange={setMedia}

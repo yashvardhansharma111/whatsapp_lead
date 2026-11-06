@@ -922,6 +922,7 @@ function CreateCampaignModal({
         {needsMediaUrl && selectedTemplate?.headerType && (
           <HeaderMediaInput
             key={selectedTemplate.id}
+            templateId={selectedTemplate.id}
             headerType={selectedTemplate.headerType as MediaHeaderType}
             value={{ mediaId: headerMediaId, mediaUrl: headerMediaUrl }}
             onChange={(v) => { setHeaderMediaId(v.mediaId); setHeaderMediaUrl(v.mediaUrl); }}

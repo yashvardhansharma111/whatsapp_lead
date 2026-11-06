@@ -21,13 +21,23 @@ export interface HeaderMediaValue {
  * URL. Shared by the Create Campaign modal and the Bulk Broadcast page. Give it a
  * `key` of the template id so switching templates starts it over.
  */
+/**
+ * The platform serving this app refuses a request body over 4.5 MB before it reaches us,
+ * so a larger file fails with nothing we can explain afterwards. Checking here means the
+ * person is told the limit and can pick the URL tab instead, which has no such ceiling.
+ */
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+
 export function HeaderMediaInput({
   headerType,
+  templateId,
   value,
   onChange,
   onError,
 }: {
   headerType: MediaHeaderType;
+  /** Decides which WhatsApp number the media is uploaded to — a media id only works for that number. */
+  templateId?: string;
   value: HeaderMediaValue;
   onChange: (value: HeaderMediaValue) => void;
   onError: (message: string) => void;
@@ -37,11 +47,20 @@ export function HeaderMediaInput({
   const [fileName, setFileName] = useState("");
 
   async function upload(file: File) {
-    setUploadState("uploading");
     setFileName(file.name);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadState("error");
+      onError(
+        `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)} MB. Uploads are limited to 4.5 MB — ` +
+        `host the file somewhere and use "Enter URL" instead.`,
+      );
+      return;
+    }
+    setUploadState("uploading");
     onChange({ mediaId: "", mediaUrl: "" });
     const form = new FormData();
     form.append("file", file);
+    if (templateId) form.append("templateId", templateId);
     try {
       const res = await fetch("/api/campaigns/upload-media", { method: "POST", body: form });
       const json = await res.json();
