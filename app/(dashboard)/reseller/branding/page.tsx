@@ -44,6 +44,9 @@ interface SmtpForm {
 
 const EMPTY_SMTP: SmtpForm = { smtpHost: "", smtpPort: "465", smtpUser: "", smtpPass: "", smtpFrom: "" };
 
+/** Where resellers point their DNS. Changes with the host, not with the code. */
+const CNAME_TARGET = process.env.NEXT_PUBLIC_CNAME_TARGET ?? "cname.vercel-dns.com";
+
 export default function ResellerBrandingPage() {
   const qc = useQueryClient();
   const { data, isLoading, isError, error } = useQuery({
@@ -187,8 +190,9 @@ export default function ResellerBrandingPage() {
             {text("domain", "Your own domain (optional)", { placeholder: "crm.yourbrand.com" })}
             <p className="flex items-start gap-1.5 text-xs text-slate-500">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Add a CNAME record for this domain pointing to <code className="font-mono">cname.vercel-dns.com</code>. Once it
-              resolves, your login page is served there with your brand.
+              Add a CNAME record for this domain pointing to{" "}
+              <code className="font-mono">{CNAME_TARGET}</code>. Once it resolves, your login
+              page is served there with your brand.
             </p>
             {(form.domain ?? "").trim() && (form.domain ?? "").trim().toLowerCase() !== (savedDomain ?? "") && (
               <p className="text-xs font-medium text-amber-700">Click Save branding (at the bottom) to connect this domain and check its status.</p>
