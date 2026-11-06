@@ -7,6 +7,7 @@ import { Search, Smartphone } from "lucide-react";
 import { Button, Card, EmptyState, PageHeader, Skeleton, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useContactTags } from "@/hooks/useContacts";
+import { readList } from "@/lib/api/readList";
 
 interface NumberRow {
   phone: string;
@@ -53,20 +54,21 @@ export default function NumberActivityPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, isLoading } = useQuery<{ rows: NumberRow[]; total: number }>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["number-activity", view, debounced, tag, page],
     queryFn: async () => {
       const q = new URLSearchParams({ view, page: String(page), limit: String(PAGE_SIZE) });
       if (debounced) q.set("search", debounced);
       if (tag) q.set("tag", tag);
-      const res = await fetch(`/api/analytics/number-activity?${q}`);
-      const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error ?? "Failed to load");
-      return json?.data ?? json;
+      return readList<NumberRow>(
+        await fetch(`/api/analytics/number-activity?${q}`),
+        "rows",
+        "Failed to load",
+      );
     },
   });
 
-  const rows = data?.rows ?? [];
+  const rows = data?.items ?? [];
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -128,6 +130,10 @@ export default function NumberActivityPage() {
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
         </div>
+      ) : error ? (
+        <Card className="border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {(error as Error).message}
+        </Card>
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Smartphone}

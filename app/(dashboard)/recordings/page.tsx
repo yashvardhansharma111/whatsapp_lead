@@ -6,6 +6,7 @@ import { Mic, PhoneIncoming, PhoneOutgoing, Play } from "lucide-react";
 import { Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { formatCallDuration } from "@/lib/calls/webrtc";
+import { readList } from "@/lib/api/readList";
 
 interface RecordingRow {
   id: string;
@@ -51,17 +52,17 @@ export default function RecordingsPage() {
   const [playing, setPlaying] = useState<string | null>(null);
   const [src, setSrc] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery<{ recordings: RecordingRow[]; total: number }>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["call-recordings", page],
-    queryFn: async () => {
-      const res = await fetch(`/api/calls/recordings?page=${page}&limit=${PAGE_SIZE}`);
-      const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(json?.error ?? "Failed to load recordings");
-      return (json?.data ?? json) as { recordings: RecordingRow[]; total: number };
-    },
+    queryFn: async () =>
+      readList<RecordingRow>(
+        await fetch(`/api/calls/recordings?page=${page}&limit=${PAGE_SIZE}`),
+        "recordings",
+        "Failed to load recordings",
+      ),
   });
 
-  const rows = data?.recordings ?? [];
+  const rows = data?.items ?? [];
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -99,6 +100,12 @@ export default function RecordingsPage() {
             <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
         </div>
+      ) : error ? (
+        // Kept apart from the empty state: a failed request and no recordings look
+        // identical otherwise, and only one of them is worth investigating.
+        <Card className="border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {(error as Error).message}
+        </Card>
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Mic}
