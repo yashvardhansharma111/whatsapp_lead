@@ -71,20 +71,25 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   let body: BodyInit | undefined;
   if (req.method !== "GET" && req.method !== "HEAD") {
-    body = isMultipart ? await req.blob() : await req.text();
-
-    // A file upload that arrives empty at the backend has three possible culprits — the
-    // browser, this hop, or the backend — and they are indistinguishable from either
-    // end. Recording the size and the boundary here says which side lost it.
     if (isMultipart) {
-      const blob = body as Blob;
-      console.log(
-        `[nest-proxy] multipart ${req.method} ${pathStr} → ${blob.size} bytes, type="${blob.type || "(none)"}"`,
-      );
-      if (!blob.size) console.warn(`[nest-proxy] multipart body is EMPTY for ${pathStr}`);
-      if (!blob.type.includes("boundary")) {
-        console.warn(`[nest-proxy] multipart body has no boundary for ${pathStr} — the backend cannot parse it`);
+      // Buffered whole, then sent with its own Content-Type and an explicit length.
+      //
+      // Handing a Blob to fetch instead lets it go out chunked, and the backend's
+      // multipart parser needs the closing boundary to consider the form complete — a
+      // chunked body that ends a moment early fails as "Unexpected end of form" with
+      // nothing to say which hop truncated it. A known length removes that entirely.
+      const buf = Buffer.from(await req.arrayBuffer());
+      headers["Content-Type"] = contentType;
+      headers["Content-Length"] = String(buf.length);
+      body = buf;
+
+      console.log(`[nest-proxy] multipart ${req.method} ${pathStr} → ${buf.length} bytes`);
+      if (!buf.length) console.warn(`[nest-proxy] multipart body is EMPTY for ${pathStr}`);
+      if (!contentType.includes("boundary")) {
+        console.warn(`[nest-proxy] multipart has no boundary for ${pathStr} — the backend cannot parse it`);
       }
+    } else {
+      body = await req.text();
     }
   }
 

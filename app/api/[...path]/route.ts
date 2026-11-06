@@ -46,7 +46,17 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   let body: BodyInit | undefined;
   if (req.method !== "GET" && req.method !== "HEAD") {
-    body = isMultipart ? await req.blob() : await req.text();
+    if (isMultipart) {
+      // Buffered whole and sent with an explicit length, for the same reason as the
+      // /api/nest proxy: a chunked multipart body that ends a moment early fails in the
+      // backend's parser as "Unexpected end of form", naming no hop.
+      const buf = Buffer.from(await req.arrayBuffer());
+      headers["Content-Type"] = contentType;
+      headers["Content-Length"] = String(buf.length);
+      body = buf;
+    } else {
+      body = await req.text();
+    }
   }
 
   let upstream: Response;
