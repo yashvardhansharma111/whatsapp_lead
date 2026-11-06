@@ -198,7 +198,13 @@ export function useImportTemplates() {
   return useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/templates/import", { method: "POST" });
-      return unwrap<{ created: number; updated: number }>(res, "Couldn't import from Meta");
+      // `failed` names the numbers Meta would not answer for — usually an expired token.
+      // It has to reach the screen: an import that reached three accounts out of four
+      // looks like a complete success otherwise, and the templates of the fourth sit
+      // there with a stale status nobody has reason to doubt.
+      return unwrap<{
+        created: number; updated: number; retired?: number; failed?: string[];
+      }>(res, "Couldn't import from Meta");
     },
     onSuccess: () => invalidate(queryClient),
   });

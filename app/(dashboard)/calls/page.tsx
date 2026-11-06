@@ -8,6 +8,7 @@ import { useCallHistory, type CallRow } from "@/hooks/useCalls";
 import { useFeature } from "@/hooks/useFeature";
 import { formatCallDuration } from "@/lib/calls/webrtc";
 import { cn, formatDate, formatTime } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 const STATUS_STYLE: Record<CallRow["status"], string> = {
   RINGING:     "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
@@ -111,7 +112,7 @@ export default function CallsPage() {
                           <Avatar name={name} src={c.contact.avatarUrl} size="sm" />
                           <div className="min-w-0">
                             <p className="truncate font-medium text-slate-900">{name}</p>
-                            {c.contact.name && <p className="truncate text-xs text-slate-500">+{c.contact.phone}</p>}
+                            {c.contact.name && <p className="truncate text-xs text-slate-500">{displayPhone(c.contact.phone)}</p>}
                           </div>
                         </div>
                       </td>

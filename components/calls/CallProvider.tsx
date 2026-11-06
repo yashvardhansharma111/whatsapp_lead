@@ -14,6 +14,7 @@ import { startCallRecorder, uploadCallRecording, type CallRecorder } from "@/lib
 import { showBrowserNotice } from "@/lib/notifications/browser";
 import type { RtCallIncoming, RtCallStatus } from "@/lib/realtime/events";
 import { cn } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 interface ActiveCall {
   call: RtCallIncoming;
@@ -392,7 +393,7 @@ function IncomingCallBanner({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{name}</p>
-          {call.contact.name && call.contact.phone && <p className="truncate text-xs text-white/60">+{call.contact.phone}</p>}
+          {call.contact.name && call.contact.phone && <p className="truncate text-xs text-white/60">{displayPhone(call.contact.phone)}</p>}
           <p className="mt-0.5 text-[11px] text-white/50">
             Incoming WhatsApp call{call.displayPhoneNumber ? ` · ${call.displayPhoneNumber}` : ""} · {left}s
           </p>

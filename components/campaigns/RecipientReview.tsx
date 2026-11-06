@@ -13,6 +13,7 @@ import { useState } from "react";
 import { RotateCcw, Search, UserMinus, X } from "lucide-react";
 import { Button, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 export interface ReviewItem {
   /** Stable identity: the normalised phone for pasted numbers, the contact id otherwise. */
@@ -57,7 +58,7 @@ export function ExcludedSummary({ report }: { report: ExclusionReport }) {
         {report.excluded.map((e, i) => (
           <li key={i} className="flex justify-between gap-3">
             <span className="truncate">
-              <span className="font-mono text-slate-700">+{e.phone}</span>
+              <span className="font-mono text-slate-700">{displayPhone(e.phone)}</span>
               {e.name && <span className="text-slate-500"> · {e.name}</span>}
             </span>
             <span className="shrink-0 text-amber-800">{REASON_LABEL[e.reason]}</span>
@@ -202,17 +203,17 @@ export function RecipientReview({
                   checked={selected.has(it.key)}
                   onChange={() => toggle(it.key)}
                   className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                  aria-label={`Select +${it.phone}`}
+                  aria-label={`Select ${displayPhone(it.phone)}`}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-mono text-[13px] text-slate-800">+{it.phone}</span>
+                  <span className="block font-mono text-[13px] text-slate-800">{displayPhone(it.phone)}</span>
                   {it.name && <span className="block truncate text-xs text-slate-500">{it.name}</span>}
                 </span>
                 <button
                   type="button"
                   onClick={() => apply([it.key], !showRemoved)}
                   className="rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:p-1"
-                  aria-label={showRemoved ? `Restore +${it.phone}` : `Remove +${it.phone}`}
+                  aria-label={showRemoved ? `Restore ${displayPhone(it.phone)}` : `Remove ${displayPhone(it.phone)}`}
                   title={showRemoved ? "Restore" : "Remove from this send"}
                 >
                   {showRemoved ? <RotateCcw className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}

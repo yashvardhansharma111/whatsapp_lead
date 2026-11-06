@@ -96,10 +96,19 @@ export default function TemplatesPage() {
     [all, tab, categoryTab],
   );
 
+  // This checks on templates submitted from here that Meta has not ruled on yet, and
+  // nothing else — an approved template's status comes from Import, not from here. Saying
+  // "synced" when there was nothing to check sent people looking for a refreshed date
+  // that this button never touches.
   const handleSyncAll = async () => {
     try {
-      await syncAll.mutateAsync();
-      showToast("Template statuses synced.", "success");
+      const { enqueued } = await syncAll.mutateAsync();
+      showToast(
+        enqueued === 0
+          ? "Nothing awaiting approval. Use Import from Meta to refresh approved templates."
+          : `Checking ${enqueued} template${enqueued === 1 ? "" : "s"} awaiting approval.`,
+        enqueued === 0 ? "info" : "success",
+      );
     }
     catch (e) { showToast((e as Error).message, "error"); }
   };
@@ -107,10 +116,24 @@ export default function TemplatesPage() {
   const handleImport = async () => {
     try {
       const result = await importFromMeta.mutateAsync();
-      if (result.created === 0 && result.updated === 0) {
+      // A number Meta would not answer for keeps its old templates and their old dates.
+      // Reporting only the accounts that worked is how those went unnoticed.
+      if (result.failed?.length) {
+        showToast(
+          `Couldn't reach WhatsApp for ${result.failed.join(", ")} — those templates are unchanged. ` +
+          `Reconnect the number in Settings. Imported ${result.created} new, updated ${result.updated}.`,
+          "error",
+        );
+      } else if (result.created === 0 && result.updated === 0) {
         showToast("No new templates found on Meta.", "info");
       } else {
-        showToast(`Imported ${result.created} new, updated ${result.updated} template(s).`, "success");
+        const retired = result.retired
+          ? `, retired ${result.retired} Meta no longer has`
+          : "";
+        showToast(
+          `Imported ${result.created} new, updated ${result.updated} template(s)${retired}.`,
+          "success",
+        );
       }
     } catch (e) {
       showToast((e as Error).message, "error");

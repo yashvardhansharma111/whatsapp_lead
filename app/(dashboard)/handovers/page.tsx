@@ -15,6 +15,7 @@ import {
   type Handover, type HandoverStatus,
 } from "@/hooks/useHandovers";
 import { cn, timeAgo } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 const STATUS_STYLE: Record<HandoverStatus, string> = {
   PENDING:   "bg-rose-50 text-rose-700 ring-rose-600/20",
@@ -225,7 +226,7 @@ export default function HandoversPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium text-slate-900">
-                          {contact?.name?.trim() || (contact?.phone ? `+${contact.phone}` : "Unknown contact")}
+                          {contact?.name?.trim() || (contact?.phone ? displayPhone(contact.phone) : "Unknown contact")}
                         </p>
                         <Badge className={STATUS_STYLE[h.status]}>{STATUS_LABEL[h.status]}</Badge>
                         {h.department && (

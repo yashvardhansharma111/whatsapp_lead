@@ -66,6 +66,7 @@ import {
 } from "@/lib/campaigns/templateVars";
 import type { RawRow } from "@/lib/import";
 import { cn } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1418,7 +1419,7 @@ function BroadcastProgress({ launch, onNew }: { launch: LaunchResult; onNew: () 
             <ul className="scrollbar-slim mt-2 max-h-48 space-y-1 overflow-y-auto">
               {failures.slice(0, 200).map((f, i) => (
                 <li key={i} className="flex justify-between gap-3">
-                  <span className="shrink-0 font-mono text-slate-700">+{f.phone}</span>
+                  <span className="shrink-0 font-mono text-slate-700">{displayPhone(f.phone)}</span>
                   <span className="truncate text-rose-600" title={f.failedReason ?? undefined}>
                     {f.failedReason ?? "Unknown error"}
                   </span>

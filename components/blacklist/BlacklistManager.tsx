@@ -14,6 +14,7 @@ import { AlertCircle, Ban, CheckCircle2, History, Loader2, Plus, Search, ShieldO
 import { Button, Card, EmptyState, Modal, SkeletonRows, inputClass } from "@/components/ui";
 import { splitNumberInput } from "@/lib/broadcast";
 import { cn, formatDate } from "@/lib/utils";
+import { displayPhone } from "@/lib/phone";
 
 type Scope = "account" | "platform" | "all";
 
@@ -65,10 +66,6 @@ async function getJson<T>(url: string): Promise<T> {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Request failed");
   return json as T;
-}
-
-function formatPhone(phone: string) {
-  return `+${phone}`;
 }
 
 export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; initialSearch?: string }) {
@@ -249,7 +246,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                   <li key={e.id} className="flex items-start gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                        <p className="font-mono text-[13px] text-slate-900">{displayPhone(e.phone)}</p>
                         <SourceBadge entry={e} />
                       </div>
                       {e.contactName && <p className="text-xs text-slate-500">{e.contactName}</p>}
@@ -263,7 +260,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                       </p>
                     </div>
                     {canManage && (
-                      <Button variant="ghost" className="shrink-0" onClick={() => setRemoving(e)} aria-label={`Unblock ${formatPhone(e.phone)}`}>
+                      <Button variant="ghost" className="shrink-0" onClick={() => setRemoving(e)} aria-label={`Unblock ${displayPhone(e.phone)}`}>
                         <Trash2 className="h-3.5 w-3.5" />
                         Unblock
                       </Button>
@@ -287,7 +284,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                       <tr key={e.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2.5">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-mono text-[13px] text-slate-900">{formatPhone(e.phone)}</p>
+                            <p className="font-mono text-[13px] text-slate-900">{displayPhone(e.phone)}</p>
                             <SourceBadge entry={e} />
                           </div>
                           {e.contactName && <p className="text-xs text-slate-500">{e.contactName}</p>}
@@ -306,7 +303,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                         </td>
                         {canManage && (
                           <td className="px-4 py-2.5 text-right">
-                            <Button variant="ghost" size="sm" onClick={() => setRemoving(e)} aria-label={`Unblock ${formatPhone(e.phone)}`}>
+                            <Button variant="ghost" size="sm" onClick={() => setRemoving(e)} aria-label={`Unblock ${displayPhone(e.phone)}`}>
                               <Trash2 className="h-3.5 w-3.5" />
                               Unblock
                             </Button>
@@ -346,7 +343,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-slate-800">
-                    <span className="font-mono text-[13px]">{h.phone ? formatPhone(h.phone) : "—"}</span>{" "}
+                    <span className="font-mono text-[13px]">{h.phone ? displayPhone(h.phone) : "—"}</span>{" "}
                     {h.action === "added" ? "blocked" : "unblocked"}
                     {h.by && <span className="text-slate-500"> by {h.by.name}</span>}
                   </p>
@@ -425,7 +422,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
         open={!!removing}
         onClose={() => !remove.isPending && setRemoving(null)}
         title="Unblock this number?"
-        description={removing ? `${formatPhone(removing.phone)} will be able to receive messages again.` : undefined}
+        description={removing ? `${displayPhone(removing.phone)} will be able to receive messages again.` : undefined}
       >
         <label htmlFor="bl-note" className="mb-1.5 block text-sm font-medium text-slate-700">
           Note <span className="font-normal text-slate-400">(optional, kept in the history)</span>
