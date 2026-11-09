@@ -25,6 +25,8 @@ interface FailureBreakdown {
     errorCode: number | null;
     title: string | null;
     reason: string;
+    /** WhatsApp's own sentence, when it sent one. */
+    detail: string | null;
     count: number;
     action: ErrorAction;
   }[];
@@ -200,6 +202,13 @@ export function CampaignHaltNotice({ campaignId, status }: { campaignId: string;
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm leading-relaxed text-slate-800">{r.reason}</p>
+                    {/* Meta's own words, marked as theirs. Support asks to see exactly
+                        what WhatsApp said, and our paraphrase is not that. */}
+                    {r.detail && (
+                      <p className="mt-1 border-l-2 border-slate-200 pl-2 text-xs italic leading-relaxed text-slate-500">
+                        WhatsApp&apos;s words: &ldquo;{r.detail}&rdquo;
+                      </p>
+                    )}
                     <span className={cn(
                       "mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium",
                       note.tone,
