@@ -280,7 +280,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (token.role === "SUPER_ADMIN") {
         const target = decodeViewAs(await viewAsCookie(), token.id);
-        if (target && target.tenantId !== token.tenantId) {
+        // A different account, or the same one as a different person. The second half
+        // matters because the platform account holds the Super Admin *and* the people who
+        // work in it: signing in as one of them changes nothing about the tenant, so a
+        // tenant-only test skipped the whole block and left them as themselves — sent
+        // straight back to the admin panel by a role that had never been swapped.
+        const switching = target && (target.tenantId !== token.tenantId || target.user);
+        if (target && switching) {
           session.user.viewAs = {
             homeTenantId:   token.tenantId,
             homeTenantName: token.tenantName,
