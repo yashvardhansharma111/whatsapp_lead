@@ -45,7 +45,11 @@ interface AdminTenant {
   logo?: string | null;
   plan?: string | null;
   users?: number;
-  /** Messages sent this calendar month. Always present: GET /api/admin/tenants sends it. */
+  /**
+   * Messages since the plan last renewed — not the calendar month, which is what the
+   * column used to claim. An allowance resets when the subscription does, so counting by
+   * month showed every customer zero on the 1st and read as a broken column.
+   */
   messagesThisMonth: number;
   /** The plan's monthly message cap. 0 or less means unlimited. */
   messageLimit: number;
@@ -434,7 +438,7 @@ export default function AdminTenantsPage() {
                     <div className="mt-2 flex items-end gap-2 pl-11">
                       <UsageBar used={t.messagesThisMonth} limit={t.messageLimit} />
                       <p className="text-[11px] text-slate-400">
-                        of {unlimited ? "Unlimited" : formatCompact(t.messageLimit)} msgs / mo
+                        of {unlimited ? "Unlimited" : formatCompact(t.messageLimit)} since renewal
                       </p>
                     </div>
                   </li>
@@ -449,7 +453,7 @@ export default function AdminTenantsPage() {
                   <th className={thClass}>Workspace</th>
                   <th className={thClass}>Plan</th>
                   <th className={thClass}>Users</th>
-                  <th className={thClass}>Msgs / mo</th>
+                  <th className={thClass}>Messages used</th>
                   <th className={thClass}>Status</th>
                   <th className={thClass}>Joined</th>
                   <th className={cn(thClass, "text-right")}>Actions</th>
