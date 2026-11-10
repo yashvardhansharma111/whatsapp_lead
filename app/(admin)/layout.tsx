@@ -8,18 +8,17 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { canUseAdminPanel } from "@/lib/adminAccess";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
-  const isStaff =
-    session?.user?.accountType === "PLATFORM" &&
-    (session.user.permissions ?? []).some((p) => p.startsWith("platform."));
 
-  if (!session?.user || (!isSuperAdmin && !isStaff)) {
-    redirect("/login");
-  }
+  if (!session?.user) redirect("/login");
+  // Sent back to their own workspace rather than to login: they are signed in, and
+  // telling someone to sign in when they already have only loops.
+  if (!canUseAdminPanel(session.user)) redirect("/inbox");
 
   return (
     <div className="flex h-dvh overflow-hidden bg-white text-slate-900">

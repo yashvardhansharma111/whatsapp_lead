@@ -11,6 +11,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { RealtimeProvider } from "@/hooks/useRealtime";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import { CallProvider } from "@/components/calls/CallProvider";
+import { canUseAdminPanel } from "@/lib/adminAccess";
 
 async function getPlanName(nestToken: string | undefined): Promise<string | null> {
   const base = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -35,10 +36,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // The Super Admin works in the admin panel, and comes in here only to view an
   // account (lib/viewAs.ts) — then the session already carries that account.
   const viewing = session.user.viewAs ? session.user.tenantName : null;
-  // Nobody on the platform account belongs in here on their own account — it has no
-  // inbox, no contacts and no campaigns of its own. That is true of the Super Admin and
-  // equally of the staff they have taken on.
-  if (session.user.accountType === "PLATFORM" && !viewing) redirect("/dashboard");
+  // Only people who can actually use the admin panel are sent to it. Being on the
+  // platform account is not enough: it is an ordinary workspace too, with its own inbox
+  // and contacts, and most of its people work in them. Redirecting on the account alone
+  // pushed its owner out of here into a panel that refused them, then to login, then
+  // back — a blank page and an endless loop.
+  if (!viewing && canUseAdminPanel(session.user)) redirect("/dashboard");
 
   const isReseller = session.user.accountType === "RESELLER";
   const nestToken = session.nestToken;
