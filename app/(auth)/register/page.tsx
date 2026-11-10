@@ -292,21 +292,24 @@ export default function RegisterPage() {
               </span>
             </div>
 
-            <ul className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
+            {/* One line rather than a four-item grid: it is a reminder while typing, and
+                four rows of it took more of the form than the field it describes. Wraps
+                on a narrow screen instead of being cut off. */}
+            <ul className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
               {PASSWORD_RULES.map((rule) => {
                 const ok = rule.test(password);
                 return (
                   <li
                     key={rule.label}
                     className={cn(
-                      "flex items-center gap-1.5 text-xs",
+                      "flex items-center gap-1",
                       ok ? "text-emerald-600" : "text-slate-400",
                     )}
                   >
                     {ok ? (
-                      <Check className="h-3.5 w-3.5 shrink-0" />
+                      <Check className="h-3 w-3 shrink-0" />
                     ) : (
-                      <X className="h-3.5 w-3.5 shrink-0" />
+                      <X className="h-3 w-3 shrink-0" />
                     )}
                     {rule.label}
                   </li>
