@@ -141,7 +141,7 @@ export default function AdminWhiteLabelPage() {
         {isLoading ? (
           <AdminSkeletonRows rows={5} />
         ) : !data || data.resellers.length === 0 ? (
-          <AdminEmptyState icon={Palette} title="No white-label resellers yet" description="Create one from Tenants → Provision." />
+          <AdminEmptyState icon={Palette} title="No white-label resellers yet" description="Add one from Customers → Add customer, choosing the white-label reseller type." />
         ) : (
           <AdminTable>
             <thead>

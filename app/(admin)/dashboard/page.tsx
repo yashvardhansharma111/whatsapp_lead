@@ -8,9 +8,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Database,
-  IndianRupee,
   MessageSquare,
-  TrendingDown,
   TrendingUp,
   UserPlus,
   Users,
@@ -47,7 +45,7 @@ import {
   thClass,
   tooltipStyle,
 } from "@/components/admin/ui";
-import { formatCompact, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCompact, formatDate } from "@/lib/utils";
 
 // ─── Types + data ─────────────────────────────────────────────────────────────
 
@@ -128,7 +126,6 @@ export default function AdminDashboardPage() {
 
   const stats = data ?? EMPTY_STATS;
   const preview = isError && !data;
-  const arr = stats.arr ?? stats.mrr * 12;
   const signups = stats.signupsLast30Days ?? [];
   const plans = stats.planBreakdown ?? [];
   const recent = (stats.recentTenants ?? []).slice(0, 5);
@@ -172,21 +169,6 @@ export default function AdminDashboardPage() {
           loading={isLoading}
         />
         <StatTile
-          label="MRR"
-          value={formatCurrency(stats.mrr)}
-          icon={IndianRupee}
-          tone="sky"
-          loading={isLoading}
-        />
-        <StatTile
-          label="ARR"
-          value={formatCurrency(arr)}
-          icon={CircleDollarSign}
-          tone="amber"
-          deltaNote="annualised run-rate"
-          loading={isLoading}
-        />
-        <StatTile
           label="Total Users"
           value={formatCompact(stats.totalUsers)}
           icon={Users}
@@ -207,14 +189,6 @@ export default function AdminDashboardPage() {
           value={formatCompact(stats.signupsThisMonth)}
           icon={UserPlus}
           tone="sky"
-          loading={isLoading}
-        />
-        <StatTile
-          label="Churn Rate"
-          value={`${(stats.churnRate ?? 0).toFixed(1)}%`}
-          icon={TrendingDown}
-          tone="rose"
-          deltaNote="lower is better"
           loading={isLoading}
         />
       </div>
@@ -257,7 +231,7 @@ export default function AdminDashboardPage() {
           </div>
         </AdminPanel>
 
-        <AdminPanel title="Plan Distribution" subtitle="Tenants per plan">
+        <AdminPanel title="Plan Distribution" subtitle="Customers per plan">
           <div className="h-56 sm:h-64">
             {isLoading ? (
               <AdminSkeleton className="h-full w-full" />
@@ -296,7 +270,7 @@ export default function AdminDashboardPage() {
       {/* Recent tenants + system health */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <AdminPanel
-          title="Recent Tenants"
+          title="Newest customers"
           subtitle="Last 5 signups"
           className="lg:col-span-2"
           bodyClassName="p-0"
@@ -313,7 +287,7 @@ export default function AdminDashboardPage() {
           ) : recent.length === 0 ? (
             <AdminEmptyState
               icon={Building2}
-              title="No tenants yet"
+              title="No customers yet"
               description="New workspaces will appear here as they sign up."
             />
           ) : (

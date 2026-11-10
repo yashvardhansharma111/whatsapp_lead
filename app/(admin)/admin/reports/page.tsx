@@ -228,7 +228,7 @@ export default function ReportsPage() {
             />
             <StatCard
               icon={ArrowUpRight}
-              label="Msg / Tenant"
+              label="Messages per customer"
               value={
                 data.tenants.total > 0
                   ? Math.round(data.messages.total / data.tenants.total).toLocaleString()

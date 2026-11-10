@@ -169,7 +169,7 @@ function useProvisionTenant() {
         body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? `Provisioning failed (${res.status})`);
+      if (!res.ok) throw new Error(json.error ?? `Couldn't add this customer (${res.status})`);
       return json;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "tenants"] }),
@@ -303,7 +303,7 @@ export default function AdminTenantsPage() {
             </AdminButton>
             <AdminButton onClick={() => setProvisionOpen(true)}>
               <Plus className="h-4 w-4" />
-              Provision Tenant
+              Add customer
             </AdminButton>
           </div>
         }
@@ -316,7 +316,7 @@ export default function AdminTenantsPage() {
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); resetPage(); }}
-            placeholder="Search by workspace name or slug…"
+            placeholder="Search by name or web address…"
             aria-label="Search tenants"
             className={cn(adminInputClass, "pl-9")}
           />
@@ -383,16 +383,16 @@ export default function AdminTenantsPage() {
         ) : isError || tenants.length === 0 ? (
           <AdminEmptyState
             icon={Building2}
-            title={isError ? "Tenants unavailable" : "No tenants found"}
+            title={isError ? "Couldn't load customers" : "No customers yet"}
             description={
               isError
                 ? `${(error as Error).message}`
-                : "No workspace matches these filters. Provision one to get started."
+                : "No customer matches these filters. Add one to get started."
             }
             action={
               <AdminButton onClick={() => setProvisionOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Provision Tenant
+                Add customer
               </AdminButton>
             }
           />
@@ -758,7 +758,7 @@ function ProvisionModal({ open, onClose }: { open: boolean; onClose: () => void 
     <Modal
       open={open}
       onClose={handleClose}
-      title={result ? "Tenant Provisioned" : "Provision Tenant"}
+      title={result ? "Customer added" : "Add a customer"}
       description={result ? "Share these credentials with the client." : "Create a workspace manually — used for enterprise onboarding."}
     >
       {result ? (
@@ -825,7 +825,7 @@ function ProvisionModal({ open, onClose }: { open: boolean; onClose: () => void 
             />
           </Field>
 
-          <Field label="Slug" htmlFor="t-slug" required>
+          <Field label="Web address" htmlFor="t-slug" required>
             <input
               id="t-slug"
               value={form.slug}
@@ -932,7 +932,7 @@ function ProvisionModal({ open, onClose }: { open: boolean; onClose: () => void 
               disabled={provision.isPending}
               className="min-h-10 rounded-lg bg-[#0B6E4F] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#095c42] disabled:opacity-50 sm:min-h-0"
             >
-              {provision.isPending ? "Provisioning…" : "Provision Tenant"}
+              {provision.isPending ? "Adding…" : "Add customer"}
             </button>
           </div>
         </form>

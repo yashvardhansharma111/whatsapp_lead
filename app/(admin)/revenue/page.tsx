@@ -13,7 +13,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
-  BadgeIndianRupee,
   CircleDollarSign,
   CreditCard,
   IndianRupee,
@@ -312,41 +311,41 @@ export default function AdminRevenuePage() {
       )}
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {/* Named for what they are rather than by their initials. LTV used to sit here
+            too — it was ARPU multiplied by a fixed 24 months, an assumption printed as a
+            figure, which is the kind of number people plan around without knowing it was
+            never measured. It is still in the export, where it says so. */}
         <StatTile
-          label="MRR"
+          label="Monthly revenue"
           value={formatCurrency(rev?.mrr)}
           icon={IndianRupee}
           tone="violet"
+          deltaNote="from active subscriptions"
           loading={isLoading}
         />
         <StatTile
-          label="ARR"
+          label="Yearly run rate"
           value={formatCurrency(rev?.arr)}
           icon={CircleDollarSign}
           tone="emerald"
+          deltaNote="this month × 12"
           loading={isLoading}
         />
         <StatTile
-          label="ARPU"
+          label="Average per customer"
           value={formatCurrency(rev?.arpu)}
           icon={Users}
           tone="sky"
-          loading={isLoading}
-        />
-        <StatTile
-          label="LTV"
-          value={formatCurrency(rev?.ltv)}
-          icon={BadgeIndianRupee}
-          tone="amber"
+          deltaNote="per month"
           loading={isLoading}
         />
       </div>
 
       {/* MRR trend */}
       <AdminPanel
-        title="MRR — last 12 months"
-        subtitle="Monthly recurring revenue"
+        title="Monthly revenue — last 12 months"
+        subtitle="What active subscriptions bring in each month"
         className="mt-6"
         action={<TrendingUp className="h-4 w-4 text-[#0B6E4F]" />}
       >
@@ -378,7 +377,7 @@ export default function AdminRevenuePage() {
 
       {/* Revenue by plan + failed payments */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <AdminPanel title="Revenue by plan" subtitle="Stacked, per month" className="lg:col-span-2">
+        <AdminPanel title="Revenue by plan" subtitle="Which plans the money comes from, month by month" className="lg:col-span-2">
           <div className="h-60 sm:h-72">
             {isLoading ? (
               <AdminSkeleton className="h-full w-full" />
@@ -407,8 +406,8 @@ export default function AdminRevenuePage() {
         </AdminPanel>
 
         <AdminPanel
-          title="Failed Payments"
-          subtitle="Needs attention"
+          title="Payments that failed"
+          subtitle="Worth chasing — the customer was charged nothing"
           action={
             <AdminBadge tone={failed.length > 0 ? "rose" : "emerald"}>
               {failed.length} open
@@ -463,8 +462,8 @@ export default function AdminRevenuePage() {
 
       {/* Transactions */}
       <AdminPanel
-        title="Recent Transactions"
-        subtitle="Latest subscription charges"
+        title="Recent payments"
+        subtitle="The latest subscription charges"
         className="mt-6"
         bodyClassName="p-0"
       >
@@ -487,10 +486,10 @@ export default function AdminRevenuePage() {
           <AdminTable>
             <thead className="border-b border-slate-200 bg-[#FAFAFA]">
               <tr>
-                <th className={thClass}>Tenant</th>
+                <th className={thClass}>Customer</th>
                 <th className={thClass}>Plan</th>
                 <th className={thClass}>Amount</th>
-                <th className={thClass}>Gateway</th>
+                <th className={thClass}>Paid with</th>
                 <th className={thClass}>Status</th>
                 <th className={thClass}>Date</th>
               </tr>
