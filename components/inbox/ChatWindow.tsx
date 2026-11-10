@@ -1177,6 +1177,28 @@ function MessageBody({
       if (reactionEmoji) {
         return <p className="text-2xl leading-none">{reactionEmoji}</p>;
       }
+
+      // WhatsApp's own "unsupported": the customer sent something Meta will not pass on to
+      // a business account — a poll, a view-once photo, a disappearing message. There is
+      // no content to show and never will be. The old wording, "Unsupported message", read
+      // as a fault in this app and left the agent with nothing to do about it; a thread
+      // can be nothing but these, as one here is, with no hint the customer is waiting.
+      if (str((meta as Record<string, unknown>).type) === "unsupported") {
+        return (
+          <div className="space-y-1">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              WhatsApp couldn&apos;t deliver this message
+            </p>
+            <p className={cn("text-xs leading-relaxed", outbound ? "text-white/70" : "text-slate-600")}>
+              They sent a type WhatsApp does not pass on to business accounts — usually a
+              poll, a view-once photo or a disappearing message. Ask them to send it again
+              as text, a photo or a file.
+            </p>
+          </div>
+        );
+      }
+
       return (
         <p className="whitespace-pre-wrap wrap-anywhere text-sm">
           {caption || <span className="italic opacity-70">Unsupported message</span>}
