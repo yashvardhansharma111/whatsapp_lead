@@ -134,7 +134,6 @@ function AddLeadForm({
 
     setSaving(true);
     try {
-      // TODO [GAURANSH]: POST /api/leads — currently returns 501 Not Implemented.
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -142,9 +141,7 @@ function AddLeadForm({
       });
       if (!res.ok) {
         setBanner(
-          res.status === 501
-            ? "The leads API isn't live yet (501). Nothing was saved — your details are still here."
-            : `Couldn't save this lead (HTTP ${res.status}). Please try again.`,
+          `Couldn't save this lead (HTTP ${res.status}). Nothing was saved — your details are still here.`,
         );
         return;
       }

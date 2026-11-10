@@ -174,7 +174,7 @@ function ChartCard({
           <EmptyState
             icon={BarChart2}
             title="No data yet"
-            description="/api/analytics is not wired up yet — this chart fills in automatically once the endpoint returns data."
+            description="Nothing to chart for this period yet. Send or receive some messages and it fills in."
             className="h-full py-0"
           />
         ) : (
@@ -438,7 +438,7 @@ export function AgentPerformanceTable({
         <EmptyState
           icon={BarChart2}
           title="No agent activity yet"
-          description="/api/analytics is not wired up yet — agent stats appear here once it returns data."
+          description="No agent has handled a conversation in this period yet."
         />
       ) : (
         <div className="overflow-x-auto">

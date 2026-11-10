@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CheckCircle,
@@ -39,6 +39,14 @@ import {
   type InboxConversation,
   type InboxLead,
 } from "./ConversationList";
+
+interface Ticket {
+  id: string;
+  subject: string;
+  status: string;
+  priority?: string | null;
+  createdAt?: string | null;
+}
 
 type PanelTab = "notes" | "activity" | "tickets";
 
@@ -382,27 +390,8 @@ export function ContactPanel({
 
         <div className="px-4 py-5">
           {tab === "notes" && <NotesTab conversationId={conversation.id} />}
-          {tab === "activity" && (
-            <TabPlaceholder
-              icon={Clock3}
-              title="No activity yet"
-              description={`Conversation opened ${formatDate(conversation.createdAt)}. Stage changes and assignments will land here.`}
-            />
-          )}
-          {tab === "tickets" && (
-            <TabPlaceholder
-              icon={TicketIcon}
-              title="No tickets"
-              description="Escalate this conversation to create a support ticket."
-              action={
-                /* TODO [GAURANSH]: wire POST /api/tickets. */
-                <Button variant="secondary" size="sm">
-                  <TicketIcon className="h-4 w-4" />
-                  Create ticket
-                </Button>
-              }
-            />
-          )}
+          {tab === "activity" && <ActivityTab conversation={conversation} lead={lead} />}
+          {tab === "tickets" && <TicketsTab conversation={conversation} />}
         </div>
       </div>
     </aside>
@@ -478,6 +467,140 @@ function NotesTab({ conversationId }: { conversationId: string }) {
           <p className="mt-1.5 text-[11px] text-amber-700">
             {n.sentBy?.name ?? "Someone"} · {formatDate(n.createdAt)}
           </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Tickets raised from this chat, and the button to raise one.
+ *
+ * The button was here with no handler at all and a note to wire it up — it looked like a
+ * feature and did nothing when pressed. The endpoint it needed already existed and takes
+ * the conversation, so escalating now works and the tickets already raised are listed
+ * rather than the tab claiming there are none.
+ */
+function TicketsTab({ conversation }: { conversation: InboxConversation }) {
+  const qc = useQueryClient();
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data, isLoading, error: loadError } = useQuery({
+    queryKey: ["conversation-tickets", conversation.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/tickets?conversationId=${conversation.id}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Couldn't load tickets");
+      const body = (json.data ?? json) as { tickets?: Ticket[] } | Ticket[];
+      return Array.isArray(body) ? body : body.tickets ?? [];
+    },
+  });
+
+  async function escalate() {
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: `Escalated: ${contactName(conversation.contact)}`,
+          conversationId: conversation.id,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Couldn't create the ticket");
+      await qc.invalidateQueries({ queryKey: ["conversation-tickets", conversation.id] });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  if (isLoading) return <Skeleton className="h-16 rounded-lg" />;
+  if (loadError) return <p className="text-xs text-rose-600">{(loadError as Error).message}</p>;
+
+  const tickets = data ?? [];
+  const button = (
+    <Button variant="secondary" size="sm" disabled={creating} onClick={escalate}>
+      <TicketIcon className="h-4 w-4" />
+      {creating ? "Creating…" : "Create ticket"}
+    </Button>
+  );
+
+  if (tickets.length === 0) {
+    return (
+      <div className="space-y-2">
+        <TabPlaceholder
+          icon={TicketIcon}
+          title="No tickets"
+          description="Escalate this conversation to create a support ticket."
+          action={button}
+        />
+        {error && <p className="text-center text-xs text-rose-600">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <ul className="space-y-2">
+        {tickets.map((t) => (
+          <li key={t.id} className="rounded-lg bg-slate-50 p-2.5 ring-1 ring-inset ring-slate-200">
+            <p className="truncate text-xs font-medium text-slate-900">{t.subject}</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {t.status}
+              {t.priority ? ` · ${t.priority.toLowerCase()}` : ""}
+              {t.createdAt ? ` · ${formatDate(t.createdAt)}` : ""}
+            </p>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="text-xs text-rose-600">{error}</p>}
+      <div className="flex justify-center">{button}</div>
+    </div>
+  );
+}
+
+/**
+ * What is known to have happened on this chat.
+ *
+ * It used to be a fixed "No activity yet" that promised stage changes and assignments
+ * would "land here" — they never could, because nothing records a per-conversation feed.
+ * Rather than keep promising one, this shows the events the conversation itself carries,
+ * which are real and already answer most of what the tab was opened for.
+ */
+function ActivityTab({
+  conversation,
+  lead,
+}: {
+  conversation: InboxConversation;
+  lead: InboxLead | null;
+}) {
+  const events: { label: string; when?: string | Date | null }[] = [];
+  if (conversation.createdAt) events.push({ label: "Conversation opened", when: conversation.createdAt });
+  if (conversation.assignedTo?.name) {
+    events.push({ label: `Assigned to ${conversation.assignedTo.name}` });
+  }
+  if (lead?.stage?.name) events.push({ label: `Lead stage: ${lead.stage.name}` });
+  if (conversation.status) events.push({ label: `Status: ${conversation.status.toLowerCase()}` });
+  if (conversation.lastMessageAt) events.push({ label: "Last message", when: conversation.lastMessageAt });
+
+  if (events.length === 0) {
+    return <TabPlaceholder icon={Clock3} title="No activity yet" description="Nothing has happened on this chat." />;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {events.map((e, i) => (
+        <li key={i} className="flex items-start gap-2">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+          <div className="min-w-0">
+            <p className="text-xs text-slate-700">{e.label}</p>
+            {e.when && <p className="text-[11px] text-slate-400">{formatDate(e.when)}</p>}
+          </div>
         </li>
       ))}
     </ul>
