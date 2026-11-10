@@ -20,48 +20,64 @@ import {
   X,
   BarChart2,
   Palette,
-  Ban, SlidersHorizontal,} from "lucide-react";
+  Ban, SlidersHorizontal, UserCog,} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 
+// `need` is the permission that opens each screen. Staff see only what they hold; the
+// Super Admin sees everything. A link to a page that answers 403 is worse than no link.
 const NAV_GROUPS = [
   {
     label: "Platform",
     items: [
-      { href: "/dashboard",    label: "Dashboard", icon: LayoutDashboard },
-      { href: "/tenants",      label: "Customers",  icon: Building2 },
-      { href: "/plans",        label: "Plans",      icon: CreditCard },
-      { href: "/revenue",      label: "Revenue",    icon: IndianRupee },
+      { href: "/dashboard",    label: "Dashboard",  icon: LayoutDashboard, need: "platform.tenants.view" },
+      { href: "/tenants",      label: "Customers",  icon: Building2,       need: "platform.tenants.view" },
+      { href: "/plans",        label: "Plans",      icon: CreditCard,      need: "platform.tenants.view" },
+      { href: "/revenue",      label: "Revenue",    icon: IndianRupee,     need: "platform.revenue.view" },
     ],
   },
   {
     label: "Resellers",
     items: [
-      { href: "/admin/white-label",  label: "White Label",    icon: Palette },
-      { href: "/admin/rates",        label: "Message prices", icon: Receipt },
-      { href: "/admin/pricing-policy", label: "Pricing & policy", icon: SlidersHorizontal },
+      { href: "/admin/white-label",  label: "White Label",    icon: Palette,          need: "platform.whitelabel.manage" },
+      { href: "/admin/rates",        label: "Message prices", icon: Receipt,          need: "platform.pricing.manage" },
+      { href: "/admin/pricing-policy", label: "Pricing & policy", icon: SlidersHorizontal, need: "platform.pricing.manage" },
     ],
   },
   {
     label: "Content",
     items: [
-      { href: "/admin/reports",     label: "Reports",     icon: BarChart2 },
-      { href: "/admin/cms",         label: "Website CMS", icon: PanelsTopLeft },
-      { href: "/admin/categories",  label: "Categories",  icon: Tags },
+      { href: "/admin/reports",     label: "Reports",     icon: BarChart2,     need: "platform.revenue.view" },
+      { href: "/admin/cms",         label: "Website CMS", icon: PanelsTopLeft, need: "platform.cms.manage" },
+      { href: "/admin/categories",  label: "Categories",  icon: Tags,          need: "platform.categories.manage" },
     ],
   },
   {
     label: "Security",
     items: [
-      { href: "/admin/permissions", label: "Permissions", icon: KeyRound },
-      { href: "/admin/blacklist",   label: "Blacklist",   icon: Ban },
-      { href: "/audit-logs",        label: "Audit Logs",  icon: ScrollText },
+      { href: "/admin/staff",       label: "Admins",      icon: UserCog,    need: "platform.staff.manage" },
+      { href: "/admin/permissions", label: "Permissions", icon: KeyRound,   need: "platform.staff.manage" },
+      { href: "/admin/blacklist",   label: "Blacklist",   icon: Ban,        need: "platform.tenants.manage" },
+      { href: "/audit-logs",        label: "Audit Logs",  icon: ScrollText, need: "platform.audit.view" },
     ],
   },
 ];
 
-export function AdminSidebar({ name, email }: { name?: string | null; email?: string | null }) {
+export function AdminSidebar({
+  name,
+  email,
+  permissions,
+}: {
+  name?: string | null;
+  email?: string | null;
+  /** null means every screen — the Super Admin. */
+  permissions?: string[] | null;
+}) {
   const pathname = usePathname();
+  const groups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: permissions ? g.items.filter((i) => permissions.includes(i.need)) : g.items,
+  })).filter((g) => g.items.length > 0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const nav = (
@@ -84,7 +100,7 @@ export function AdminSidebar({ name, email }: { name?: string | null; email?: st
       </div>
 
       <nav className="scrollbar-slim flex-1 overflow-y-auto p-3">
-        {NAV_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.label} className="mb-4">
             <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {group.label}

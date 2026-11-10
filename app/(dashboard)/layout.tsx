@@ -35,7 +35,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // The Super Admin works in the admin panel, and comes in here only to view an
   // account (lib/viewAs.ts) — then the session already carries that account.
   const viewing = session.user.viewAs ? session.user.tenantName : null;
-  if (session.user.role === "SUPER_ADMIN" && !viewing) redirect("/dashboard");
+  // Nobody on the platform account belongs in here on their own account — it has no
+  // inbox, no contacts and no campaigns of its own. That is true of the Super Admin and
+  // equally of the staff they have taken on.
+  if (session.user.accountType === "PLATFORM" && !viewing) redirect("/dashboard");
 
   const isReseller = session.user.accountType === "RESELLER";
   const nestToken = session.nestToken;
