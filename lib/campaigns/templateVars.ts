@@ -94,14 +94,14 @@ export function renderTemplateBody(body: string, values: string[]): string {
 
 // ─── Buttons ─────────────────────────────────────────────────────────────────
 
-interface TemplateButton {
+export interface TemplateButton {
   type?: string;
   text?: string;
   url?: string;
   urlType?: string;
 }
 
-function templateButtons(t: TemplateShape): TemplateButton[] {
+export function templateButtons(t: TemplateShape): TemplateButton[] {
   return Array.isArray(t.buttons) ? (t.buttons as TemplateButton[]) : [];
 }
 

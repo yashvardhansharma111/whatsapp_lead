@@ -19,10 +19,14 @@ import {
   detectBodyVarSlots,
   dynamicUrlButtons,
   renderTemplateBody,
-  unsupportedTemplateReason,
+  templateButtons,
+  type TemplateButton,
   type TemplateShape,
 } from "@/lib/campaigns/templateVars";
+import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import { cn } from "@/lib/utils";
+
+const MEDIA_HEADERS = ["IMAGE", "VIDEO", "DOCUMENT"] as const;
 
 interface TemplateOption {
   id: string;
@@ -60,15 +64,24 @@ export function TemplateComposer({
   const [templateId, setTemplateId] = useState("");
   const [vars, setVars] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([]);
+  const [headerVars, setHeaderVars] = useState<string[]>([]);
+  const [media, setMedia] = useState({ mediaId: "", mediaUrl: "" });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Only approved templates can be sent, and a template with media or a carousel needs
-  // a file chosen per send — which belongs in a campaign, not a one-off reply.
+  // Every approved template, not only the plain ones. Hiding anything with a header left
+  // three of this number's eighteen on offer — and the fourteen with an image were the
+  // ones people actually send. The header is asked for here instead, the same way a
+  // campaign asks.
+  //
+  // A coupon-code button is still left out: its value has nowhere to be entered yet, and
+  // offering a template that would be refused helps nobody.
   const options = useMemo(
     () =>
       ((data ?? []) as TemplateOption[]).filter(
-        (t) => t.status === "APPROVED" && !unsupportedTemplateReason(asShape(t)) && !t.headerType,
+        (t) =>
+          t.status === "APPROVED" &&
+          !templateButtons(asShape(t)).some((b: TemplateButton) => b.type === "COPY_CODE"),
       ),
     [data],
   );
@@ -76,16 +89,25 @@ export function TemplateComposer({
   const selected = options.find((t) => t.id === templateId) ?? null;
   const slots = selected ? detectBodyVarSlots(selected.body ?? "") : 0;
   const urlSlots = selected ? dynamicUrlButtons(asShape(selected)) : [];
+  const header = selected?.headerType?.toUpperCase() ?? null;
+  const mediaHeader = header && (MEDIA_HEADERS as readonly string[]).includes(header)
+    ? (header as MediaHeaderType)
+    : null;
+  const headerSlots = header === "TEXT" ? detectBodyVarSlots(selected?.headerContent ?? "") : 0;
 
   const missing =
     !selected ||
     Array.from({ length: slots }).some((_, i) => !(vars[i] ?? "").trim()) ||
-    urlSlots.some((_, i) => !(urls[i] ?? "").trim());
+    Array.from({ length: headerSlots }).some((_, i) => !(headerVars[i] ?? "").trim()) ||
+    urlSlots.some((_, i) => !(urls[i] ?? "").trim()) ||
+    Boolean(mediaHeader && !media.mediaId && !media.mediaUrl.trim());
 
   function pick(id: string) {
     setTemplateId(id);
     setVars([]);
     setUrls([]);
+    setHeaderVars([]);
+    setMedia({ mediaId: "", mediaUrl: "" });
     setError(null);
   }
 
@@ -101,6 +123,9 @@ export function TemplateComposer({
           templateId: selected.id,
           bodyVarMapping: Array.from({ length: slots }, (_, i) => vars[i] ?? ""),
           urlButtonMapping: urlSlots.map((_, i) => urls[i] ?? ""),
+          headerVarMapping: Array.from({ length: headerSlots }, (_, i) => headerVars[i] ?? ""),
+          headerMediaId: media.mediaId || undefined,
+          headerMediaUrl: media.mediaUrl.trim() || undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -108,6 +133,8 @@ export function TemplateComposer({
       setTemplateId("");
       setVars([]);
       setUrls([]);
+      setHeaderVars([]);
+      setMedia({ mediaId: "", mediaUrl: "" });
       onSent();
     } catch (e) {
       setError((e as Error).message);
@@ -126,8 +153,8 @@ export function TemplateComposer({
         </p>
       ) : options.length === 0 ? (
         <p className="py-2 text-sm text-slate-600">
-          No approved text template is available on this number yet. Create one under
-          Templates, or wait for them to message you.
+          No approved template is available on this number yet. Create one under Templates,
+          or wait for them to message you.
         </p>
       ) : (
         <div className="space-y-2">
@@ -148,6 +175,33 @@ export function TemplateComposer({
 
           {selected && (
             <>
+              {mediaHeader && (
+                <HeaderMediaInput
+                  key={selected.id}
+                  templateId={selected.id}
+                  headerType={mediaHeader}
+                  value={media}
+                  onChange={setMedia}
+                  onError={setError}
+                />
+              )}
+
+              {Array.from({ length: headerSlots }).map((_, i) => (
+                <input
+                  key={`h${i}`}
+                  id={`tpl-${conversationId}-h${i}`}
+                  aria-label={`Heading value for {{${i + 1}}}`}
+                  className={inputClass}
+                  placeholder={`Heading value for {{${i + 1}}}`}
+                  value={headerVars[i] ?? ""}
+                  onChange={(e) => {
+                    const next = [...headerVars];
+                    next[i] = e.target.value;
+                    setHeaderVars(next);
+                  }}
+                />
+              ))}
+
               {slots > 0 &&
                 Array.from({ length: slots }).map((_, i) => (
                   <input
