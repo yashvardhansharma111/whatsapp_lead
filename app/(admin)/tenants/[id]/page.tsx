@@ -34,6 +34,7 @@ import { TenantContactsPanel } from "@/components/admin/TenantContactsPanel";
 import { TenantRatesPanel } from "@/components/admin/TenantRatesPanel";
 import { TenantWhatsAppPanel } from "@/components/admin/TenantWhatsAppPanel";
 import { ViewAsButton } from "@/components/admin/ViewAsButton";
+import { SignInAsButton } from "@/components/admin/SignInAsButton";
 import { PlanFormModal, type AdminPlan, type PlanFormMode } from "@/components/admin/PlanFormModal";
 import { planOverages, type UsedCounts } from "@/lib/billing/overage";
 import { cn, formatDate } from "@/lib/utils";
@@ -538,7 +539,13 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
               {tenant.isActive ? "Active" : "Suspended"}
             </AdminBadge>
             {/* The platform account is the Super Admin's own: suspending it would lock them out. */}
-            {tenant.accountType !== "PLATFORM" && tenant.isActive && <ViewAsButton tenantId={tenant.id} variant="primary" />}
+            {tenant.accountType !== "PLATFORM" && tenant.isActive && (
+              <>
+                <ViewAsButton tenantId={tenant.id} variant="primary" />
+                {/* The other half: open it as one of their people rather than as yourself. */}
+                <SignInAsButton tenantId={tenant.id} tenantName={tenant.name} />
+              </>
+            )}
             {tenant.accountType !== "PLATFORM" && (
               <AdminButton
                 variant={tenant.isActive ? "danger" : "secondary"}

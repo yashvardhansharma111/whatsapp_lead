@@ -155,6 +155,7 @@ export default auth((req) => {
       "/api/realtime",   // mints the Socket.IO handshake ticket from the session
       "/api/workspace",  // switches workspace and rewrites the business cookie
       "/api/businesses/switch", // sets the active department cookie after backend validation
+      "/api/admin/view-as", // sets the signed cookie that opens another account
       "/api/flow-webhook", // secret URL handler for custom chatbot-flow triggers
     ];
     const stayInNext = NEXTJS_ONLY_API.some((p) => pathname.startsWith(p));

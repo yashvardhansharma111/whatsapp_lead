@@ -281,13 +281,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.role === "SUPER_ADMIN") {
         const target = decodeViewAs(await viewAsCookie(), token.id);
         if (target && target.tenantId !== token.tenantId) {
-          session.user.viewAs         = { homeTenantId: token.tenantId, homeTenantName: token.tenantName };
+          session.user.viewAs = {
+            homeTenantId:   token.tenantId,
+            homeTenantName: token.tenantName,
+            adminId:        token.id,
+            adminName:      token.name ?? null,
+            user:           target.user,
+          };
           session.user.tenantId       = target.tenantId;
           session.user.tenantSlug     = target.tenantSlug;
           session.user.tenantName     = target.tenantName;
           session.user.accountType    = target.accountType;
           session.user.resellerType   = target.resellerType;
           session.user.parentTenantId = target.parentTenantId;
+
+          // Signed in as a person, not just into their account: take their identity and
+          // their limits too. Keeping the admin's own role here would show every menu and
+          // allow every action, which is the opposite of what someone checking a report
+          // of "I can't see this" needs to find out.
+          if (target.user) {
+            session.user.id          = target.user.id;
+            session.user.name        = target.user.name ?? target.user.email;
+            session.user.email       = target.user.email;
+            session.user.role        = target.user.role;
+            session.user.permissions = target.user.permissions;
+          }
         }
       }
       return session;

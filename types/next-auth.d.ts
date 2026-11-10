@@ -34,7 +34,15 @@ declare module "next-auth" {
        * Set while a Super Admin is viewing another account (lib/viewAs.ts): the claims
        * above are that account's, and this is the admin's own. Null otherwise.
        */
-      viewAs?: { homeTenantId: string; homeTenantName: string } | null;
+      viewAs?: {
+        homeTenantId: string;
+        homeTenantName: string;
+        /** The Super Admin themselves, kept whoever they are signed in as. */
+        adminId: string;
+        adminName: string | null;
+        /** Set when they are signed in as a person rather than just into the account. */
+        user: { id: string; name: string | null; email: string; role: string; permissions: string[] } | null;
+      } | null;
     } & DefaultSession["user"];
   }
 

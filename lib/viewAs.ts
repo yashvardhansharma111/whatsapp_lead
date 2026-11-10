@@ -8,10 +8,17 @@
 // lib/auth.ts reads it in the session callback and, for a SUPER_ADMIN only, swaps
 // the session's account claims (tenantId, name, type) for that account's. Every
 // page and API already scopes by `session.user.tenantId`, so they all follow
-// without changes. The user stays the Super Admin — `session.user.id` and `role`
-// are untouched — so everything done while viewing is recorded under their name,
-// and `session.user.viewAs.homeTenantId` keeps their own account for admin audit
-// rows.
+// without changes.
+//
+// The cookie may also name a person. Without one the admin keeps their own identity
+// and powers, which is what fixing something calls for. With one they become that
+// person — id, role and permissions — which is the only way to see what a user is
+// actually seeing when they report that something is missing or refused. That mode
+// writes under someone else's name, so the banner says whose, the audit records both
+// ends against the admin, and a Super Admin can never be signed in as.
+//
+// Either way `session.user.viewAs.homeTenantId` keeps the admin's own account, and
+// `viewAs.adminId` keeps the admin's own user, so the way back is never lost.
 //
 // The cookie is HMAC-signed with AUTH_SECRET, bound to the admin's user id and
 // expires after VIEW_AS_TTL_MS, so it can't be forged, reused by another user, or
@@ -23,6 +30,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const VIEW_AS_COOKIE = "admin_view_as";
 export const VIEW_AS_TTL_MS = 2 * 60 * 60_000;
 
+/** The person being signed in as, when the admin chose one. */
+export interface ViewAsUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  /** Their effective permissions, resolved when the visit started. */
+  permissions: string[];
+}
+
 /** The account being viewed, as carried in the cookie (no database read per request). */
 export interface ViewAsTarget {
   tenantId: string;
@@ -31,6 +48,8 @@ export interface ViewAsTarget {
   accountType: string;
   resellerType: string | null;
   parentTenantId: string | null;
+  /** Null means the admin is in the account as themselves. */
+  user: ViewAsUser | null;
 }
 
 interface ViewAsPayload extends ViewAsTarget {
@@ -65,6 +84,11 @@ export function decodeViewAs(value: string | undefined, adminId: string, now = D
   try {
     const p = JSON.parse(Buffer.from(data, "base64url").toString()) as ViewAsPayload;
     if (p.adminId !== adminId || typeof p.exp !== "number" || p.exp < now || !p.tenantId) return null;
+    // A Super Admin is never impersonable. The server refuses to issue such a cookie;
+    // refusing to honour one as well means a forged or stale cookie cannot grant it.
+    const user = p.user && p.user.id && p.user.role !== 'SUPER_ADMIN'
+      ? { ...p.user, permissions: Array.isArray(p.user.permissions) ? p.user.permissions : [] }
+      : null;
     return {
       tenantId: p.tenantId,
       tenantSlug: p.tenantSlug,
@@ -72,6 +96,7 @@ export function decodeViewAs(value: string | undefined, adminId: string, now = D
       accountType: p.accountType,
       resellerType: p.resellerType ?? null,
       parentTenantId: p.parentTenantId ?? null,
+      user,
     };
   } catch {
     return null;
