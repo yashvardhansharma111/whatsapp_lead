@@ -539,12 +539,15 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
               {tenant.isActive ? "Active" : "Suspended"}
             </AdminBadge>
             {/* The platform account is the Super Admin's own: suspending it would lock them out. */}
-            {tenant.accountType !== "PLATFORM" && tenant.isActive && (
-              <>
-                <ViewAsButton tenantId={tenant.id} variant="primary" />
-                {/* The other half: open it as one of their people rather than as yourself. */}
-                <SignInAsButton tenantId={tenant.id} tenantName={tenant.name} />
-              </>
+            {/* Viewing the platform account "as itself" means nothing — the admin panel
+                is that. Signing in as one of its people is a different thing, and the
+                only way into its inbox: it doubles as an ordinary workspace, and a Super
+                Admin signed in as themselves is sent back to the admin panel. */}
+            {tenant.isActive && tenant.accountType !== "PLATFORM" && (
+              <ViewAsButton tenantId={tenant.id} variant="primary" />
+            )}
+            {tenant.isActive && (
+              <SignInAsButton tenantId={tenant.id} tenantName={tenant.name} />
             )}
             {tenant.accountType !== "PLATFORM" && (
               <AdminButton
