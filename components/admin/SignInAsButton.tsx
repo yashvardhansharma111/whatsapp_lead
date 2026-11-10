@@ -19,7 +19,7 @@ interface TenantUser {
   name: string | null;
   email: string;
   role: string;
-  lastLoginAt: string | null;
+  lastLoginAt?: string | null;
 }
 
 const ROLE_LABEL = (role: string) => role.toLowerCase().replace(/_/g, " ");
@@ -27,11 +27,20 @@ const ROLE_LABEL = (role: string) => role.toLowerCase().replace(/_/g, " ");
 export function SignInAsButton({
   tenantId,
   tenantName,
+  user,
   size = "sm",
   variant = "secondary",
 }: {
   tenantId: string;
   tenantName: string;
+  /**
+   * Skips the picker and signs in as this person.
+   *
+   * Offered beside each person in the workspace, which is where someone reading a
+   * complaint about what *they* can see already is — the picker at the top of the page
+   * meant finding the same name twice.
+   */
+  user?: { id: string; name: string | null; email: string; role: string };
   size?: "sm" | "md";
   variant?: "primary" | "secondary" | "ghost";
 }) {
@@ -75,6 +84,36 @@ export function SignInAsButton({
       setError((e as Error).message);
       setStarting(null);
     }
+  }
+
+  // Named, there is nothing to choose: confirm what is about to happen and go.
+  if (user) {
+    return (
+      <span className="inline-flex flex-col items-end gap-1">
+        <AdminButton
+          size={size}
+          variant={variant}
+          disabled={starting !== null}
+          title={`See the workspace as ${user.name?.trim() || user.email}`}
+          onClick={() => {
+            if (
+              window.confirm(
+                `Sign in as ${user.name?.trim() || user.email}?
+
+` +
+                  "You will see exactly what they see. Anything you do is recorded as them.",
+              )
+            ) {
+              void signInAs(user as TenantUser);
+            }
+          }}
+        >
+          {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
+          Sign in as
+        </AdminButton>
+        {error && <span className="max-w-60 text-right text-xs text-rose-600">{error}</span>}
+      </span>
+    );
   }
 
   return (

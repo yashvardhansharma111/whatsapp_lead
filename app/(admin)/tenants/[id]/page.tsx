@@ -1101,15 +1101,26 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
                 </p>
               )}
             </div>
-            <button
-              onClick={() => handleReset(u.id)}
-              disabled={reset.isPending}
-              title="Reset password"
-              className="flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs sm:min-h-0 font-medium text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
-            >
-              <KeyRound className="h-3.5 w-3.5" />
-              Reset password
-            </button>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {/* A Super Admin is never impersonable, so offering it would only ever
+                  produce a refusal. */}
+              {u.isActive && u.role !== "SUPER_ADMIN" && (
+                <SignInAsButton
+                  tenantId={tenant.id}
+                  tenantName={tenant.name}
+                  user={{ id: u.id, name: u.name, email: u.email, role: u.role }}
+                />
+              )}
+              <button
+                onClick={() => handleReset(u.id)}
+                disabled={reset.isPending}
+                title="Reset password"
+                className="flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs sm:min-h-0 font-medium text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Reset password
+              </button>
+            </div>
           </div>
         ))}
       </div>
