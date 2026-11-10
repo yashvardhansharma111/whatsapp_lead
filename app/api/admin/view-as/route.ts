@@ -12,6 +12,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { VIEW_AS_COOKIE, VIEW_AS_TTL_MS, encodeViewAs } from "@/lib/viewAs";
 
+// The backend token lives on the session, not on `session.user` — reading it from the
+// wrong one sent the backend an empty Bearer header, and "View as" answered Unauthorized
+// for a Super Admin who was perfectly well signed in.
+
 const BACKEND = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 
 interface StartResult {
@@ -60,7 +64,7 @@ export async function POST(req: NextRequest) {
     | null;
   if (!body?.tenantId) return fail("Choose an account.", 400);
 
-  const { ok, status, json } = await callBackend("POST", session.user.nestToken ?? "", {
+  const { ok, status, json } = await callBackend("POST", session.nestToken ?? "", {
     tenantId: body.tenantId,
     ...(body.userId ? { userId: body.userId } : {}),
   });
@@ -106,7 +110,7 @@ export async function DELETE() {
   // reason to strand someone inside another account.
   let redirect = "/tenants";
   if (BACKEND) {
-    const { ok, json } = await callBackend("DELETE", session.user.nestToken ?? "");
+    const { ok, json } = await callBackend("DELETE", session.nestToken ?? "");
     if (ok) redirect = ((json?.data ?? json) as { redirect?: string })?.redirect ?? redirect;
   }
 
