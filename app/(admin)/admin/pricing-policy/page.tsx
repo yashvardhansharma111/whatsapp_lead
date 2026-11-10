@@ -180,11 +180,17 @@ export default function PricingPolicyPage() {
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600"
               />
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-slate-800">Allow wallet top-ups</span>
+                <span className="block text-sm font-medium text-slate-800">Charge for messages</span>
                 <span className="block text-xs text-slate-500">
-                  The master switch. Accounts can only top up when this is on, their plan
-                  includes a wallet, and payment keys are configured — a wallet nobody can
-                  fill is worse than no wallet.
+                  The master switch for the wallet, both halves of it. Turned off, no
+                  account anywhere is charged for a message and every estimate reads ₹0 —
+                  whatever prices are set below or by a reseller. Those prices are kept and
+                  take effect again the moment this is turned back on.
+                </span>
+                <span className="block text-xs text-slate-500">
+                  Turning it on also lets accounts top up, provided their plan includes a
+                  wallet and payment keys are configured — a wallet nobody can fill is worse
+                  than no wallet. It does not affect what WhatsApp bills you.
                 </span>
               </span>
             </label>
