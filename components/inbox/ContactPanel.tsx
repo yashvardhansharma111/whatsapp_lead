@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
   CheckCircle,
@@ -380,13 +381,7 @@ export function ContactPanel({
         </div>
 
         <div className="px-4 py-5">
-          {tab === "notes" && (
-            <TabPlaceholder
-              icon={StickyNote}
-              title="No notes yet"
-              description="Toggle “Internal note” in the composer to leave a note for your team."
-            />
-          )}
+          {tab === "notes" && <NotesTab conversationId={conversation.id} />}
           {tab === "activity" && (
             <TabPlaceholder
               icon={Clock3}
@@ -433,6 +428,59 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
       <dt className="shrink-0 text-slate-400">{label}</dt>
       <dd className="min-w-0 truncate text-right font-medium text-slate-700">{value}</dd>
     </div>
+  );
+}
+
+/**
+ * The notes left on this chat.
+ *
+ * This tab said "No notes yet" whatever was there — a fixed placeholder, so notes could
+ * be written and then had nowhere to be read. They are ordinary messages flagged as
+ * notes, never sent to WhatsApp, and they are loaded here rather than filtered out of
+ * the thread so a note written months ago is still reachable.
+ */
+function NotesTab({ conversationId }: { conversationId: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["conversation-notes", conversationId],
+    queryFn: async () => {
+      const res = await fetch(`/api/conversations/${conversationId}/notes`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Couldn't load the notes");
+      return ((json.data ?? json) as {
+        notes: { id: string; content: string | null; createdAt: string; sentBy?: { name: string | null } | null }[];
+      }).notes ?? [];
+    },
+  });
+
+  if (isLoading) return <Skeleton className="h-16 rounded-lg" />;
+  // Kept apart from the empty state: a failed request and no notes look identical
+  // otherwise, and only one of them is worth investigating.
+  if (error) {
+    return <p className="text-xs text-rose-600">{(error as Error).message}</p>;
+  }
+  if (!data?.length) {
+    return (
+      <TabPlaceholder
+        icon={StickyNote}
+        title="No notes yet"
+        description="Toggle “Internal note” in the composer to leave a note for your team."
+      />
+    );
+  }
+
+  return (
+    <ul className="space-y-2">
+      {data.map((n) => (
+        <li key={n.id} className="rounded-lg bg-amber-50 p-2.5 ring-1 ring-inset ring-amber-200/70">
+          <p className="whitespace-pre-wrap wrap-anywhere text-xs leading-relaxed text-amber-950">
+            {n.content}
+          </p>
+          <p className="mt-1.5 text-[11px] text-amber-700">
+            {n.sentBy?.name ?? "Someone"} · {formatDate(n.createdAt)}
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
 

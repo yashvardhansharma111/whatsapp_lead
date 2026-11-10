@@ -9,6 +9,7 @@ type MessageType = string;
 import { Avatar, EmptyState, Skeleton } from "@/components/ui";
 import { NumberBadge, NumberPicker } from "@/components/NumberPicker";
 import { cn, timeAgo } from "@/lib/utils";
+import { NewChatButton } from "@/components/inbox/NewChatButton";
 
 // ─── Shared inbox types ───────────────────────────────────────────────────────
 // The API routes are still 501 stubs, so nothing about the payload shape is
@@ -84,6 +85,17 @@ export interface InboxConversation {
   assignedTo?: InboxAgent | null;
   lead?: InboxLead | null;
   messages?: InboxMessage[] | null;
+  /**
+   * Whether a typed message can still reach them. WhatsApp carries free-form messages for
+   * 24 hours after the customer last wrote, and only an approved template after that —
+   * so this decides which composer the thread gets.
+   */
+  serviceWindow?: {
+    open: boolean;
+    lastInboundAt: string | null;
+    expiresAt: string | null;
+    everReplied: boolean;
+  } | null;
   /** The connected number this thread arrived on, and replies go back out from. */
   whatsappIntegrationId?: string | null;
   whatsappIntegration?: { id: string; displayName: string | null; phoneNumber: string | null } | null;
@@ -130,6 +142,7 @@ export function ConversationList({
   onTabChange,
   numberId,
   onNumberChange,
+  onStartChat,
   className,
 }: {
   conversations: InboxConversation[];
@@ -144,6 +157,8 @@ export function ConversationList({
   /** Which connected number's threads to show. Empty means all of them. */
   numberId: string;
   onNumberChange: (id: string) => void;
+  /** Opens a chat with a number that has not written in. */
+  onStartChat: (conversationId: string) => void;
   className?: string;
 }) {
   const hasQuery = search.trim().length > 0;
@@ -152,16 +167,19 @@ export function ConversationList({
     <div className={cn("flex min-h-0 flex-col border-r border-slate-200 bg-white", className)}>
       {/* Search */}
       <div className="shrink-0 border-b border-slate-100 p-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search conversations"
-            aria-label="Search conversations"
-            className="w-full rounded-lg bg-slate-50 py-2.5 pl-9 pr-3 text-base text-slate-900 sm:py-2 sm:text-sm ring-1 ring-inset ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+        <div className="flex items-center gap-1.5">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search conversations"
+              aria-label="Search conversations"
+              className="w-full rounded-lg bg-slate-50 py-2.5 pl-9 pr-3 text-base text-slate-900 sm:py-2 sm:text-sm ring-1 ring-inset ring-transparent transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <NewChatButton onOpened={onStartChat} />
         </div>
 
         {/* Which connected number. Renders nothing when the workspace has one. */}

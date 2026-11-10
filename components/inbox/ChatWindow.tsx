@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
@@ -42,6 +43,7 @@ import { contactName, type InboxConversation, type InboxMessage } from "./Conver
 import { FaqMenuPicker } from "./FaqMenuPicker";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
 import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
+import { TemplateComposer } from "./TemplateComposer";
 import { useAttachmentComposer } from "./useAttachmentComposer";
 import { useCallControls } from "@/components/calls/CallProvider";
 
@@ -172,6 +174,18 @@ export function ChatWindow({
   // All attachment behaviour (drag-and-drop, file picker, clipboard paste, preview and the
   // shared upload → send pipeline) lives in this hook so the composer stays a thin shell.
   const attach = useAttachmentComposer({ conversationId, sendFn: sendMessage.mutateAsync });
+  const queryClient = useQueryClient();
+
+  // WhatsApp carries a typed message only for 24 hours after the customer last wrote.
+  // The server works the window out; an older thread that predates the field is treated
+  // as open, because guessing it shut would take away a composer that does work.
+  const win = conversation?.serviceWindow;
+  const windowShut = win ? !win.open : false;
+  const windowReason = !win
+    ? ""
+    : !win.everReplied
+      ? "They have never messaged you, so WhatsApp only allows an approved template first. Once they reply you can type freely for 24 hours."
+      : `It is more than 24 hours since ${conversation?.contact?.name?.trim() || "they"} last replied, so WhatsApp only allows an approved template. Their reply opens the chat again for 24 hours.`;
 
   const timeline = useMemo(
     () => [...messages].sort((a, b) => msTime(a.createdAt) - msTime(b.createdAt)),
@@ -482,7 +496,21 @@ export function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      {/* Composer — `relative` so the drop overlay highlights only this region. */}
+      {/* A chat WhatsApp will not carry a typed message to gets the template composer in
+          place of the text box, not beside it — offering a box that cannot work is how
+          an agent ends up watching a reply fail silently at Meta. */}
+      {windowShut && conversationId ? (
+        <TemplateComposer
+          conversationId={conversationId}
+          whatsappIntegrationId={conversation?.whatsappIntegrationId}
+          reason={windowReason}
+          onSent={() => {
+            void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+          }}
+        />
+      ) : (
+
+      /* Composer — `relative` so the drop overlay highlights only this region. */
       <div
         className="relative shrink-0 border-t border-slate-200 bg-white px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:px-4"
         onDragEnter={attach.dragHandlers.onDragEnter}
@@ -801,6 +829,7 @@ export function ChatWindow({
           </div>
         )}
       </div>
+      )}
 
       {/* Review step for dropped / picked / pasted files. Renders only when files are staged. */}
       <AttachmentPreviewModal

@@ -166,6 +166,7 @@ function InboxPageInner() {
         onTabChange={setTab}
         numberId={numberId}
         onNumberChange={setNumberId}
+        onStartChat={handleSelect}
         className={cn("w-full shrink-0 md:w-80", selectedId && "hidden md:flex")}
       />
 
