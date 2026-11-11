@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { ViewAsBanner } from "@/components/dashboard/ViewAsBanner";
 import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
-import { brandStyle, getBrandForTenant } from "@/lib/branding";
+import { brandMetadata, brandStyle, getBrandForTenant } from "@/lib/branding";
 import { BrandProvider } from "@/components/BrandProvider";
 import { ToastProvider } from "@/components/ui/toast";
 import { RealtimeProvider } from "@/hooks/useRealtime";
@@ -28,6 +29,19 @@ async function getPlanName(nestToken: string | undefined): Promise<string | null
   } catch {
     return null;
   }
+}
+
+/**
+ * The brand's own tab icon and share card, for the hours people spend in here.
+ *
+ * It was set on the sign-in page and nowhere else, so a reseller's customer saw their
+ * brand while logging in and the platform's blank tab for the rest of the day.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const session = await auth();
+  if (!session?.user) return {};
+  const brand = await getBrandForTenant(session.user.tenantId);
+  return { title: brand.name, ...brandMetadata(brand) };
 }
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {

@@ -40,6 +40,12 @@ export interface Brand {
   legalName: string;
   logoUrl: string | null;
   faviconUrl: string | null;
+  /** 180x180 for an iOS home screen. */
+  appleIconUrl: string | null;
+  /** 1200x630 shown when a link to this brand is shared. */
+  ogImageUrl: string | null;
+  /** Browser chrome and installed-app colour; falls back to the primary colour. */
+  themeColor: string | null;
   primaryColor: string;
   accentColor: string | null;
   supportEmail: string | null;
@@ -64,7 +70,10 @@ export const PLATFORM_BRAND: Brand = {
   name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "Waboxa",
   legalName: process.env.BRAND_LEGAL_NAME ?? "Waboxa",
   logoUrl: process.env.NEXT_PUBLIC_BRAND_LOGO_URL ?? null,
-  faviconUrl: null,
+  faviconUrl: process.env.NEXT_PUBLIC_BRAND_FAVICON_URL ?? "/icons/icon-192.png",
+  appleIconUrl: null,
+  ogImageUrl: null,
+  themeColor: null,
   primaryColor: "#059669",
   accentColor: null,
   supportEmail: process.env.BRAND_SUPPORT_EMAIL ?? "info@waboxa.com",
@@ -89,6 +98,12 @@ type ConfigRow = {
   brandName: string;
   logoUrl: string | null;
   faviconUrl: string | null;
+  /** 180x180 for an iOS home screen. */
+  appleIconUrl: string | null;
+  /** 1200x630 shown when a link to this brand is shared. */
+  ogImageUrl: string | null;
+  /** Browser chrome and installed-app colour; falls back to the primary colour. */
+  themeColor: string | null;
   primaryColor: string;
   accentColor: string | null;
   domain: string | null;
@@ -112,6 +127,9 @@ function toBrand(c: ConfigRow): Brand {
     legalName: c.brandName,
     logoUrl: c.logoUrl,
     faviconUrl: c.faviconUrl,
+    appleIconUrl: c.appleIconUrl ?? null,
+    ogImageUrl: c.ogImageUrl ?? null,
+    themeColor: c.themeColor ?? null,
     primaryColor: c.primaryColor || PLATFORM_BRAND.primaryColor,
     accentColor: c.accentColor,
     supportEmail: c.supportEmail,
@@ -203,4 +221,35 @@ export function brandStyle(brand: Brand): CSSProperties {
     "--color-emerald-800": mix(70, "black"),
     "--color-emerald-900": mix(55, "black"),
   } as CSSProperties;
+}
+
+/**
+ * The icons and share card for a brand, as Next's Metadata wants them.
+ *
+ * Used by every layout that can see the request host. Without this the favicon was set on
+ * the sign-in page and nowhere else: a reseller's customer saw their brand while logging
+ * in, then the platform's blank tab for the rest of the day.
+ */
+export function brandMetadata(brand: Brand): {
+  icons?: { icon: string; apple?: string };
+  openGraph?: { title: string; description: string; images: string[]; siteName: string };
+  themeColor?: string;
+} {
+  const out: ReturnType<typeof brandMetadata> = {};
+  if (brand.faviconUrl) {
+    out.icons = {
+      icon: brand.faviconUrl,
+      ...(brand.appleIconUrl ? { apple: brand.appleIconUrl } : {}),
+    };
+  }
+  if (brand.ogImageUrl) {
+    out.openGraph = {
+      title: brand.name,
+      description: brand.loginSubtext,
+      images: [brand.ogImageUrl],
+      siteName: brand.name,
+    };
+  }
+  out.themeColor = brand.themeColor || brand.primaryColor;
+  return out;
 }

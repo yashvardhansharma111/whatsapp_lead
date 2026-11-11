@@ -12,7 +12,9 @@ import { api } from "@/components/reseller/shared";
 import { AssetInput } from "@/components/ui/AssetInput";
 
 interface Config {
-  brandName: string; logoUrl: string | null; faviconUrl: string | null; primaryColor: string; accentColor: string | null;
+  brandName: string; logoUrl: string | null; faviconUrl: string | null;
+  appleIconUrl: string | null; ogImageUrl: string | null; themeColor: string | null;
+  primaryColor: string; accentColor: string | null;
   domain: string | null; supportEmail: string | null; supportPhone: string | null; website: string | null;
   address: string | null; loginHeadline: string | null; loginSubtext: string | null; isActive: boolean;
   subdomain: string | null; landingEnabled: boolean; landingTitle: string | null; landingSubtitle: string | null;
@@ -34,7 +36,8 @@ interface FeeStatus {
 const inr = (m: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(m / 100);
 
 const EMPTY: Config = {
-  brandName: "", logoUrl: "", faviconUrl: "", primaryColor: "#059669", accentColor: "", domain: "",
+  brandName: "", logoUrl: "", faviconUrl: "", appleIconUrl: "", ogImageUrl: "", themeColor: "",
+  primaryColor: "#059669", accentColor: "", domain: "",
   supportEmail: "", supportPhone: "", website: "", address: "", loginHeadline: "", loginSubtext: "", isActive: true,
   subdomain: "", landingEnabled: true, landingTitle: "", landingSubtitle: "", termsContent: "", privacyContent: "",
 };
@@ -173,6 +176,34 @@ export default function ResellerBrandingPage() {
                   onChange={(v) => setForm((f) => (f ? { ...f, faviconUrl: v } : f))}
                   placeholder="https://…/favicon.png"
                 />
+              </Field>
+            </div>
+
+            {/* Where a brand used to stop at the browser tab. Each of these is a surface
+                a customer actually meets: their phone's home screen, and the preview card
+                when someone shares the link. */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Home-screen icon" htmlFor="b-appleIconUrl">
+                <AssetInput
+                  id="b-appleIconUrl"
+                  value={form.appleIconUrl ?? ""}
+                  onChange={(v) => setForm((f) => (f ? { ...f, appleIconUrl: v } : f))}
+                  placeholder="https://…/apple-icon.png"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  180×180 PNG, for an iPhone home screen.
+                </p>
+              </Field>
+              <Field label="Share image" htmlFor="b-ogImageUrl">
+                <AssetInput
+                  id="b-ogImageUrl"
+                  value={form.ogImageUrl ?? ""}
+                  onChange={(v) => setForm((f) => (f ? { ...f, ogImageUrl: v } : f))}
+                  placeholder="https://…/share.png"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  1200×630, shown when your link is shared on WhatsApp or LinkedIn.
+                </p>
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

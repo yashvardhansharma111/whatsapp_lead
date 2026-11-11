@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Check, Mail, MessageSquare, Phone } from "lucide-react";
-import { brandStyle, getRequestBrand } from "@/lib/branding";
+import { brandMetadata, brandStyle, getRequestBrand } from "@/lib/branding";
 import { getSection } from "@/lib/cms/content";
 
 /**
@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: brand.isWhiteLabel ? brand.name : `${brand.name} — AI-Powered WhatsApp CRM & Lead Management`,
     description: brand.loginSubtext,
-    ...(brand.faviconUrl && { icons: { icon: brand.faviconUrl } }),
+    ...brandMetadata(brand),
   };
 }
 
