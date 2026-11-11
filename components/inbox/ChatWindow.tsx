@@ -88,6 +88,7 @@ export function ChatWindow({
   const [draft, setDraft] = useState("");
   const [isNote, setIsNote] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<InboxMessage | null>(null);
   const [showInteractive, setShowInteractive] = useState(false);
@@ -131,6 +132,7 @@ export function ChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   // Close emoji picker on outside click
   useEffect(() => {
@@ -143,6 +145,22 @@ export function ChatWindow({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showEmoji]);
+
+  // Same for the "+" menu, and Escape closes it — a popover that can only be dismissed
+  // by hitting the button again is a trap on a phone.
+  useEffect(() => {
+    if (!showMore) return;
+    const click = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setShowMore(false);
+    };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setShowMore(false); };
+    document.addEventListener("mousedown", click);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("mousedown", click);
+      document.removeEventListener("keydown", key);
+    };
+  }, [showMore]);
 
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   /**
@@ -632,28 +650,27 @@ export function ChatWindow({
           </div>
         )}
 
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsNote((v) => !v)}
-            role="switch"
-            aria-checked={isNote}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition",
-              isNote
-                ? "bg-amber-100 text-amber-800 ring-amber-300"
-                : "text-slate-500 ring-slate-200 hover:bg-slate-50",
-            )}
-          >
-            <StickyNote className="h-3.5 w-3.5" />
-            Internal note
-          </button>
-          {isNote && (
-            <span className="text-[11px] text-amber-700">
-              Only your team can see this — it is not sent to WhatsApp.
+        {/* Shown only while writing a note. The toggle itself moved into the "+" menu, but
+            which mode you are in cannot live behind a menu — it decides whether what you
+            type reaches the customer. */}
+        {isNote && (
+          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-amber-50 px-2.5 py-1.5 ring-1 ring-inset ring-amber-200">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-900">
+              <StickyNote className="h-3.5 w-3.5" />
+              Internal note
             </span>
-          )}
-        </div>
+            <span className="text-[11px] text-amber-700">
+              Only your team sees this — it is not sent to WhatsApp.
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsNote(false)}
+              className="ml-auto rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-800 underline underline-offset-2 transition hover:bg-amber-100"
+            >
+              Write a message instead
+            </button>
+          </div>
+        )}
 
         {/* Five tool icons + input + send don't fit a 360px row, so phones put the tools on
             their own line above the input; sm+ keeps the single row. */}
@@ -670,30 +687,65 @@ export function ChatWindow({
                 e.target.value = "";
               }}
             />
-            <ComposerIcon
-              icon={Paperclip}
-              label="Attach a file"
-              onClick={() => fileRef.current?.click()}
-            />
+            {/* One "+" instead of five icons. The row could not hold them all on a phone,
+                so the tools were wrapping onto a line of their own above the input and
+                taking a third of the composer. Emoji stays out — it is used mid-sentence
+                and belongs next to the text. */}
+            <div ref={moreRef} className="relative">
+              <ComposerIcon
+                icon={Plus}
+                label="More — attach, AI reply, FAQ menu, buttons, note"
+                active={showMore}
+                onClick={() => setShowMore((v) => !v)}
+              />
+              {showMore && (
+                <div
+                  role="menu"
+                  className="absolute bottom-11 left-0 z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  <MenuItem
+                    icon={Paperclip}
+                    label="Attach a file"
+                    onClick={() => { setShowMore(false); fileRef.current?.click(); }}
+                  />
+                  <MenuItem
+                    icon={Sparkles}
+                    label={isAiGenerating ? "Generating…" : "AI reply"}
+                    hint="Drafts from this chat"
+                    tone="emerald"
+                    disabled={isAiGenerating}
+                    onClick={() => { setShowMore(false); void handleAiSuggest(); }}
+                  />
+                  <MenuItem
+                    icon={HelpCircle}
+                    label="FAQ menu"
+                    hint="Send a list of common questions"
+                    tone="emerald"
+                    onClick={() => { setShowMore(false); setShowFaqMenu(true); }}
+                  />
+                  <MenuItem
+                    icon={LayoutList}
+                    label="Buttons or list"
+                    hint="An interactive message"
+                    tone="emerald"
+                    onClick={() => { setShowMore(false); setShowInteractive(true); }}
+                  />
+                  <div className="my-1 border-t border-slate-100" />
+                  <MenuItem
+                    icon={StickyNote}
+                    label={isNote ? "Write a message instead" : "Internal note"}
+                    hint={isNote ? undefined : "Only your team sees it"}
+                    tone="amber"
+                    onClick={() => { setShowMore(false); setIsNote((v) => !v); }}
+                  />
+                </div>
+              )}
+            </div>
             <ComposerIcon
               icon={Smile}
               label="Insert emoji"
               active={showEmoji}
               onClick={() => setShowEmoji((v) => !v)}
-            />
-            <ComposerIcon
-              icon={Sparkles}
-              label={isAiGenerating ? "Generating…" : "AI Suggest a reply"}
-              onClick={handleAiSuggest}
-              disabled={isAiGenerating}
-              className={cn("text-emerald-600 hover:bg-emerald-50", isAiGenerating && "animate-pulse")}
-            />
-            <ComposerIcon
-              icon={HelpCircle}
-              label="Send a FAQ question menu"
-              active={showFaqMenu}
-              onClick={() => setShowFaqMenu((v) => !v)}
-              className="text-emerald-600 hover:bg-emerald-50"
             />
             {showFaqMenu && conversationId && (
               <FaqMenuPicker
@@ -701,14 +753,6 @@ export function ChatWindow({
                 onClose={() => setShowFaqMenu(false)}
               />
             )}
-            <ComposerIcon
-              icon={LayoutList}
-              label="Send interactive message (buttons or list)"
-              active={showInteractive}
-              onClick={() => setShowInteractive((v) => !v)}
-              className="text-emerald-600 hover:bg-emerald-50"
-            />
-
             {showEmoji && (
               <div ref={emojiRef} className="absolute bottom-11 left-0 z-30">
                 <EmojiPicker
@@ -1370,6 +1414,41 @@ function Switch({
           checked ? "translate-x-4.5" : "translate-x-0.5",
         )}
       />
+    </button>
+  );
+}
+
+/** A row in the composer's "+" menu: what it does, and a line on why you would. */
+function MenuItem({
+  icon: Icon,
+  label,
+  hint,
+  tone = "slate",
+  disabled,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  hint?: string;
+  tone?: "slate" | "emerald" | "amber";
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const iconTone =
+    tone === "emerald" ? "text-emerald-600" : tone === "amber" ? "text-amber-600" : "text-slate-400";
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-slate-50 disabled:opacity-50"
+    >
+      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)} />
+      <span className="min-w-0">
+        <span className="block text-sm text-slate-800">{label}</span>
+        {hint && <span className="block text-[11px] leading-tight text-slate-400">{hint}</span>}
+      </span>
     </button>
   );
 }

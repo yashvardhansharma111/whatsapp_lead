@@ -458,19 +458,61 @@ function NotesTab({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <ul className="space-y-2">
-      {data.map((n) => (
-        <li key={n.id} className="rounded-lg bg-amber-50 p-2.5 ring-1 ring-inset ring-amber-200/70">
-          <p className="whitespace-pre-wrap wrap-anywhere text-xs leading-relaxed text-amber-950">
-            {n.content}
-          </p>
-          <p className="mt-1.5 text-[11px] text-amber-700">
-            {n.sentBy?.name ?? "Someone"} · {formatDate(n.createdAt)}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-2.5">
+      <p className="text-[11px] text-slate-400">
+        {data.length} note{data.length === 1 ? "" : "s"} · newest first · never sent to WhatsApp
+      </p>
+      <ul className="space-y-2.5">
+        {data.map((n) => {
+          const who = n.sentBy?.name?.trim() || "Someone";
+          return (
+            // The author leads, because the first thing anyone wants from a note is who
+            // left it — a wall of identical amber blocks made that the hardest part to
+            // find. The note itself is given room to read rather than being squeezed
+            // under its own metadata.
+            <li
+              key={n.id}
+              className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+            >
+              <div className="mb-1.5 flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[10px] font-semibold uppercase text-amber-900"
+                >
+                  {who.charAt(0)}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-amber-900">{who}</span>
+                <time
+                  className="shrink-0 text-[11px] text-amber-700/80"
+                  dateTime={new Date(n.createdAt).toISOString()}
+                  title={formatDate(n.createdAt)}
+                >
+                  {relativeTime(n.createdAt)}
+                </time>
+              </div>
+              <p className="whitespace-pre-wrap wrap-anywhere text-[13px] leading-relaxed text-amber-950">
+                {n.content}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
+}
+
+/** "2h ago" reads faster than a date when the newest note is what matters. */
+function relativeTime(value: string): string {
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.round((Date.now() - then) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatDate(value);
 }
 
 /**
