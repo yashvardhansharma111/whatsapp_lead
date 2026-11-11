@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Check, Mail, MessageSquare, Phone } from "lucide-react";
 import { brandStyle, getRequestBrand } from "@/lib/branding";
+import { getSection } from "@/lib/cms/content";
 
 /**
  * Login and sign-up take the brand of the domain they're served on: a white-label
@@ -30,16 +32,30 @@ function BrandMark({ logoUrl, className }: { logoUrl: string | null; className: 
   );
 }
 
-const FEATURES = [
-  "Shared WhatsApp inbox",
-  "AI lead qualification",
-  "Bulk campaigns & templates",
-  "Real-time analytics",
-];
+/** The initials shown when a testimonial has no photo. */
+function initialsOf(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0] ?? "").join("").toUpperCase() || "—";
+}
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const brand = await getRequestBrand();
   const year = new Date().getFullYear();
+
+  // The panel's wording lives in the CMS. Headline and subtext fall back to the brand's
+  // when left empty, so a white-label reseller that edits nothing still gets its own.
+  // Scoped to the host, so a reseller's domain gets that brand's own panel.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? undefined;
+  const panel = await getSection("login", host).catch(() => null);
+  const headline = String(panel?.content.headline ?? "").trim() || brand.loginHeadline;
+  const subtext  = String(panel?.content.subtext ?? "").trim() || brand.loginSubtext;
+  const features = (panel?.items.loginFeature ?? [])
+    .map((f) => String(f.label ?? "").trim())
+    .filter(Boolean);
+  const quote = String(panel?.content.quote ?? "").trim().replace(/\{brand\}/g, brand.name);
+  const quoteName = String(panel?.content.quoteName ?? "").trim();
+  const quoteRole = String(panel?.content.quoteRole ?? "").trim();
+  const quoteAvatar = String(panel?.content.quoteAvatarUrl ?? "").trim();
 
   return (
     <div className="min-h-screen bg-white lg:grid lg:grid-cols-2" style={brandStyle(brand)}>
@@ -73,11 +89,11 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
 
         {/* Headline + features */}
         <div className="relative z-10 max-w-md">
-          <h2 className="text-4xl font-bold leading-tight tracking-tight">{brand.loginHeadline}</h2>
-          <p className="mt-4 text-base leading-relaxed text-emerald-50/90">{brand.loginSubtext}</p>
+          <h2 className="text-4xl font-bold leading-tight tracking-tight">{headline}</h2>
+          <p className="mt-4 text-base leading-relaxed text-emerald-50/90">{subtext}</p>
 
           <ul className="mt-8 space-y-3">
-            {FEATURES.map((feature) => (
+            {features.map((feature) => (
               <li key={feature} className="flex items-center gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-inset ring-white/20">
                   <Check className="h-3.5 w-3.5 text-white" />
@@ -101,20 +117,27 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
               </div>
             )
           ) : (
+          quote ? (
           <figure className="mt-10 rounded-2xl bg-white/10 p-6 ring-1 ring-inset ring-white/15 backdrop-blur-sm">
-            <blockquote className="text-sm leading-relaxed text-white">
-              &ldquo;{brand.name} helped us qualify 3x more leads without adding a single agent.&rdquo;
-            </blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
-                RK
-              </span>
-              <span className="text-xs leading-tight">
-                <span className="block font-semibold text-white">Rajesh Kumar</span>
-                <span className="block text-emerald-100/80">Director, TechSales India</span>
-              </span>
-            </figcaption>
+            <blockquote className="text-sm leading-relaxed text-white">&ldquo;{quote}&rdquo;</blockquote>
+            {quoteName && (
+              <figcaption className="mt-4 flex items-center gap-3">
+                {quoteAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- an arbitrary URL the admin set
+                  <img src={quoteAvatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
+                    {initialsOf(quoteName)}
+                  </span>
+                )}
+                <span className="text-xs leading-tight">
+                  <span className="block font-semibold text-white">{quoteName}</span>
+                  {quoteRole && <span className="block text-emerald-100/80">{quoteRole}</span>}
+                </span>
+              </figcaption>
+            )}
           </figure>
+          ) : null
           )}
         </div>
 

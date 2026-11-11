@@ -8,7 +8,8 @@
  * are for instant feedback only — the API route re-validates everything.
  */
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { adminInputClass, AdminButton } from "@/components/admin/ui";
 import { Toggle } from "@/components/ui/Toggle";
 import { CmsIcon } from "@/components/marketing/home/cmsIcon";
@@ -124,38 +125,8 @@ function Control({
       );
     }
 
-    case "image": {
-      const text = String(value ?? "");
-      const valid = text.trim() !== "" && isSafeImageUrl(text.trim());
-      const invalid = text.trim() !== "" && !valid;
-      return (
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <input
-              id={id}
-              type="text"
-              inputMode="url"
-              autoComplete="off"
-              spellCheck={false}
-              value={text}
-              placeholder="https://…"
-              onChange={(event) => onChange(event.target.value)}
-              aria-invalid={invalid || undefined}
-              className={cn(adminInputClass, "font-mono text-[13px]", invalid && "border-rose-300")}
-            />
-            {invalid && <p className="mt-1 text-xs text-rose-600">Must be an https:// URL or a path like /logo.png.</p>}
-          </div>
-          {valid && (
-            // eslint-disable-next-line @next/next/no-img-element -- admin preview of an arbitrary external URL
-            <img
-              src={text.trim()}
-              alt=""
-              className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-slate-50 object-contain"
-            />
-          )}
-        </div>
-      );
-    }
+    case "image":
+      return <ImageField id={id} value={String(value ?? "")} onChange={onChange} />;
 
     case "number":
       return (
@@ -381,5 +352,99 @@ export function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * An image field: paste a URL, or upload the file and have one made for you.
+ *
+ * It used to take a URL and nothing else, so putting a logo or a favicon on the site
+ * meant finding somewhere to host the file first — which for a favicon is most of the
+ * job. The box still accepts a URL, because an image already hosted somewhere should not
+ * have to be uploaded again.
+ */
+function ImageField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const text = value.trim();
+  const valid = text !== "" && isSafeImageUrl(text);
+  const invalid = text !== "" && !valid;
+
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/cms/assets", { method: "POST", body: form });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error ?? "Couldn't upload that image");
+      onChange(((json.data ?? json) as { url: string }).url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't upload that image");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <input
+            id={id}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck={false}
+            value={value}
+            placeholder="https://… or upload"
+            onChange={(event) => onChange(event.target.value)}
+            aria-invalid={invalid || undefined}
+            className={cn(adminInputClass, "font-mono text-[13px]", invalid && "border-rose-300")}
+          />
+          {invalid && <p className="mt-1 text-xs text-rose-600">Must be an https:// URL or a path like /logo.png.</p>}
+          {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
+        </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/x-icon,.ico"
+          className="hidden"
+          onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          title="Upload an image"
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {busy ? "Uploading…" : "Upload"}
+        </button>
+
+        {valid && (
+          // eslint-disable-next-line @next/next/no-img-element -- admin preview of an arbitrary URL
+          <img
+            src={text}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-slate-50 object-contain"
+          />
+        )}
+      </div>
+    </div>
   );
 }

@@ -331,6 +331,38 @@ export const CMS_SECTIONS = {
     ],
   },
 
+  /**
+   * The panel beside the sign-in form.
+   *
+   * Its headline and subtext already came from the brand, so a white-label reseller could
+   * change them — but the bullets and the quote were written into the page and nobody
+   * could touch either. They are here now, and headline and subtext may be overridden
+   * here too; left empty, the brand's own are used, so a reseller still gets theirs.
+   */
+  login: {
+    label: "Login panel",
+    description: "The green panel beside the sign-in and sign-up forms.",
+    fields: [
+      { key: "headline", type: "text", label: "Headline", max: 90, hint: "Leave empty to use the brand's own headline." },
+      { key: "subtext", type: "textarea", label: "Subtext", max: 260, hint: "Leave empty to use the brand's own." },
+      { key: "quote", type: "textarea", label: "Quote", max: 320, group: "Testimonial", hint: "Leave empty to hide the testimonial entirely." },
+      { key: "quoteName", type: "text", label: "Name", max: 50, group: "Testimonial" },
+      { key: "quoteRole", type: "text", label: "Role and company", max: 70, group: "Testimonial" },
+      { key: "quoteAvatarUrl", type: "image", label: "Photo", group: "Testimonial", hint: "Optional. Initials are shown without it." },
+    ],
+    collections: [
+      {
+        kind: "loginFeature",
+        label: "Bullet points",
+        description: "The ticked list under the headline.",
+        itemLabel: "bullet",
+        titleField: "label",
+        max: 6,
+        fields: [{ key: "label", type: "text", label: "Bullet", required: true, max: 60 }],
+      },
+    ],
+  },
+
   testimonials: {
     label: "Testimonials",
     description: "Customer quotes. The section is hidden until at least one quote is active.",

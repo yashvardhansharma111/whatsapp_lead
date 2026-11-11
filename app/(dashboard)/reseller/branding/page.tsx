@@ -9,6 +9,7 @@ import { AlertCircle, CheckCircle2, Clock, ExternalLink, FileText, Globe, Info, 
 import Link from "next/link";
 import { Button, Card, Field, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
 import { api } from "@/components/reseller/shared";
+import { AssetInput } from "@/components/ui/AssetInput";
 
 interface Config {
   brandName: string; logoUrl: string | null; faviconUrl: string | null; primaryColor: string; accentColor: string | null;
@@ -154,9 +155,25 @@ export default function ResellerBrandingPage() {
           <Card className="space-y-4 p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-slate-900">Brand</h2>
             {text("brandName", "Brand name", { required: true, maxLength: 60 })}
+            {/* Paste a URL or upload the file. Asking for a URL alone meant finding
+                somewhere to host a favicon before you could set one. */}
             <div className="grid gap-4 sm:grid-cols-2">
-              {text("logoUrl", "Logo URL (https)", { placeholder: "https://…/logo.png" })}
-              {text("faviconUrl", "Favicon URL (https)", { placeholder: "https://…/favicon.png" })}
+              <Field label="Logo" htmlFor="b-logoUrl">
+                <AssetInput
+                  id="b-logoUrl"
+                  value={form.logoUrl ?? ""}
+                  onChange={(v) => setForm((f) => (f ? { ...f, logoUrl: v } : f))}
+                  placeholder="https://…/logo.png"
+                />
+              </Field>
+              <Field label="Favicon" htmlFor="b-faviconUrl">
+                <AssetInput
+                  id="b-faviconUrl"
+                  value={form.faviconUrl ?? ""}
+                  onChange={(v) => setForm((f) => (f ? { ...f, faviconUrl: v } : f))}
+                  placeholder="https://…/favicon.png"
+                />
+              </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Primary colour" htmlFor="b-primary">

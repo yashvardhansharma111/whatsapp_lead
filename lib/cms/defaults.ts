@@ -303,6 +303,27 @@ export const HOME_DEFAULTS: HomeDefaults = {
     },
   },
 
+  login: {
+    isActive: true,
+    content: {
+      // Empty means "use the brand's", which is what a white-label reseller needs.
+      headline: "",
+      subtext: "",
+      quote: "{brand} helped us qualify 3x more leads without adding a single agent.",
+      quoteName: "Rajesh Kumar",
+      quoteRole: "Director, TechSales India",
+      quoteAvatarUrl: "",
+    },
+    items: {
+      loginFeature: [
+        { isActive: true, label: "Shared WhatsApp inbox" },
+        { isActive: true, label: "AI lead qualification" },
+        { isActive: true, label: "Bulk campaigns & templates" },
+        { isActive: true, label: "Real-time analytics" },
+      ],
+    },
+  },
+
   testimonials: {
     isActive: true,
     content: {
