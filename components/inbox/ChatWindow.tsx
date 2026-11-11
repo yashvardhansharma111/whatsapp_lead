@@ -29,6 +29,7 @@ import {
   Sparkles,
   StickyNote,
   Trash2,
+  ShoppingCart,
   UserRound,
   X, Phone,} from "lucide-react";
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
@@ -40,6 +41,7 @@ import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } f
 import type { InteractivePayload } from "@/lib/validators/message";
 import { useQuickReplies, type QuickReply } from "@/hooks/useQuickReplies";
 import { contactName, type InboxConversation, type InboxMessage } from "./ConversationList";
+import { displayPhone } from "@/lib/phone";
 import { FaqMenuPicker } from "./FaqMenuPicker";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
 import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
@@ -1249,6 +1251,69 @@ function MessageBody({
       const reactionEmoji = str((meta as Record<string, unknown> & { reaction?: { emoji?: string } }).reaction?.emoji);
       if (reactionEmoji) {
         return <p className="text-2xl leading-none">{reactionEmoji}</p>;
+      }
+
+      // A contact card the customer shared. Meta passes these through in full, and the
+      // thread used to show "Unsupported message" for one — so an agent handed a number
+      // to call saw nothing at all.
+      const shared = (meta as Record<string, unknown> & {
+        contacts?: {
+          name?: { formatted_name?: string; first_name?: string };
+          phones?: { phone?: string; wa_id?: string }[];
+          emails?: { email?: string }[];
+          org?: { company?: string };
+        }[];
+      }).contacts;
+      if (Array.isArray(shared) && shared.length > 0) {
+        return (
+          <div className="space-y-2">
+            {shared.map((c, i) => {
+              const who = c.name?.formatted_name?.trim() || c.name?.first_name?.trim() || "Contact";
+              return (
+                <div key={i} className={cn("rounded-lg px-2.5 py-2 ring-1 ring-inset",
+                  outbound ? "bg-white/10 ring-white/20" : "bg-slate-50 ring-slate-200")}>
+                  <p className="flex items-center gap-1.5 text-sm font-medium">
+                    <UserRound className="h-3.5 w-3.5 shrink-0" />
+                    {who}
+                  </p>
+                  {c.org?.company && <p className="mt-0.5 text-xs opacity-80">{c.org.company}</p>}
+                  {(c.phones ?? []).map((ph, j) => (
+                    <p key={j} className="mt-0.5 font-mono text-xs opacity-90">
+                      {displayPhone(ph.wa_id ?? ph.phone)}
+                    </p>
+                  ))}
+                  {(c.emails ?? []).map((em, j) => (
+                    <p key={j} className="mt-0.5 break-all text-xs opacity-90">{em.email}</p>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      // A cart placed from the catalogue. Also passed through in full by Meta.
+      const order = (meta as Record<string, unknown> & {
+        order?: { text?: string; product_items?: { quantity?: number; item_price?: number; currency?: string }[] };
+      }).order;
+      if (order?.product_items?.length) {
+        const items = order.product_items;
+        const count = items.reduce((n, i) => n + (Number(i.quantity) || 0), 0);
+        const total = items.reduce((t, i) => t + (Number(i.item_price) || 0) * (Number(i.quantity) || 0), 0);
+        return (
+          <div className="space-y-1">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
+              Order · {count} item{count === 1 ? "" : "s"}
+            </p>
+            {total > 0 && (
+              <p className="text-sm font-semibold">
+                {items[0]?.currency ?? ""} {total.toFixed(2)}
+              </p>
+            )}
+            {order.text && <p className="whitespace-pre-wrap text-xs opacity-80">{order.text}</p>}
+          </div>
+        );
       }
 
       // WhatsApp's own "unsupported": the customer sent something Meta will not pass on to
