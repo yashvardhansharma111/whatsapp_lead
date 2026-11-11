@@ -19,6 +19,8 @@ export interface CallRow {
   errorTitle: string | null;
   contact: { id: string; name: string | null; phone: string; avatarUrl: string | null };
   answeredBy: { id: string; name: string | null } | null;
+  /** Present when the call was recorded in the agent's browser. */
+  recording: { id: string; durationSec: number | null; sizeBytes: number } | null;
 }
 
 async function unwrap<T>(res: Response, fallback: string): Promise<T> {

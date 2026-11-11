@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Phone, PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing } from "lucide-react";
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Play } from "lucide-react";
 import { Avatar, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { useCallHistory, type CallRow } from "@/hooks/useCalls";
 import { useFeature } from "@/hooks/useFeature";
@@ -39,6 +39,51 @@ function StatusIcon({ call }: { call: CallRow }) {
   if (call.status === "REJECTED" || call.status === "FAILED") return <PhoneOff className={cn(cls, "text-slate-400")} />;
   if (call.direction === "OUTBOUND") return <PhoneOutgoing className={cn(cls, "text-emerald-600")} />;
   return <PhoneIncoming className={cn(cls, "text-emerald-600")} />;
+}
+
+/**
+ * Plays one call's recording in the row it belongs to.
+ *
+ * The link is signed when Play is pressed rather than stored with the row, so a recording
+ * cannot be reached by anyone who once saw its address and access is decided per request.
+ */
+function RecordingCell({ recordingId, seconds }: { recordingId: string; seconds: number | null }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function play() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/calls/recordings/${recordingId}/url`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error ?? "Couldn't open that recording");
+      setSrc(((json?.data ?? json) as { url: string }).url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't open that recording");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error) return <span className="text-xs text-rose-600">{error}</span>;
+
+  if (src) {
+    return <audio src={src} controls autoPlay className="h-8 w-48" />;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={play}
+      disabled={busy}
+      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-60"
+    >
+      <Play className="h-3.5 w-3.5" />
+      {busy ? "Opening…" : seconds ? formatCallDuration(seconds) : "Play"}
+    </button>
+  );
 }
 
 export default function CallsPage() {
@@ -98,6 +143,7 @@ export default function CallsPage() {
                   <th className="px-4 py-2.5 font-medium">Duration</th>
                   <th className="px-4 py-2.5 font-medium">Answered by</th>
                   <th className="px-4 py-2.5 font-medium">When</th>
+                  <th className="px-4 py-2.5 font-medium">Recording</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -126,6 +172,19 @@ export default function CallsPage() {
                       <td className="px-4 py-2.5 text-slate-700">{c.answeredBy?.name ?? "—"}</td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-slate-500">
                         {formatDate(c.ringingAt)} · {formatTime(c.ringingAt)}
+                      </td>
+                      {/* Offered where the call is. The Recordings page stays — it is the
+                          place to browse them — but having to leave the call you are
+                          looking at to hear it was the long way round. */}
+                      <td className="px-4 py-2.5">
+                        {c.recording ? (
+                          <RecordingCell
+                            recordingId={c.recording.id}
+                            seconds={c.recording.durationSec ?? c.durationSec}
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {c.conversationId && (
