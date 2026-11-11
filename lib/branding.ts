@@ -162,16 +162,39 @@ const byTenant = new Map<string, { at: number; brand: Brand }>();
 export function invalidateBrandCache() {
   byHost.clear();
   byTenant.clear();
+  platformAt = 0;
+}
+
+/**
+ * The platform's own brand, as saved by the operator.
+ *
+ * PLATFORM_BRAND below is the fallback, not the answer: every reseller could change its
+ * name and icons from the start while the platform's were a constant behind an
+ * environment variable, so the operator's own tab was the one thing that needed a deploy
+ * to change. Anything left blank still falls back, so an operator who has set nothing
+ * sees exactly what they saw before.
+ */
+let platformAt = 0;
+let platformCached: Brand = PLATFORM_BRAND;
+
+export async function platformBrand(): Promise<Brand> {
+  if (Date.now() - platformAt < TTL_MS) return platformCached;
+  const saved = await nestGet("/brand/platform");
+  platformCached = saved
+    ? { ...toBrand(saved), isWhiteLabel: false, resellerId: null, baseUrl: PLATFORM_BRAND.baseUrl }
+    : PLATFORM_BRAND;
+  platformAt = Date.now();
+  return platformCached;
 }
 
 export async function getBrandForHost(host: string | null | undefined): Promise<Brand> {
   const h = normalizeHost(host);
-  if (isPlatformHost(h)) return PLATFORM_BRAND;
+  if (isPlatformHost(h)) return platformBrand();
   const hit = byHost.get(h);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.brand;
 
   const config = await nestGet(`/brand?host=${encodeURIComponent(h)}`);
-  const brand = config ? toBrand(config) : PLATFORM_BRAND;
+  const brand = config ? toBrand(config) : await platformBrand();
   byHost.set(h, { at: Date.now(), brand });
   return brand;
 }
@@ -188,7 +211,7 @@ export async function getBrandForTenant(tenantId: string): Promise<Brand> {
   if (hit && Date.now() - hit.at < TTL_MS) return hit.brand;
 
   const config = await nestGet(`/brand/by-tenant?tenantId=${encodeURIComponent(tenantId)}`);
-  const brand = config ? toBrand(config) : PLATFORM_BRAND;
+  const brand = config ? toBrand(config) : await platformBrand();
   byTenant.set(tenantId, { at: Date.now(), brand });
   return brand;
 }

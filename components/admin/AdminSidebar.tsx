@@ -20,7 +20,7 @@ import {
   X,
   BarChart2,
   Palette,
-  Ban, SlidersHorizontal, UserCog,} from "lucide-react";
+  Ban, SlidersHorizontal, UserCog, Store,} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 
@@ -39,7 +39,8 @@ const NAV_GROUPS = [
   {
     label: "Resellers",
     items: [
-      { href: "/admin/white-label",  label: "White Label",    icon: Palette,          need: "platform.whitelabel.manage" },
+      { href: "/admin/brand",        label: "Your branding",  icon: Palette,          need: "platform.whitelabel.manage" },
+      { href: "/admin/white-label",  label: "White Label",    icon: Store,            need: "platform.whitelabel.manage" },
       { href: "/admin/rates",        label: "Message prices", icon: Receipt,          need: "platform.pricing.manage" },
       { href: "/admin/pricing-policy", label: "Pricing & policy", icon: SlidersHorizontal, need: "platform.pricing.manage" },
     ],
