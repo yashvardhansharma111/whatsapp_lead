@@ -413,9 +413,35 @@ export const CMS_SECTIONS = {
           { key: "price", type: "number", label: "Monthly price", max: 10_000_000 },
           { key: "period", type: "text", label: "Billing period", max: 16, placeholder: "/month" },
           { key: "features", type: "list", label: "Features", max: 12, hint: "One feature per line." },
+          // What WhatsApp itself charges per message. A buyer comparing CRMs is really
+          // comparing these, and leaving them off the card sends them hunting.
+          { key: "rateMarketing", type: "text", label: "Marketing", max: 12, group: "Per-message rates", hint: "Leave every rate empty to hide this block." },
+          { key: "rateUtility", type: "text", label: "Utility", max: 12, group: "Per-message rates" },
+          { key: "rateAuthentication", type: "text", label: "Authentication", max: 12, group: "Per-message rates" },
+          { key: "rateService", type: "text", label: "Service", max: 12, group: "Per-message rates" },
+          { key: "rateNote", type: "text", label: "Note under the rates", max: 70, group: "Per-message rates" },
           { key: "ctaLabel", type: "text", label: "Button label", required: true, max: 24 },
           { key: "ctaHref", type: "url", label: "Button link", required: true },
           { key: "isPopular", type: "boolean", label: "Featured plan" },
+        ],
+      },
+      {
+        kind: "compareRow",
+        label: "Comparison table",
+        description:
+          "One row per feature. The four values line up with the four plans above, in order. " +
+          "Write “yes” or “no” for a tick or a dash, or any text for a number.",
+        itemLabel: "row",
+        titleField: "feature",
+        max: 40,
+        fields: [
+          { key: "group", type: "text", label: "Group heading", required: true, max: 40, hint: "Rows sharing a heading are shown together, e.g. “Limits & scale”." },
+          { key: "feature", type: "text", label: "Feature", required: true, max: 60 },
+          { key: "hint", type: "text", label: "Explanation", max: 140, hint: "Shown on hover. Say what the number means." },
+          { key: "v1", type: "text", label: "Plan 1", max: 24 },
+          { key: "v2", type: "text", label: "Plan 2", max: 24 },
+          { key: "v3", type: "text", label: "Plan 3", max: 24 },
+          { key: "v4", type: "text", label: "Plan 4", max: 24 },
         ],
       },
     ],

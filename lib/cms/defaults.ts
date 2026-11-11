@@ -364,10 +364,21 @@ export const HOME_DEFAULTS: HomeDefaults = {
         price: plan.monthlyPrice,
         period: "/month",
         features: plan.features,
+        // WhatsApp's own per-message charges, which are the same whichever plan you buy —
+        // they are Meta's, not ours. Shown so a buyer comparing products is not left to
+        // discover them later.
+        rateMarketing: "₹0.78",
+        rateUtility: "₹0.115",
+        rateAuthentication: "₹0.115",
+        rateService: "₹0.115",
+        rateNote: "First 1,000 service messages each month are free",
         ctaLabel: plan.cta,
         ctaHref: plan.id === "ENTERPRISE" ? "/contact" : `/register?plan=${plan.id}`,
         isPopular: plan.isPopular,
       })),
+      // Empty by default: a table of invented numbers is worse than no table, and the
+      // page falls back to its built-in rows until these are filled in.
+      compareRow: [],
     },
   },
 

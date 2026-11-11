@@ -90,6 +90,35 @@ export default function PricingPlans({ section }: { section: PublicSection<"pric
                 )}
               </div>
 
+              {/* What WhatsApp charges per message, which is the same on every plan — it is
+                  Meta's price, not ours. A buyer comparing CRMs is comparing these, and
+                  leaving them off the card only delays the question. */}
+              {(plan.rateMarketing || plan.rateUtility || plan.rateAuthentication || plan.rateService) && (
+                <dl className="mt-6 rounded-xl bg-gray-50 p-4 ring-1 ring-inset ring-gray-100">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    Per message rates
+                  </p>
+                  {([
+                    ["Marketing", plan.rateMarketing],
+                    ["Utility", plan.rateUtility],
+                    ["Authentication", plan.rateAuthentication],
+                    ["Service", plan.rateService],
+                  ] as const).map(([label, rate]) =>
+                    rate ? (
+                      <div key={label} className="flex items-baseline justify-between gap-3 py-0.5">
+                        <dt className="text-sm text-gray-600">{label}</dt>
+                        <dd className="text-sm font-semibold tabular-nums text-gray-900">{rate}</dd>
+                      </div>
+                    ) : null,
+                  )}
+                  {plan.rateNote && (
+                    <p className="mt-2 border-t border-gray-200 pt-2 text-xs font-medium text-emerald-700">
+                      {plan.rateNote}
+                    </p>
+                  )}
+                </dl>
+              )}
+
               <ul className="mt-8 flex-1 space-y-3">
                 {plan.features.map((feature, index) => (
                   <li key={`${feature}-${index}`} className="flex items-start gap-2.5">

@@ -4,6 +4,7 @@ import { Check, Minus } from "lucide-react";
 import PricingPlans from "@/components/marketing/PricingPlans";
 import FaqAccordion, { type FaqItem } from "@/components/marketing/FaqAccordion";
 import { getSection } from "@/lib/cms/content";
+import { cn } from "@/lib/utils";
 
 // Plan prices are managed in the CMS, so the description does not quote them.
 export const metadata: Metadata = {
@@ -135,8 +136,56 @@ function ComparisonCell({ value }: { value: string | boolean }) {
   return <span className="block text-center text-sm text-gray-700">{value}</span>;
 }
 
+/** "yes"/"no" become a tick or a dash; anything else is shown as written. */
+function toCell(raw: string): string | boolean {
+  const v = raw.trim().toLowerCase();
+  if (["yes", "true", "included", "✓"].includes(v)) return true;
+  if (["no", "false", "—", "-", ""].includes(v)) return false;
+  return raw.trim();
+}
+
 export default async function PricingPage() {
   const pricing = await getSection("pricing");
+
+  // The table follows the plan cards: same names, same order, same featured column. It
+  // used to be a second list written into this page, which could — and did — describe
+  // different plans from the ones on sale above it.
+  const plans = pricing.items.plan ?? [];
+  const planNames = plans.map((p) => String(p.name));
+  const planPrices = plans.map((p) =>
+    typeof p.price === "number" && p.price > 0
+      ? `${pricing.content.currency}${p.price.toLocaleString("en-IN")}${p.period ?? ""}`
+      : "",
+  );
+  const featuredIndex = plans.findIndex((p) => p.isPopular);
+
+  const savedRows = pricing.items.compareRow ?? [];
+  const groups = savedRows.length
+    ? Array.from(
+        savedRows.reduce((map, r) => {
+          const group = String(r.group || "Features");
+          const rows = map.get(group) ?? [];
+          rows.push({
+            feature: String(r.feature),
+            hint: String(r.hint ?? ""),
+            values: [r.v1, r.v2, r.v3, r.v4]
+              .slice(0, Math.max(planNames.length, 1))
+              .map((v) => toCell(String(v ?? ""))),
+          });
+          map.set(group, rows);
+          return map;
+        }, new Map<string, { feature: string; hint: string; values: (string | boolean)[] }[]>()),
+        ([group, rows]) => ({ group, rows }),
+      )
+    : // Nothing saved yet: the built-in rows, padded to however many plans are on sale.
+      COMPARISON_GROUPS.map(({ group, rows }) => ({
+        group,
+        rows: rows.map((r) => ({
+          feature: r.feature,
+          hint: "",
+          values: [r.starter, r.growth, r.enterprise].slice(0, Math.max(planNames.length, 1)),
+        })),
+      }));
 
   return (
     <div>
@@ -183,39 +232,48 @@ export default async function PricingPage() {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="px-6 py-4 text-sm font-semibold text-gray-900">Feature</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
-                    Starter
-                  </th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-600">
-                    Growth
-                  </th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
-                    Enterprise
-                  </th>
+                  {planNames.map((name, i) => (
+                    <th
+                      key={name}
+                      className={cn(
+                        "px-6 py-4 text-center text-sm font-semibold",
+                        featuredIndex === i ? "text-emerald-600" : "text-gray-900",
+                      )}
+                    >
+                      {name}
+                      {planPrices[i] && (
+                        <span className="mt-0.5 block text-xs font-normal text-gray-500">{planPrices[i]}</span>
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              {COMPARISON_GROUPS.map(({ group, rows }) => (
+              {groups.map(({ group, rows }) => (
                 <tbody key={group}>
                   <tr className="border-b border-gray-200 bg-gray-50/60">
                     <th
-                      colSpan={4}
+                      colSpan={planNames.length + 1}
                       className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
                     >
                       {group}
                     </th>
                   </tr>
                   {rows.map((row) => (
-                    <tr key={row.feature} className="border-b border-gray-100">
-                      <td className="px-6 py-4 text-sm text-gray-700">{row.feature}</td>
-                      <td className="px-6 py-4">
-                        <ComparisonCell value={row.starter} />
+                    <tr key={`${group}-${row.feature}`} className="border-b border-gray-100">
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {row.feature}
+                        {row.hint && (
+                          <span className="mt-0.5 block text-xs text-gray-400">{row.hint}</span>
+                        )}
                       </td>
-                      <td className="bg-emerald-600/[0.03] px-6 py-4">
-                        <ComparisonCell value={row.growth} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <ComparisonCell value={row.enterprise} />
-                      </td>
+                      {row.values.map((value, i) => (
+                        <td
+                          key={i}
+                          className={cn("px-6 py-4", featuredIndex === i && "bg-emerald-600/[0.03]")}
+                        >
+                          <ComparisonCell value={value} />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
