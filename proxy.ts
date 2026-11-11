@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
 import { isPlatformHost } from "@/lib/hosts";
+import { canUseAdminPanel } from "@/lib/adminAccess";
 
 // Built from the edge-safe config, NOT from lib/auth.ts — importing that here
 // drags Prisma and the pg driver into the Edge bundle, which cannot load them.
@@ -173,7 +174,11 @@ export default auth((req) => {
 
   if (pathname.startsWith(ADMIN_ROUTE_PREFIX)) {
     if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
-    if (session?.user?.role !== "SUPER_ADMIN") return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
+    // The same test the admin layout applies. This asked for SUPER_ADMIN instead, which
+    // quietly undid delegation for the two screens that live under /admin: an admin who
+    // had been given "Manage admins" or "Platform branding" was bounced from the very
+    // screen the permission names.
+    if (!canUseAdminPanel(session?.user)) return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
     return NextResponse.next();
   }
 

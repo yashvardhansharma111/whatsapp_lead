@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Minus, Plus, ShieldCheck, UserX, X } from "lucide-react";
+import { Loader2, Minus, Plus, ShieldCheck, UserX, X } from "lucide-react";
 import {
   AdminBadge,
   AdminButton,
@@ -20,7 +20,7 @@ import {
   AdminPanel,
   AdminSkeletonRows,
 } from "@/components/admin/ui";
-import { cn } from "@/lib/utils";
+import { PermissionTriState, type PermissionCell } from "@/components/admin/PermissionTriState";
 
 interface Staff {
   id: string;
@@ -31,12 +31,6 @@ interface Staff {
   lastLoginAt: string | null;
   createdAt: string;
   grantedCount: number;
-}
-
-interface Cell {
-  roleDefault: boolean;
-  override: boolean | null;
-  effective: boolean;
 }
 
 /** What each permission lets someone do, in the words of the screen it governs. */
@@ -270,7 +264,7 @@ function StaffAccess({
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "staff", staff.id, "permissions"],
     queryFn: () =>
-      api<{ role: string; permissions: Record<string, Cell> }>(
+      api<{ role: string; permissions: Record<string, PermissionCell> }>(
         `/api/admin/staff/${staff.id}/permissions`,
       ),
   });
@@ -307,36 +301,11 @@ function StaffAccess({
                   <p className="text-sm font-medium text-slate-900">{label.title}</p>
                   <p className="text-xs text-slate-500">{label.detail}</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {/* Three states, because "left at the role's default" is not the same as
-                      "deliberately withheld" — and only the second survives a role change. */}
-                  {([true, null, false] as const).map((value) => {
-                    const active = cell.override === value;
-                    return (
-                      <button
-                        key={String(value)}
-                        type="button"
-                        disabled={set.isPending}
-                        onClick={() => set.mutate({ permission: perm, allowed: value })}
-                        aria-label={value === true ? "Allow" : value === false ? "Withhold" : "Use the role default"}
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset transition",
-                          active
-                            ? value === true
-                              ? "bg-emerald-600 text-white ring-emerald-600"
-                              : value === false
-                                ? "bg-rose-600 text-white ring-rose-600"
-                                : "bg-slate-700 text-white ring-slate-700"
-                            : "bg-white text-slate-400 ring-slate-200 hover:text-slate-600",
-                        )}
-                      >
-                        {value === true ? <Check className="h-4 w-4" />
-                          : value === false ? <X className="h-4 w-4" />
-                          : <Minus className="h-4 w-4" />}
-                      </button>
-                    );
-                  })}
-                </div>
+                <PermissionTriState
+                  value={cell.override}
+                  disabled={set.isPending}
+                  onChange={(allowed) => set.mutate({ permission: perm, allowed })}
+                />
               </li>
             );
           })}

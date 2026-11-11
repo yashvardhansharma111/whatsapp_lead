@@ -14,6 +14,7 @@ import {
   Pause,
   Phone,
   Play,
+  ShieldCheck,
   Sparkles,
   Users,
   UserCheck,
@@ -35,6 +36,7 @@ import { TenantRatesPanel } from "@/components/admin/TenantRatesPanel";
 import { TenantWhatsAppPanel } from "@/components/admin/TenantWhatsAppPanel";
 import { ViewAsButton } from "@/components/admin/ViewAsButton";
 import { SignInAsButton } from "@/components/admin/SignInAsButton";
+import { TenantUserAccess } from "@/components/admin/TenantUserAccess";
 import { PlanFormModal, type AdminPlan, type PlanFormMode } from "@/components/admin/PlanFormModal";
 import { planOverages, type UsedCounts } from "@/lib/billing/overage";
 import { cn, formatDate } from "@/lib/utils";
@@ -1025,6 +1027,7 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
   const reset = useResetPassword(tenant.id);
   const [resetResult, setResetResult] = useState<{ email: string; tempPassword: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [accessUser, setAccessUser] = useState<TenantUser | null>(null);
 
   const ROLE_TONE: Record<string, AdminTone> = {
     TENANT_OWNER: "emerald",
@@ -1114,6 +1117,18 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
                   user={{ id: u.id, name: u.name, email: u.email, role: u.role }}
                 />
               )}
+              {/* What they may do inside their own account. The owner's own Team page
+                  has had this all along; from this side there was nothing. */}
+              {u.role !== "SUPER_ADMIN" && (
+                <button
+                  onClick={() => setAccessUser(u)}
+                  title="Role and permissions"
+                  className="flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs sm:min-h-0 font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Access
+                </button>
+              )}
               <button
                 onClick={() => handleReset(u.id)}
                 disabled={reset.isPending}
@@ -1127,6 +1142,14 @@ function UsersPanel({ tenant }: { tenant: TenantDetail }) {
           </div>
         ))}
       </div>
+
+      {accessUser && (
+        <TenantUserAccess
+          tenantId={tenant.id}
+          user={accessUser}
+          onClose={() => setAccessUser(null)}
+        />
+      )}
     </AdminPanel>
   );
 }
