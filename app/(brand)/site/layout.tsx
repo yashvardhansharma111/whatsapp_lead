@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MessageSquare } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import { brandStyle, getRequestBrand } from "@/lib/branding";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,14 +37,12 @@ export default async function BrandSiteLayout({ children }: { children: ReactNod
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            {brand.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- the reseller's own logo
-              <img src={brand.logoUrl} alt="" className="h-8 w-8 rounded-lg object-contain" />
-            ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 shadow-sm shadow-emerald-600/30">
-                <MessageSquare className="h-4 w-4 text-white" />
-              </span>
-            )}
+            <BrandMark
+              name={brand.name}
+              logoUrl={brand.logoUrl}
+              color={brand.primaryColor}
+              className="h-8 w-8 shrink-0 rounded-lg shadow-sm"
+            />
             <span className="truncate text-base font-bold tracking-tight">{brand.name}</span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex" aria-label="Main">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -152,22 +153,33 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-function Wordmark({ onClick }: { onClick?: () => void }) {
+/** The brand in the corner of the public site. Hardcoded until now, so a white-label
+    reseller's own site greeted visitors with the platform's name and a chat bubble. */
+export interface SiteBrand {
+  name: string;
+  logoUrl: string | null;
+  primaryColor: string;
+}
+
+function Wordmark({ brand, onClick }: { brand: SiteBrand; onClick?: () => void }) {
   return (
     <Link
       href="/"
       onClick={onClick}
       className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 shadow-sm shadow-emerald-600/30 transition-transform duration-300 hover:scale-105">
-        <MessageSquare className="h-4 w-4 text-white" />
-      </span>
-      <span className="text-lg font-bold tracking-tight text-slate-900">Waboxa</span>
+      <BrandMark
+        name={brand.name}
+        logoUrl={brand.logoUrl}
+        color={brand.primaryColor}
+        className="h-8 w-8 shrink-0 rounded-lg shadow-sm transition-transform duration-300 hover:scale-105"
+      />
+      <span className="truncate text-lg font-bold tracking-tight text-slate-900">{brand.name}</span>
     </Link>
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ brand }: { brand: SiteBrand }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -244,7 +256,7 @@ export default function Navbar() {
           scrolled ? "h-14" : "h-16",
         )}
       >
-        <Wordmark onClick={closeAll} />
+        <Wordmark brand={brand} onClick={closeAll} />
 
         <ul className="mx-auto hidden items-center gap-0.5 lg:flex">
           {NAV_ITEMS.map((item) => {

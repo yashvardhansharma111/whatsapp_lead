@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Check, Mail, MessageSquare, Phone } from "lucide-react";
+import { Check, Mail, Phone } from "lucide-react";
 import { brandMetadata, brandStyle, getRequestBrand } from "@/lib/branding";
 import { getSection } from "@/lib/cms/content";
 
@@ -18,18 +19,6 @@ export async function generateMetadata(): Promise<Metadata> {
     description: brand.loginSubtext,
     ...brandMetadata(brand),
   };
-}
-
-function BrandMark({ logoUrl, className }: { logoUrl: string | null; className: string }) {
-  if (logoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element -- a reseller's logo on its own host
-    return <img src={logoUrl} alt="" className={`${className} object-contain`} />;
-  }
-  return (
-    <span className={`${className} flex items-center justify-center`}>
-      <MessageSquare className="h-1/2 w-1/2 text-white" />
-    </span>
-  );
 }
 
 /** The initials shown when a testimonial has no photo. */
@@ -81,6 +70,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
           className="relative z-10 inline-flex w-fit items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           <BrandMark
+            name={brand.name}
             logoUrl={brand.logoUrl}
             className="h-10 w-10 rounded-xl bg-white/15 ring-1 ring-inset ring-white/25 backdrop-blur-sm"
           />
@@ -151,7 +141,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
         {/* Mobile logo */}
         <div className="flex items-center justify-center px-6 pt-10 lg:hidden">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <BrandMark logoUrl={brand.logoUrl} className="h-9 w-9 rounded-xl bg-emerald-600" />
+            <BrandMark name={brand.name} logoUrl={brand.logoUrl} color={brand.primaryColor} className="h-9 w-9 rounded-xl" />
             <span className="text-lg font-bold tracking-tight text-slate-900">{brand.name}</span>
           </Link>
         </div>

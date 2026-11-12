@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -118,6 +119,8 @@ export interface SidebarUser {
 export interface SidebarBrand {
   name: string;
   logoUrl: string | null;
+  /** Behind the initials when there is no logo. */
+  primaryColor?: string | null;
 }
 
 function prettyRole(role?: string | null) {
@@ -145,14 +148,12 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
   const nav = (
     <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 px-5">
-        {brand.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a reseller's logo on its own host
-          <img src={brand.logoUrl} alt="" className="h-8 w-8 rounded-lg object-contain" />
-        ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 shadow-sm shadow-emerald-600/30">
-            <MessageSquare className="h-4 w-4 text-white" />
-          </span>
-        )}
+        <BrandMark
+          name={brand.name}
+          logoUrl={brand.logoUrl}
+          color={brand.primaryColor ?? undefined}
+          className="h-8 w-8 shrink-0 rounded-lg shadow-sm"
+        />
         <span className="truncate text-[15px] font-semibold tracking-tight text-slate-900">{brand.name}</span>
         <button
           onClick={() => setMobileOpen(false)}

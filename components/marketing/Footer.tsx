@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
+import type { SiteBrand } from "./Navbar";
 import type { ComponentType, SVGProps } from "react";
 import type { PublicSection } from "@/lib/cms/sections";
 import { cn } from "@/lib/utils";
@@ -89,7 +91,7 @@ const SOCIAL: Record<string, { label: string; Icon: ComponentType<SVGProps<SVGSV
   pinterest: { label: "Pinterest", Icon: PinterestIcon },
 };
 
-export default function Footer({ section }: { section: PublicSection<"footer"> }) {
+export default function Footer({ section, brand }: { section: PublicSection<"footer">; brand: SiteBrand }) {
   const { content, items } = section;
   const columns = items.group
     .map((group) => ({ ...group, links: group.links.filter((link) => link.isActive) }))
@@ -148,10 +150,13 @@ export default function Footer({ section }: { section: PublicSection<"footer"> }
                 href="/"
                 className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 shadow-lg shadow-emerald-500/25 transition-transform duration-300 group-hover:scale-105">
-                  <MessageSquare className="h-4 w-4 text-slate-950" />
-                </span>
-                <span className="text-lg font-bold tracking-tight text-white">Waboxa</span>
+                <BrandMark
+                  name={brand.name}
+                  logoUrl={brand.logoUrl}
+                  color={brand.primaryColor}
+                  className="h-8 w-8 shrink-0 rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105"
+                />
+                <span className="truncate text-lg font-bold tracking-tight text-white">{brand.name}</span>
               </Link>
 
               {content.description && (

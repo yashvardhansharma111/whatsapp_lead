@@ -93,7 +93,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           features: session.user.features ?? null,
           permissions: session.user.permissions ?? [],
         }}
-        brand={{ name: brand.name, logoUrl: brand.logoUrl }}
+        brand={{ name: brand.name, logoUrl: brand.logoUrl, primaryColor: brand.primaryColor }}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">

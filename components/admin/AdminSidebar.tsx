@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -14,7 +15,6 @@ import {
   Tags,
   KeyRound,
   Receipt,
-  ShieldCheck,
   LogOut,
   Menu,
   X,
@@ -76,11 +76,15 @@ export function AdminSidebar({
   name,
   email,
   permissions,
+  brand,
 }: {
   name?: string | null;
   email?: string | null;
   /** null means every screen — the Super Admin. */
   permissions?: string[] | null;
+  /** The platform's own brand. Hardcoded here until now, so the one screen that
+      changes the logo was the one screen that never showed it. */
+  brand: { name: string; logoUrl: string | null; primaryColor: string };
 }) {
   const pathname = usePathname();
   const groups = NAV_GROUPS.map((g) => ({
@@ -92,12 +96,15 @@ export function AdminSidebar({
   const nav = (
     <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-slate-200 px-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0B6E4F]">
-          <ShieldCheck className="h-4 w-4 text-white" />
-        </span>
+        <BrandMark
+          name={brand.name}
+          logoUrl={brand.logoUrl}
+          color={brand.primaryColor}
+          className="h-8 w-8 shrink-0 rounded-lg"
+        />
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold tracking-tight text-slate-900">Waboxa Admin</p>
-          <p className="truncate text-[11px] text-slate-500">Super Admin Panel</p>
+          <p className="truncate text-sm font-bold tracking-tight text-slate-900">{brand.name}</p>
+          <p className="truncate text-[11px] text-slate-500">Admin panel</p>
         </div>
         <button
           onClick={() => setMobileOpen(false)}
