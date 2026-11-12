@@ -8,11 +8,13 @@ import {
   Clock3,
   FileText,
   Gauge,
+  Loader2,
   Mail,
   Phone,
   Sparkles,
   StickyNote,
   Ticket as TicketIcon,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -429,6 +431,30 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
  * the thread so a note written months ago is still reachable.
  */
 function NotesTab({ conversationId }: { conversationId: string }) {
+  const qc = useQueryClient();
+  // Two presses rather than a confirm dialog, matching the "+" menu — the same note is
+  // listed in both places and removing it should feel the same either way.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  const remove = async (id: string) => {
+    setRemoving(id);
+    setRemoveError(null);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/notes/${id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Couldn't remove that note");
+      await qc.invalidateQueries({ queryKey: ["conversation-notes", conversationId] });
+      await qc.invalidateQueries({ queryKey: ["conversations"] });
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e.message : "Couldn't remove that note");
+    } finally {
+      setRemoving(null);
+      setConfirming(null);
+    }
+  };
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["conversation-notes", conversationId],
     queryFn: async () => {
@@ -462,6 +488,7 @@ function NotesTab({ conversationId }: { conversationId: string }) {
       <p className="text-[11px] text-slate-400">
         {data.length} note{data.length === 1 ? "" : "s"} · newest first · never sent to WhatsApp
       </p>
+      {removeError && <p className="text-xs text-rose-600">{removeError}</p>}
       <ul className="space-y-2.5">
         {data.map((n) => {
           const who = n.sentBy?.name?.trim() || "Someone";
@@ -489,7 +516,28 @@ function NotesTab({ conversationId }: { conversationId: string }) {
                 >
                   {relativeTime(n.createdAt)}
                 </time>
+                <button
+                  type="button"
+                  disabled={removing !== null}
+                  onClick={() => (confirming === n.id ? void remove(n.id) : setConfirming(n.id))}
+                  onBlur={() => setConfirming((c) => (c === n.id ? null : c))}
+                  aria-label={confirming === n.id ? "Press again to remove this note" : "Remove this note"}
+                  title={confirming === n.id ? "Press again to remove" : "Remove this note"}
+                  className={cn(
+                    "shrink-0 rounded p-1 transition disabled:opacity-50",
+                    confirming === n.id
+                      ? "bg-rose-600 text-white"
+                      : "text-amber-700/60 hover:bg-amber-100 hover:text-rose-700",
+                  )}
+                >
+                  {removing === n.id
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Trash2 className="h-3.5 w-3.5" />}
+                </button>
               </div>
+              {confirming === n.id && (
+                <p className="mb-1 text-[11px] font-medium text-rose-700">Press again to remove</p>
+              )}
               <p className="whitespace-pre-wrap wrap-anywhere text-[13px] leading-relaxed text-amber-950">
                 {n.content}
               </p>

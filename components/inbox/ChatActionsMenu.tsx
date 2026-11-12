@@ -20,6 +20,7 @@ import {
   StickyNote,
   Tag,
   Ticket as TicketIcon,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { useResolveConversation, useSendMessage, useUpdateConversation } from "@/hooks/useMessages";
@@ -250,6 +251,10 @@ function NoteComposer({
   const qc = useQueryClient();
   const send = useSendMessage();
   const [saving, setSaving] = useState(false);
+  // The id waiting on a second press, rather than a browser confirm(): the menu is a
+  // popover, and a modal dialog over it steals the click that dismisses it.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { boxRef.current?.focus(); }, []);
@@ -274,6 +279,24 @@ function NoteComposer({
       onError(e instanceof Error ? e.message : "Couldn't save that note");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    setRemoving(id);
+    onError(null);
+    try {
+      await api(`/api/conversations/${conversation.id}/notes/${id}`, { method: "DELETE" });
+      // Both, because a note is one row read two ways: it is listed here and it also
+      // sits in the thread, so removing it from one place only would leave the other
+      // showing something that no longer exists.
+      await qc.invalidateQueries({ queryKey: ["conversation-notes", conversation.id] });
+      await qc.invalidateQueries({ queryKey: ["conversations"] });
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "Couldn't remove that note");
+    } finally {
+      setRemoving(null);
+      setConfirming(null);
     }
   };
 
@@ -311,12 +334,36 @@ function NoteComposer({
           </p>
           <ul className="scrollbar-slim max-h-44 space-y-1.5 overflow-y-auto">
             {notes.map((n) => (
-              <li key={n.id} className="rounded-lg bg-amber-50/70 px-2.5 py-1.5">
-                <p className="whitespace-pre-wrap wrap-anywhere text-[12px] leading-relaxed text-amber-950">
-                  {n.content}
-                </p>
+              <li key={n.id} className="group rounded-lg bg-amber-50/70 px-2.5 py-1.5">
+                <div className="flex items-start gap-2">
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere text-[12px] leading-relaxed text-amber-950">
+                    {n.content}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={removing !== null}
+                    onClick={() => (confirming === n.id ? void remove(n.id) : setConfirming(n.id))}
+                    onBlur={() => setConfirming((c) => (c === n.id ? null : c))}
+                    aria-label={confirming === n.id ? "Press again to remove this note" : "Remove this note"}
+                    title={confirming === n.id ? "Press again to remove" : "Remove this note"}
+                    className={cn(
+                      "shrink-0 rounded p-1 transition disabled:opacity-50",
+                      confirming === n.id
+                        ? "bg-rose-600 text-white"
+                        : "text-amber-700/60 hover:bg-amber-100 hover:text-rose-700",
+                    )}
+                  >
+                    {removing === n.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
                 <p className="mt-0.5 text-[10px] text-amber-700/80">
-                  {n.sentBy?.name?.trim() || "Someone"} · {formatDate(n.createdAt)}
+                  {confirming === n.id
+                    ? "Press again to remove"
+                    : `${n.sentBy?.name?.trim() || "Someone"} · ${formatDate(n.createdAt)}`}
                 </p>
               </li>
             ))}
