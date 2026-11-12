@@ -452,7 +452,7 @@ function NotesTab({ conversationId }: { conversationId: string }) {
       <TabPlaceholder
         icon={StickyNote}
         title="No notes yet"
-        description="Toggle “Internal note” in the composer to leave a note for your team."
+        description="Use the + beside the AI switch to leave a note for your team."
       />
     );
   }

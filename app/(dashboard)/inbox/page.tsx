@@ -182,6 +182,7 @@ function InboxPageInner() {
           setPanelOpen(false);
         }}
         onShowContact={() => setPanelOpen(true)}
+        agents={agents}
         className={cn("min-w-0 flex-1", selectedId ? "flex" : "hidden md:flex")}
       />
 

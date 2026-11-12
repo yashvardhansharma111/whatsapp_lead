@@ -40,9 +40,11 @@ import { ATTACHMENT_ACCEPT, formatBytes } from "@/lib/attachments";
 import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
 import type { InteractivePayload } from "@/lib/validators/message";
 import { useQuickReplies, type QuickReply } from "@/hooks/useQuickReplies";
-import { contactName, type InboxConversation, type InboxMessage } from "./ConversationList";
+import { contactName, type InboxAgent, type InboxConversation, type InboxMessage } from "./ConversationList";
 import { displayPhone } from "@/lib/phone";
 import { FaqMenuPicker } from "./FaqMenuPicker";
+import { ChatActionsMenu } from "./ChatActionsMenu";
+import { MenuItem } from "./MenuItem";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
 import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
 import { TemplateComposer } from "./TemplateComposer";
@@ -67,6 +69,7 @@ export function ChatWindow({
   isError,
   onBack,
   onShowContact,
+  agents = [],
   className,
 }: {
   conversation: InboxConversation | null;
@@ -74,6 +77,8 @@ export function ChatWindow({
   isLoading?: boolean;
   isError?: boolean;
   onBack?: () => void;
+  /** Teammates this chat can be assigned to, for the header's "+" menu. */
+  agents?: InboxAgent[];
   /** Opens the contact drawer — only rendered below xl, where the panel isn't a column. */
   onShowContact?: () => void;
   className?: string;
@@ -429,6 +434,10 @@ export function ChatWindow({
               <Phone className="h-4 w-4" />
             </button>
           )}
+          {/* Note, labels, assign, ticket, resolve. These lived only in the panel on the
+              right, which is a closed drawer below xl — so from the chat itself there was
+              no way to do any of them. */}
+          <ChatActionsMenu conversation={conversation} agents={agents} />
           <span className="hidden text-xs font-medium text-slate-600 sm:inline">AI Auto-Reply</span>
           <Sparkles
             className={cn("h-4 w-4 sm:hidden", aiActive ? "text-emerald-600" : "text-slate-400")}
@@ -1484,39 +1493,6 @@ function Switch({
 }
 
 /** A row in the composer's "+" menu: what it does, and a line on why you would. */
-function MenuItem({
-  icon: Icon,
-  label,
-  hint,
-  tone = "slate",
-  disabled,
-  onClick,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  hint?: string;
-  tone?: "slate" | "emerald" | "amber";
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  const iconTone =
-    tone === "emerald" ? "text-emerald-600" : tone === "amber" ? "text-amber-600" : "text-slate-400";
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      disabled={disabled}
-      onClick={onClick}
-      className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-slate-50 disabled:opacity-50"
-    >
-      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)} />
-      <span className="min-w-0">
-        <span className="block text-sm text-slate-800">{label}</span>
-        {hint && <span className="block text-[11px] leading-tight text-slate-400">{hint}</span>}
-      </span>
-    </button>
-  );
-}
 
 function ComposerIcon({
   icon: Icon,
