@@ -343,8 +343,8 @@ export const CMS_SECTIONS = {
     label: "Login panel",
     description: "The green panel beside the sign-in and sign-up forms.",
     fields: [
-      { key: "headline", type: "text", label: "Headline", max: 90, hint: "Leave empty to use the brand's own headline." },
-      { key: "subtext", type: "textarea", label: "Subtext", max: 260, hint: "Leave empty to use the brand's own." },
+      { key: "headline", type: "text", label: "Headline", max: 90, hint: "Empty keeps the greyed-out text, which comes from your brand settings." },
+      { key: "subtext", type: "textarea", label: "Subtext", max: 260, hint: "Empty keeps the greyed-out text, which comes from your brand settings." },
       { key: "quote", type: "textarea", label: "Quote", max: 320, group: "Testimonial", hint: "Leave empty to hide the testimonial entirely." },
       { key: "quoteName", type: "text", label: "Name", max: 50, group: "Testimonial" },
       { key: "quoteRole", type: "text", label: "Role and company", max: 70, group: "Testimonial" },

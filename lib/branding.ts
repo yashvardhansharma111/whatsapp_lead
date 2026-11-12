@@ -15,6 +15,7 @@
 // ============================================================================
 
 import type { CSSProperties } from "react";
+import { BRAND_LOGIN_DEFAULTS } from "./brandDefaults";
 import { headers } from "next/headers";
 import { isPlatformHost, normalizeHost, platformRootDomain } from "@/lib/hosts";
 
@@ -80,9 +81,8 @@ export const PLATFORM_BRAND: Brand = {
   supportPhone: process.env.BRAND_SUPPORT_PHONE ?? "+91 7079000777",
   website: process.env.NEXT_PUBLIC_APP_URL ?? "https://waboxa.com",
   address: "MNR Complex, 17th Cross, Sampige Road, Malleshwaram, Bangalore, Karnataka 560003",
-  loginHeadline: "Turn every WhatsApp chat into a qualified lead.",
-  loginSubtext:
-    "One workspace for your team to talk to customers, score leads with AI and close faster — all on the channel your customers already use.",
+  loginHeadline: BRAND_LOGIN_DEFAULTS.headline,
+  loginSubtext:  BRAND_LOGIN_DEFAULTS.subtext,
   baseUrl: (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, ""),
   isWhiteLabel: false,
   resellerId: null,

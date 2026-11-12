@@ -13,6 +13,7 @@
  */
 
 import Link from "next/link";
+import { BRAND_LOGIN_DEFAULTS } from "@/lib/brandDefaults";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -321,13 +322,18 @@ function SectionEditor({
   const query = useQuery({
     queryKey: sectionQueryKey(sectionKey),
     queryFn: async () => {
-      const api = await request<EditorSection>(`/api/admin/cms/sections/${sectionKey}`);
+      const api = await request<EditorSection & { fallback?: LoginFallback }>(
+        `/api/admin/cms/sections/${sectionKey}`,
+      );
       // The API returns only what is stored, and nothing is stored until a section has
       // been saved once — so the form opened blank on text that is plainly on the live
       // site. Merging against the defaults gives the editor the same content the page
       // is rendering, which is what "edit" should start from. It also fills in a field
       // added to the spec after a section was last saved.
-      return toEditorSection(sectionKey, toStored(api));
+      // `fallback` is the server's, not the store's: it says what the sign-in panel is
+      // showing while these fields are blank, which no amount of merging with defaults
+      // could know.
+      return { ...toEditorSection(sectionKey, toStored(api)), fallback: api.fallback };
     },
     staleTime: 0,
   });
@@ -381,7 +387,7 @@ function SectionForm({
   onNotice,
   onDirtyChange,
 }: {
-  section: EditorSection;
+  section: EditorSection & { fallback?: LoginFallback };
   notice: Notice;
   onNotice: (notice: Notice) => void;
   onDirtyChange: (dirty: boolean) => void;
@@ -609,7 +615,7 @@ function SectionForm({
       {spec.fields.length > 0 && (
         <AdminPanel title="Content" subtitle="Headings, text and buttons">
           <FieldGrid
-            fields={spec.fields}
+            fields={withFallbackPlaceholders(spec.fields, section.fallback)}
             values={draft.content}
             onChange={setContent}
             idPrefix={`${key}-content`}
@@ -679,6 +685,37 @@ function SectionForm({
 }
 
 // ─── Fields ───────────────────────────────────────────────────────────────────
+
+/** What the sign-in panel shows while the CMS leaves its headline and subtext blank. */
+interface LoginFallback {
+  headline: string | null;
+  subtext: string | null;
+}
+
+/**
+ * Show the inherited text as the box's placeholder.
+ *
+ * The sign-in panel's headline and subtext are blank on purpose — blank means "use the
+ * brand's own", which is what a white-label reseller needs. But two empty boxes for the
+ * largest text on the page read as a broken screen, with nothing to say what was being
+ * shown instead. Grey text in the box says it plainly, and typing still overrides it.
+ */
+function withFallbackPlaceholders(
+  fields: readonly FieldSpec[],
+  fallback: LoginFallback | undefined,
+): readonly FieldSpec[] {
+  if (!fallback) return fields;
+  // The brand's own wording where it has some, and the built-in otherwise — the same
+  // two steps the sign-in page itself falls through.
+  const inherited: Record<string, string> = {
+    headline: fallback.headline || BRAND_LOGIN_DEFAULTS.headline,
+    subtext:  fallback.subtext  || BRAND_LOGIN_DEFAULTS.subtext,
+  };
+  return fields.map((field) => {
+    const text = inherited[field.key];
+    return text ? { ...field, placeholder: text } : field;
+  });
+}
 
 function groupFields(fields: readonly FieldSpec[]) {
   const groups: { name?: string; fields: FieldSpec[] }[] = [];
