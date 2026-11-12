@@ -321,20 +321,45 @@ export function StatTile({
  * (isUnlimited), and shows an empty bar rather than a full one. Usage above the
  * limit reports the real count but stops the fill at 100%.
  */
+/**
+ * Usage against an allowance.
+ *
+ * Two things read as broken here before. 35 messages of 50,000 is 0.07%, which rounding
+ * turned into a flat "0%" beside the figure 35 and an empty bar — so a workspace that
+ * was plainly being used looked like it had sent nothing. And an unlimited plan has no
+ * percentage at all, yet it showed 0%, which reads as "none of it used" rather than
+ * "there is nothing to use up".
+ *
+ * So anything above zero says at least "<1%" and draws a sliver you can see, and an
+ * unlimited allowance says so instead of showing a number that means nothing.
+ */
 export function UsageBar({ used, limit }: { used?: number | null; limit?: number | null }) {
   const safeUsed = Math.max(0, Number(used) || 0);
   const safeLimit = Math.max(0, Number(limit) || 0);
-  const pct =
-    safeLimit > 0 ? Math.min(100, Math.max(0, Math.round((safeUsed / safeLimit) * 100))) : 0;
-  const bar = pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-500" : "bg-[#0B6E4F]";
+  const unlimited = safeLimit <= 0;
+
+  const exact = unlimited ? 0 : Math.min(100, (safeUsed / safeLimit) * 100);
+  const rounded = Math.round(exact);
+  const label = unlimited
+    ? "—"
+    : safeUsed > 0 && rounded === 0
+      ? "<1%"
+      : `${rounded}%`;
+
+  const bar = rounded >= 90 ? "bg-rose-500" : rounded >= 70 ? "bg-amber-500" : "bg-[#0B6E4F]";
+  // A sliver rather than nothing, so the bar agrees with the figure beside it.
+  const width = unlimited ? 0 : safeUsed > 0 ? Math.max(exact, 2) : 0;
+
   return (
     <div className="w-28 min-w-24">
       <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
         <span className="text-slate-700">{safeUsed.toLocaleString("en-IN")}</span>
-        <span className="text-slate-500">{pct}%</span>
+        <span className="text-slate-500" title={unlimited ? "No limit on this plan" : `${exact.toFixed(2)}%`}>
+          {label}
+        </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className={cn("h-full rounded-full transition-all", bar)} style={{ width: `${pct}%` }} />
+        <div className={cn("h-full rounded-full transition-all", bar)} style={{ width: `${width}%` }} />
       </div>
     </div>
   );
