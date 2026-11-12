@@ -306,6 +306,15 @@ export default function ResellerBrandingPage() {
             <Field label="Login text" htmlFor="b-sub">
               <textarea id="b-sub" value={form.loginSubtext ?? ""} onChange={set("loginSubtext")} className={inputClass} rows={2} maxLength={300} />
             </Field>
+            {/* The rest of that panel is CMS content. It was reachable from nowhere until
+                now, so pointing at it is worth a line. */}
+            <p className="text-xs text-slate-500">
+              The bullet points and the testimonial on that panel live in{" "}
+              <Link href="/reseller/website/login" className="font-medium text-emerald-700 underline underline-offset-2">
+                Website → Login panel
+              </Link>
+              , which can also override these two.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               {text("supportEmail", "Support email", { type: "email" })}
               {text("supportPhone", "Support phone", { maxLength: 30 })}

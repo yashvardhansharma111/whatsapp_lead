@@ -8,6 +8,7 @@
 // including the icon in their own browser tab.
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
 import {
@@ -185,7 +186,7 @@ export default function PlatformBrandPage() {
 
         <AdminPanel title="Sign-in page">
           <div className="space-y-4">
-            <Row label="Headline" hint="The large line on the green panel. The Website CMS can override it.">
+            <Row label="Headline" hint="The large line on the green panel.">
               <input
                 className={adminInputClass}
                 value={form.loginHeadline ?? ""}
@@ -201,6 +202,15 @@ export default function PlatformBrandPage() {
                 onChange={(e) => set("loginSubtext")(e.target.value)}
               />
             </Row>
+            {/* The rest of that panel — the ticked bullets and the testimonial — is CMS
+                content, and saying so beats leaving someone to find it. */}
+            <p className="text-xs text-slate-500">
+              The bullet points and the testimonial on that panel live in{" "}
+              <Link href="/admin/cms/login" className="font-medium text-emerald-700 underline underline-offset-2">
+                Website CMS → Login panel
+              </Link>
+              , which can also override these two.
+            </p>
           </div>
         </AdminPanel>
 

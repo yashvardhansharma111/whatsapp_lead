@@ -37,9 +37,18 @@ const NAV_GROUPS = [
     ],
   },
   {
+    // Your own brand was filed under "Resellers", which is where a reseller's brand is
+    // configured, not yours — so the one screen that holds the logo, the favicon and the
+    // sign-in panel sat under a heading that said it was about somebody else.
+    label: "Brand & website",
+    items: [
+      { href: "/admin/brand",       label: "Brand & icons", icon: Palette,       need: "platform.whitelabel.manage" },
+      { href: "/admin/cms",         label: "Website CMS",   icon: PanelsTopLeft, need: "platform.cms.manage" },
+    ],
+  },
+  {
     label: "Resellers",
     items: [
-      { href: "/admin/brand",        label: "Your branding",  icon: Palette,          need: "platform.whitelabel.manage" },
       { href: "/admin/white-label",  label: "White Label",    icon: Store,            need: "platform.whitelabel.manage" },
       { href: "/admin/rates",        label: "Message prices", icon: Receipt,          need: "platform.pricing.manage" },
       { href: "/admin/pricing-policy", label: "Pricing & policy", icon: SlidersHorizontal, need: "platform.pricing.manage" },
@@ -49,7 +58,6 @@ const NAV_GROUPS = [
     label: "Content",
     items: [
       { href: "/admin/reports",     label: "Reports",     icon: BarChart2,     need: "platform.revenue.view" },
-      { href: "/admin/cms",         label: "Website CMS", icon: PanelsTopLeft, need: "platform.cms.manage" },
       { href: "/admin/categories",  label: "Categories",  icon: Tags,          need: "platform.categories.manage" },
     ],
   },
