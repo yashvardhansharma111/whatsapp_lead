@@ -50,6 +50,22 @@ const EMPTY_SMTP: SmtpForm = { smtpHost: "", smtpPort: "465", smtpUser: "", smtp
 
 /** Where resellers point their DNS. Changes with the host, not with the code. */
 const CNAME_TARGET = process.env.NEXT_PUBLIC_CNAME_TARGET ?? "cname.vercel-dns.com";
+const APEX_TARGET = process.env.NEXT_PUBLIC_APEX_IP ?? "76.76.21.21";
+
+/**
+ * The record this domain needs, matching the server's own rule.
+ *
+ * A CNAME is not allowed at the apex of a zone, and a domain bought for a brand is
+ * usually the bare name — so the single "add a CNAME" instruction was impossible to
+ * follow for the commonest case.
+ */
+function dnsRecordFor(domain: string): { type: "A" | "CNAME"; name: string } {
+  const host = domain.trim().toLowerCase().replace(/\.$/, "");
+  const parts = host.split(".");
+  const apexLabels = /\.(co|com|net|org|gov|edu|ac)\.[a-z]{2}$/.test(host) ? 3 : 2;
+  if (parts.length <= apexLabels) return { type: "A", name: "@" };
+  return { type: "CNAME", name: parts.slice(0, parts.length - apexLabels).join(".") };
+}
 
 export default function ResellerBrandingPage() {
   const qc = useQueryClient();
@@ -235,12 +251,29 @@ export default function ResellerBrandingPage() {
                 <p className="mt-1 text-xs text-slate-500">Works straight away — no DNS needed.</p>
               </Field>
             )}
-            {text("domain", "Your own domain (optional)", { placeholder: "crm.yourbrand.com" })}
+            {text("domain", "Your own domain (optional)", { placeholder: "nehacomputers.com" })}
+            {/* Which record depends on the domain: a CNAME cannot sit at the apex of a
+                zone, so a bare nehacomputers.com needs an A record and a registrar will
+                refuse the CNAME this used to tell everyone to add. */}
             <p className="flex items-start gap-1.5 text-xs text-slate-500">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Add a CNAME record for this domain pointing to{" "}
-              <code className="font-mono">{CNAME_TARGET}</code>. Once it resolves, your login
-              page is served there with your brand.
+              <span>
+                At your domain provider, add{" "}
+                {dnsRecordFor((form.domain ?? "").trim() || "yourbrand.com").type === "A" ? (
+                  <>
+                    an <strong>A</strong> record with name{" "}
+                    <code className="font-mono">@</code> pointing to{" "}
+                    <code className="font-mono">{APEX_TARGET}</code>
+                  </>
+                ) : (
+                  <>
+                    a <strong>CNAME</strong> record with name{" "}
+                    <code className="font-mono">{dnsRecordFor((form.domain ?? "").trim()).name}</code>{" "}
+                    pointing to <code className="font-mono">{CNAME_TARGET}</code>
+                  </>
+                )}
+                . Once it resolves, your login page is served there with your brand.
+              </span>
             </p>
             {(form.domain ?? "").trim() && (form.domain ?? "").trim().toLowerCase() !== (savedDomain ?? "") && (
               <p className="text-xs font-medium text-amber-700">Click Save branding (at the bottom) to connect this domain and check its status.</p>
