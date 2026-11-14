@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PlanDueBanner } from "@/components/billing/PlanDueBanner";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -111,6 +112,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             }
           />
         )}
+        {/* A reseller is billed for the white-label fee, not a plan, and the Super
+            Admin viewing an account is not the person who would renew it. */}
+        {!isReseller && !viewing && <PlanDueBanner />}
         <Topbar tenantName={session.user.tenantName} reseller={isReseller} />
         <main className="scrollbar-slim flex-1 overflow-auto p-4 lg:p-6">{children}</main>
       </div>

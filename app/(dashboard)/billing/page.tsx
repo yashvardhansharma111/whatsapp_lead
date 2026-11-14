@@ -90,7 +90,13 @@ function renewAction(data: BillingSummary | undefined): { label: string; hint: s
     return { label: "Upgrade", hint: "Move off the free plan to a paid one." };
   }
   if (lapsed) {
-    return { label: "Renew plan", hint: "This period has ended — choose a plan to continue." };
+    // Says how long is left rather than only that it ended — the grace period is the
+    // one fact someone needs here, and the page never mentioned it.
+    const g = data?.grace;
+    const hint = g?.inGrace && g.daysLeft
+      ? `This period has ended. Everything keeps working for ${g.daysLeft} more day${g.daysLeft === 1 ? "" : "s"} — choose a plan to continue.`
+      : "This period has ended and the paid features are off — choose a plan to turn them back on.";
+    return { label: "Renew plan", hint };
   }
   return { label: "Renew early", hint: "Pay now; the new time is added after the current period." };
 }

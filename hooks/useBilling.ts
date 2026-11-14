@@ -22,6 +22,15 @@ export interface BillingSummary {
   trialEndsAt: string | null;
   hasStripe: boolean;
   hasRazorpay: boolean;
+  /** What happens now the period has ended, and how long is left of it. */
+  grace?: {
+    lapsed: boolean;
+    inGrace: boolean;
+    graceDays: number;
+    behaviour: string;
+    endsAt: string | null;
+    daysLeft: number | null;
+  };
   usage: {
     contacts: UsageMetric;
     messages: UsageMetric;
