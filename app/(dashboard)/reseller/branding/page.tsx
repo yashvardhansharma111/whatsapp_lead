@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Clock, ExternalLink, FileText, Globe, Info, LayoutTemplate, Loader2, Mail, MessageSquare, RefreshCw, Save, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Copy, ExternalLink, FileText, Globe, Info, LayoutTemplate, Loader2, Mail, MessageSquare, RefreshCw, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button, Card, Field, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
 import { api } from "@/components/reseller/shared";
@@ -59,12 +59,55 @@ const APEX_TARGET = process.env.NEXT_PUBLIC_APEX_IP ?? "76.76.21.21";
  * usually the bare name — so the single "add a CNAME" instruction was impossible to
  * follow for the commonest case.
  */
-function dnsRecordFor(domain: string): { type: "A" | "CNAME"; name: string } {
+function recordFor(domain: string): { type: "A" | "CNAME"; name: string; value: string } {
   const host = domain.trim().toLowerCase().replace(/\.$/, "");
   const parts = host.split(".");
   const apexLabels = /\.(co|com|net|org|gov|edu|ac)\.[a-z]{2}$/.test(host) ? 3 : 2;
-  if (parts.length <= apexLabels) return { type: "A", name: "@" };
-  return { type: "CNAME", name: parts.slice(0, parts.length - apexLabels).join(".") };
+  if (parts.length <= apexLabels) return { type: "A", name: "@", value: APEX_TARGET };
+  return { type: "CNAME", name: parts.slice(0, parts.length - apexLabels).join("."), value: CNAME_TARGET };
+}
+
+/**
+ * The record, laid out the way a host lays it out: one row, each value on its own with
+ * a button to copy it. Copying by hand from a sentence is where a stray space or a
+ * missing label comes from, and a wrong record looks exactly like a slow one.
+ */
+function DnsRecordTable({ record }: { record: { type: string; name: string; value: string } }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (what: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(what);
+      setTimeout(() => setCopied((c) => (c === what ? null : c)), 1500);
+    } catch { /* a browser that refuses the clipboard still shows the value */ }
+  };
+  const cells: { label: string; value: string; mono?: boolean }[] = [
+    { label: "Type", value: record.type },
+    { label: "Name", value: record.name, mono: true },
+    { label: "Value", value: record.value, mono: true },
+  ];
+  return (
+    <div className="grid gap-2 rounded-lg bg-slate-50 p-2.5 ring-1 ring-inset ring-slate-200 sm:grid-cols-3">
+      {cells.map((c) => (
+        <div key={c.label} className="min-w-0">
+          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{c.label}</p>
+          <div className="flex items-center gap-1.5 rounded-md bg-white px-2 py-1.5 ring-1 ring-inset ring-slate-200">
+            <span className={`min-w-0 flex-1 truncate text-xs text-slate-800 ${c.mono ? "font-mono" : "font-medium"}`}>
+              {c.value}
+            </span>
+            <button
+              type="button"
+              onClick={() => void copy(c.label, c.value)}
+              aria-label={`Copy ${c.label.toLowerCase()}`}
+              className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              {copied === c.label ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ResellerBrandingPage() {
@@ -252,29 +295,21 @@ export default function ResellerBrandingPage() {
               </Field>
             )}
             {text("domain", "Your own domain (optional)", { placeholder: "nehacomputers.com" })}
-            {/* Which record depends on the domain: a CNAME cannot sit at the apex of a
-                zone, so a bare nehacomputers.com needs an A record and a registrar will
-                refuse the CNAME this used to tell everyone to add. */}
-            <p className="flex items-start gap-1.5 text-xs text-slate-500">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                At your domain provider, add{" "}
-                {dnsRecordFor((form.domain ?? "").trim() || "yourbrand.com").type === "A" ? (
-                  <>
-                    an <strong>A</strong> record with name{" "}
-                    <code className="font-mono">@</code> pointing to{" "}
-                    <code className="font-mono">{APEX_TARGET}</code>
-                  </>
-                ) : (
-                  <>
-                    a <strong>CNAME</strong> record with name{" "}
-                    <code className="font-mono">{dnsRecordFor((form.domain ?? "").trim()).name}</code>{" "}
-                    pointing to <code className="font-mono">{CNAME_TARGET}</code>
-                  </>
-                )}
-                . Once it resolves, your login page is served there with your brand.
-              </span>
-            </p>
+            {/* The records, the moment a domain is typed — the way every host does it.
+                They used to appear only after saving, so the one thing someone opens
+                this screen to copy was behind a step they had not taken yet. */}
+            {(form.domain ?? "").trim().includes(".") && (
+              <div className="space-y-2">
+                <p className="flex items-start gap-1.5 text-xs text-slate-500">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Add this at your domain provider. Once it resolves, your login page and
+                    dashboard are served on {(form.domain ?? "").trim()} with your brand.
+                  </span>
+                </p>
+                <DnsRecordTable record={recordFor((form.domain ?? "").trim())} />
+              </div>
+            )}
             {(form.domain ?? "").trim() && (form.domain ?? "").trim().toLowerCase() !== (savedDomain ?? "") && (
               <p className="text-xs font-medium text-amber-700">Click Save branding (at the bottom) to connect this domain and check its status.</p>
             )}
@@ -392,7 +427,7 @@ export default function ResellerBrandingPage() {
               </button>
             </div>
             <p className="text-xs text-slate-500">
-              Emails sent to your clients (invites, password resets, alerts) will use this server instead of the platform's.
+              Emails sent to your clients (invites, password resets, alerts) will use this server instead of the platform&apos;s.
               Your domain must have SPF/DKIM records for the sending address.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -488,20 +523,9 @@ function DomainStatus({ check, loading, failed, onCheck }: { check: DomainCheck 
         </Button>
       </div>
       {check && <p className="text-xs text-slate-600">{check.message}</p>}
-      {check?.record && (
-        <table className="w-full overflow-hidden rounded-md bg-white text-left text-xs ring-1 ring-slate-200">
-          <thead className="bg-slate-100 text-slate-500">
-            <tr><th className="px-2.5 py-1.5 font-medium">Type</th><th className="px-2.5 py-1.5 font-medium">Name</th><th className="px-2.5 py-1.5 font-medium">Value</th></tr>
-          </thead>
-          <tbody>
-            <tr className="font-mono text-slate-800">
-              <td className="px-2.5 py-1.5">{check.record.type}</td>
-              <td className="break-all px-2.5 py-1.5">{check.record.name}</td>
-              <td className="break-all px-2.5 py-1.5">{check.record.value}</td>
-            </tr>
-          </tbody>
-        </table>
-      )}
+      {/* Only while something is still wrong. Once it is connected the record is
+          history, and leaving it up reads as another step to do. */}
+      {check?.record && check.state !== "connected" && <DnsRecordTable record={check.record} />}
       {check && check.state !== "connected" && (
         <p className="text-[11px] text-slate-500">DNS changes can take from a few minutes to a few hours. Click Check now again later.</p>
       )}
