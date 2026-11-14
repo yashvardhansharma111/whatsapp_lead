@@ -126,7 +126,7 @@ export default function TicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
   const now = useNow();
 
-  const { data, isLoading, isError } = useTickets({ status, priority, department });
+  const { data, isLoading, isError, error } = useTickets({ status, priority, department });
   const tickets = data ?? [];
 
   return (
@@ -199,10 +199,10 @@ export default function TicketsPage() {
         ) : isError || tickets.length === 0 ? (
           <EmptyState
             icon={TicketIcon}
-            title={isError ? "Tickets aren't available yet" : "No tickets found"}
+            title={isError ? "Couldn't load tickets" : "No tickets found"}
             description={
               isError
-                ? "The tickets API is still being built. Once it's live, every support request will land here with its SLA countdown."
+                ? (error as Error)?.message ?? "Something went wrong fetching them. Try again in a moment."
                 : "Nothing matches these filters. Raise a ticket from a conversation, or create one manually."
             }
             action={

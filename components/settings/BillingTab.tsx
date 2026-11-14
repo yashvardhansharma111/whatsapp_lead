@@ -6,7 +6,10 @@ import { Badge, Button, Card, EmptyState, Skeleton } from "@/components/ui";
 import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { cn, formatCompact, formatCurrency, formatDate } from "@/lib/utils";
 
-// TODO [SHALMON]: GET /api/billing — plan, usage counters and invoice history (currently 501).
+// Settings → Billing. /api/billing has answered this for some time; the note here said
+// it returned 501 and the empty state told anyone who hit a blip that billing "is still
+// being built", which is a strange thing for a product to say about the screen where it
+// takes money.
 
 type Usage = { label: string; used: number; limit: number };
 
@@ -56,7 +59,7 @@ const EMPTY_USAGE: Billing["usage"] = {
 };
 
 export function BillingTab() {
-  const { data, isLoading, isError } = useBilling();
+  const { data, isLoading, isError, error } = useBilling();
 
   if (isLoading) {
     return (
@@ -134,10 +137,10 @@ export function BillingTab() {
         {isError || invoices.length === 0 ? (
           <EmptyState
             icon={Receipt}
-            title={isError ? "Billing isn't available yet" : "No invoices yet"}
+            title={isError ? "Couldn't load your invoices" : "No invoices yet"}
             description={
               isError
-                ? "The billing API is still being built. Your plan usage and paid invoices will show up here once it's live."
+                ? (error as Error)?.message ?? "Something went wrong fetching them. Try again in a moment."
                 : "Invoices appear here after your first payment."
             }
           />

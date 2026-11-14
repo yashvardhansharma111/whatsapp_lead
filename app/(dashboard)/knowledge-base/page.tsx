@@ -97,7 +97,7 @@ function readSize(doc: KnowledgeDoc): string {
 export default function KnowledgeBasePage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { data, isLoading, isError } = useKnowledgeDocs();
+  const { data, isLoading, isError, error } = useKnowledgeDocs();
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<KnowledgeDoc | null>(null);
   // Renaming changes the label this page and the FAQ picker show. The file's
@@ -212,10 +212,10 @@ export default function KnowledgeBasePage() {
         <Card>
           <EmptyState
             icon={BookOpen}
-            title={isError ? "The knowledge base isn't available yet" : "No documents yet"}
+            title={isError ? "Couldn't load your documents" : "No documents yet"}
             description={
               isError
-                ? "The knowledge API is still being built. Once it's live, your uploaded PDFs, docs and pages will be listed here with their indexing status."
+                ? (error as Error)?.message ?? "Something went wrong fetching them. Try again in a moment."
                 : "Upload a PDF, DOCX or TXT — or point us at a URL — and the AI will use it to answer customer questions."
             }
             action={

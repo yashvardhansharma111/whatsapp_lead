@@ -194,7 +194,7 @@ function CampaignsPageInner() {
   const [open, setOpen] = useState(Boolean(initialSegmentId));
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useCampaigns(tab);
+  const { data, isLoading, isError, error } = useCampaigns(tab);
   const campaigns = useMemo(() => data ?? [], [data]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -361,10 +361,10 @@ function CampaignsPageInner() {
         ) : isError || campaigns.length === 0 ? (
           <EmptyState
             icon={Megaphone}
-            title={isError ? "Campaigns aren't available yet" : "No campaigns yet"}
+            title={isError ? "Couldn't load campaigns" : "No campaigns yet"}
             description={
               isError
-                ? "The campaigns API is still being built. Once it's live, your broadcasts and their delivery stats will show up here."
+                ? (error as Error)?.message ?? "Something went wrong fetching them. Try again in a moment."
                 : "Create your first broadcast to reach contacts on WhatsApp using an approved message template."
             }
             action={
