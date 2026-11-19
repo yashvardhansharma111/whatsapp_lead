@@ -25,6 +25,8 @@ export interface PlanFeatures {
   advancedAi: boolean;
   allowExport: boolean;
   callingEnabled: boolean;
+  /** Whether this account may top up its own wallet — off by default. */
+  walletEnabled: boolean;
 }
 
 function backendUrl() {

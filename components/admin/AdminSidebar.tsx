@@ -34,6 +34,9 @@ const NAV_GROUPS = [
       { href: "/tenants",      label: "Customers",  icon: Building2,       need: "platform.tenants.view" },
       { href: "/plans",        label: "Plans",      icon: CreditCard,      need: "platform.tenants.view" },
       { href: "/revenue",      label: "Revenue",    icon: IndianRupee,     need: "platform.revenue.view" },
+      // "Pay commissions" is a permission an admin can be granted, and the screen it
+      // names was linked from nowhere — so holding it reached nothing.
+      { href: "/admin/commissions", label: "Commissions", icon: Receipt,    need: "platform.commissions.manage" },
     ],
   },
   {
