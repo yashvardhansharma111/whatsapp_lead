@@ -120,6 +120,10 @@ export default auth((req) => {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    // The home-screen icon, which a browser fetches on its own exactly like the favicon
+    // and the manifest — being sent to a sign-in form, it saved the login page as the
+    // icon.
+    pathname === "/apple-icon" ||
     pathname.startsWith("/icons/") ||
     pathname.startsWith("/sounds/") ||
     pathname === "/manifest.webmanifest" ||
