@@ -59,7 +59,7 @@ function settingsRow(): TenantSettings {
     smtpPort: 587,
     smtpUser: "mailer@example.com",
     smtpPass: SENTINEL.smtpPass,
-    smtpFrom: "WhatsCRM <mailer@example.com>",
+    smtpFrom: "Waboxa <mailer@example.com>",
     onboardingCompleted: true,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-02T00:00:00Z"),

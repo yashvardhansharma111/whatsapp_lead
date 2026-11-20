@@ -22,7 +22,7 @@ const DOC_ID = randomUUID();
 // Long enough (>2k chars) that chunkText() splits it into separate topic chunks,
 // which is how retrieval is meant to work in practice.
 const SAMPLE_DOC = `
-WhatsCRM Refund Policy.
+Waboxa Refund Policy.
 Customers can request a full refund within 14 days of purchase, no questions asked.
 To start a refund, reply to your order confirmation message or contact our support team with your order number.
 Refunds are processed back to the original payment method within 5 to 7 business days after approval.

@@ -246,7 +246,7 @@ export default function ApiDocsPage() {
                   Base URL
                 </p>
                 <p className="mt-1.5 overflow-x-auto font-mono text-sm text-slate-800">
-                  https://api.whatscrm.in/v1
+                  https://api.waboxa.com/v1
                 </p>
               </div>
             </Reveal>

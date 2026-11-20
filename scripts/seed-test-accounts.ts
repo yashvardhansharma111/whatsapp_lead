@@ -202,7 +202,7 @@ async function main() {
   ];
   console.log("\n✅ Demo accounts ready. Password for all:", DEMO_PASSWORD);
   for (const [who, email] of rows) console.log(`   ${who.padEnd(30)} ${email}`);
-  console.log("   Super admin: from `npm run seed` → superadmin@whatscrm.app / SuperAdmin@2026");
+  console.log("   Super admin: from `npm run seed` → superadmin@waboxa.com / SuperAdmin@2026");
 }
 
 main()

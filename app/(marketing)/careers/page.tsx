@@ -164,7 +164,7 @@ const CULTURE: { Icon: LucideIcon; title: string; body: string }[] = [
   },
 ];
 
-const CAREERS_EMAIL = "careers@whatscrm.in";
+const CAREERS_EMAIL = "careers@waboxa.com";
 
 export default function CareersPage() {
   return (

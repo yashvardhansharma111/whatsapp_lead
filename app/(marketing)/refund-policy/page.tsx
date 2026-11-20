@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
     heading: "How to Request a Refund",
     paragraphs: ["The process is short:"],
     bullets: [
-      "Email support@whatscrm.in from the address registered on the account.",
+      "Email support@waboxa.com from the address registered on the account.",
       "Include your workspace name and the invoice number of the charge.",
       "We reply within 2 business days, and we may ask what went wrong — only so we can fix it, never to talk you out of it.",
       "Approved refunds are issued to the original payment method within 5–10 business days, depending on your bank.",
@@ -64,7 +64,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Questions",
     paragraphs: [
-      "If anything above is unclear, ask us before you pay rather than after. Write to support@whatscrm.in — we would rather spend ten minutes answering a question than process a refund you did not want to need.",
+      "If anything above is unclear, ask us before you pay rather than after. Write to support@waboxa.com — we would rather spend ten minutes answering a question than process a refund you did not want to need.",
     ],
   },
 ];
@@ -80,10 +80,10 @@ export default function RefundPolicyPage() {
         <p className="text-sm leading-relaxed text-gray-600">
           To request a refund, email{" "}
           <a
-            href="mailto:support@whatscrm.in"
+            href="mailto:support@waboxa.com"
             className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
           >
-            support@whatscrm.in
+            support@waboxa.com
           </a>{" "}
           from your registered address with your workspace name and invoice number.
         </p>

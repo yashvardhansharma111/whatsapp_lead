@@ -92,10 +92,10 @@ export default function CookiePolicyPage() {
         <p className="text-sm leading-relaxed text-gray-600">
           Questions about a specific cookie? Write to{" "}
           <a
-            href="mailto:support@whatscrm.in"
+            href="mailto:support@waboxa.com"
             className="font-medium text-emerald-700 hover:text-emerald-800"
           >
-            support@whatscrm.in
+            support@waboxa.com
           </a>
           . You may also want to read our{" "}
           <Link

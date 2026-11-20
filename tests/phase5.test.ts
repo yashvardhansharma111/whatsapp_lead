@@ -12,23 +12,23 @@ import { feeKey, feePeriod } from "../lib/whiteLabelFee";
 
 test("free subdomains of the root domain belong to resellers; reserved ones to the platform", () => {
   const prev = process.env.PLATFORM_ROOT_DOMAIN;
-  process.env.PLATFORM_ROOT_DOMAIN = "whatscrm.app";
+  process.env.PLATFORM_ROOT_DOMAIN = "waboxa.com";
   try {
-    assert.equal(subdomainOf("acme.whatscrm.app"), "acme");
-    assert.equal(subdomainOf("ACME.WhatsCRM.app:443"), "acme");
-    assert.equal(subdomainOf("www.whatscrm.app"), null);
-    assert.equal(subdomainOf("app.whatscrm.app"), null);
-    assert.equal(subdomainOf("a.b.whatscrm.app"), null);
+    assert.equal(subdomainOf("acme.waboxa.com"), "acme");
+    assert.equal(subdomainOf("ACME.Waboxa.app:443"), "acme");
+    assert.equal(subdomainOf("www.waboxa.com"), null);
+    assert.equal(subdomainOf("app.waboxa.com"), null);
+    assert.equal(subdomainOf("a.b.waboxa.com"), null);
     assert.equal(subdomainOf("crm.acme.com"), null);
 
-    assert.equal(isPlatformHost("whatscrm.app"), true);
-    assert.equal(isPlatformHost("www.whatscrm.app"), true);
-    assert.equal(isPlatformHost("app.whatscrm.app"), true);
-    assert.equal(isPlatformHost("acme.whatscrm.app"), false);
+    assert.equal(isPlatformHost("waboxa.com"), true);
+    assert.equal(isPlatformHost("www.waboxa.com"), true);
+    assert.equal(isPlatformHost("app.waboxa.com"), true);
+    assert.equal(isPlatformHost("acme.waboxa.com"), false);
     assert.equal(isPlatformHost("crm.acme.com"), false);
 
     // A custom domain can't be one of the platform's names — that's what the subdomain field is for.
-    assert.equal(isClaimableDomain("acme.whatscrm.app"), false);
+    assert.equal(isClaimableDomain("acme.waboxa.com"), false);
     assert.equal(isClaimableDomain("crm.acme.com"), true);
   } finally {
     if (prev === undefined) delete process.env.PLATFORM_ROOT_DOMAIN;
@@ -60,7 +60,7 @@ test("default legal pages speak for the brand and never name the platform", () =
   const text = JSON.stringify([...defaultTerms(brand), ...defaultPrivacy(brand)]);
   assert.match(text, /Acme CRM/);
   assert.match(text, /help@acme\.com/);
-  assert.doesNotMatch(text, /WhatsCRM|Corescent/i);
+  assert.doesNotMatch(text, /Waboxa|Corescent/i);
 });
 
 test("the white-label fee is keyed to one charge per reseller per month", () => {

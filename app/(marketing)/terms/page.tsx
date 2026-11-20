@@ -22,7 +22,7 @@ const SECTIONS: LegalSection[] = [
     ],
     bullets: [
       "Keep your password confidential and do not share logins between people.",
-      "Tell us immediately at support@whatscrm.in if you suspect unauthorised access.",
+      "Tell us immediately at support@waboxa.com if you suspect unauthorised access.",
       "You must be at least 18 years old and legally able to enter into a contract.",
       "One person may not create multiple free trials to avoid paying for the service.",
     ],
@@ -112,8 +112,8 @@ export default function TermsPage() {
       footer={
         <p className="text-sm leading-relaxed text-gray-600">
           Need clarification on any clause? Write to{" "}
-          <a href="mailto:legal@whatscrm.in" className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
-            legal@whatscrm.in
+          <a href="mailto:legal@waboxa.com" className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
+            legal@waboxa.com
           </a>
           .
         </p>

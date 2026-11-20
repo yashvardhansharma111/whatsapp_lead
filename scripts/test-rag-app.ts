@@ -11,7 +11,7 @@ const BUSINESS_ID = `test-business-${randomUUID()}`;
 const DOC_ID = randomUUID();
 
 const SAMPLE_DOC = `
-WhatsCRM Refund Policy.
+Waboxa Refund Policy.
 Customers can request a full refund within 14 days of purchase, no questions asked.
 Refunds are processed back to the original payment method within 5 to 7 business days.
 Our customer support team is available Monday to Friday, from 9 AM to 6 PM IST.

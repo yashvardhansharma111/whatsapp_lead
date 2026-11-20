@@ -172,7 +172,7 @@ export default function PlatformBrandPage() {
             <Row label="Logo" hint="Shown in the app and on the sign-in page.">
               <AssetInput id="p-logo" value={form.logoUrl ?? ""} onChange={set("logoUrl")} placeholder="https://…/logo.png" />
             </Row>
-            <Row label="Favicon" hint="The icon in the browser tab. 32×32 or larger, PNG or ICO.">
+            <Row label="Favicon" hint="The icon in the browser tab, drawn at 16px. Use a square mark with no wording in it — a wide logo with the name in it is unreadable at that size. 32×32 or larger, PNG or ICO.">
               <AssetInput id="p-favicon" value={form.faviconUrl ?? ""} onChange={set("faviconUrl")} placeholder="https://…/favicon.png" />
             </Row>
             <Row label="Home-screen icon" hint="180×180 PNG, for an iPhone home screen.">

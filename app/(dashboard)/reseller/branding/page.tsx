@@ -235,6 +235,11 @@ export default function ResellerBrandingPage() {
                   onChange={(v) => setForm((f) => (f ? { ...f, faviconUrl: v } : f))}
                   placeholder="https://…/favicon.png"
                 />
+                {/* Said here because it is the mistake everyone makes: a wide logo with
+                    the brand name in it is a grey smudge at the size a tab draws. */}
+                <p className="mt-1 text-xs text-slate-500">
+                  Drawn at 16px in the browser tab. Use a square mark with no wording in it.
+                </p>
               </Field>
             </div>
 

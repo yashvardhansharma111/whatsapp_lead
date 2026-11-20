@@ -248,7 +248,7 @@ where: { tenantId: session.user.tenantId, ... }
 > All files are in `app/(marketing)/`. Build full UI — no backend work needed.
 
 #### Navbar (`components/marketing/Navbar.tsx`)
-- [ ] Logo on left (text "WhatsCRM" in purple)
+- [ ] Logo on left (text "Waboxa" in purple)
 - [ ] Nav links: Features, Pricing, Industries, About, Blog
 - [ ] Right side: Login button + "Start Free Trial" button (purple, solid)
 - [ ] Mobile: hamburger menu that opens a slide-down nav

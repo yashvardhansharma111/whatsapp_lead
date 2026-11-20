@@ -362,7 +362,7 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
         <label className="mb-1 block text-sm font-medium text-slate-700">URL</label>
         <input
           type="url"
-          placeholder="https://your-crm.com/webhooks/whatscrm"
+          placeholder="https://your-crm.com/webhooks/waboxa"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           required

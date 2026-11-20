@@ -73,54 +73,54 @@ const REASONS: { Icon: LucideIcon; title: string; body: string }[] = [
   },
 ];
 
-type Row = { feature: string; whatscrm: string; unofficial: string | false; genericCrm: string | false };
+type Row = { feature: string; waboxa: string; unofficial: string | false; genericCrm: string | false };
 
 const COMPARISON: Row[] = [
   {
     feature: "Official Meta Cloud API",
-    whatscrm: "Yes",
+    waboxa: "Yes",
     unofficial: false,
     genericCrm: "Usually via add-on",
   },
   {
     feature: "AI replies from your own documents",
-    whatscrm: "Built in, with citations",
+    waboxa: "Built in, with citations",
     unofficial: false,
     genericCrm: false,
   },
   {
     feature: "Automatic BANT lead scoring",
-    whatscrm: "0–100, per conversation",
+    waboxa: "0–100, per conversation",
     unofficial: false,
     genericCrm: "Manual fields",
   },
   {
     feature: "Shared inbox with assignment",
-    whatscrm: "Yes",
+    waboxa: "Yes",
     unofficial: "Single device",
     genericCrm: "Yes",
   },
   {
     feature: "Campaigns with per-recipient tracking",
-    whatscrm: "Yes",
+    waboxa: "Yes",
     unofficial: "Risk of ban",
     genericCrm: "Email-first",
   },
   {
     feature: "Visual automation flows",
-    whatscrm: "Twelve blocks, no code",
+    waboxa: "Twelve blocks, no code",
     unofficial: false,
     genericCrm: "Paid tier",
   },
   {
     feature: "Support tickets with SLA",
-    whatscrm: "Yes",
+    waboxa: "Yes",
     unofficial: false,
     genericCrm: "Separate product",
   },
   {
     feature: "Number stays safe long term",
-    whatscrm: "Meta-compliant",
+    waboxa: "Meta-compliant",
     unofficial: "No guarantee",
     genericCrm: "Depends on add-on",
   },
@@ -236,7 +236,7 @@ export default function WhyChooseUsPage() {
                       {row.feature}
                     </th>
                     <td className="bg-emerald-50/40 px-5 py-4">
-                      <Cell value={row.whatscrm} strong />
+                      <Cell value={row.waboxa} strong />
                     </td>
                     <td className="px-5 py-4">
                       <Cell value={row.unofficial} />

@@ -88,7 +88,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Reporting a Vulnerability",
     paragraphs: [
-      "If you believe you have found a security issue, write to security@whatscrm.in with enough detail for us to reproduce it. We acknowledge every report within two working days and will keep you updated until it is resolved.",
+      "If you believe you have found a security issue, write to security@waboxa.com with enough detail for us to reproduce it. We acknowledge every report within two working days and will keep you updated until it is resolved.",
       "We will not pursue legal action against anyone who reports a vulnerability in good faith, gives us reasonable time to fix it, and does not access or modify data belonging to anyone else while investigating.",
     ],
   },
@@ -111,10 +111,10 @@ export default function SecurityPage() {
         <p className="text-sm leading-relaxed text-gray-600">
           Report a vulnerability at{" "}
           <a
-            href="mailto:security@whatscrm.in"
+            href="mailto:security@waboxa.com"
             className="font-medium text-emerald-700 hover:text-emerald-800"
           >
-            security@whatscrm.in
+            security@waboxa.com
           </a>
           . For how we use and retain data, see the{" "}
           <Link

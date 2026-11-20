@@ -87,7 +87,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Contact Us",
     paragraphs: [
-      "For any privacy question or to exercise the rights above, write to privacy@whatscrm.in or to Corescent Technologies Pvt Ltd, 4th Floor, Indiranagar, Bengaluru 560038, India. We respond to every request within 30 days.",
+      "For any privacy question or to exercise the rights above, write to privacy@waboxa.com or to Corescent Technologies Pvt Ltd, 4th Floor, Indiranagar, Bengaluru 560038, India. We respond to every request within 30 days.",
     ],
   },
 ];
@@ -97,13 +97,13 @@ export default function PrivacyPolicyPage() {
     <LegalPage
       title="Privacy Policy"
       lastUpdated="1 July 2026"
-      intro="This policy explains what data Waboxa collects, why we collect it, how we protect it, and the control you have over it. It applies to whatscrm.in and to the Waboxa application."
+      intro="This policy explains what data Waboxa collects, why we collect it, how we protect it, and the control you have over it. It applies to waboxa.com and to the Waboxa application."
       sections={SECTIONS}
       footer={
         <p className="text-sm leading-relaxed text-gray-600">
           Questions about this policy? Email{" "}
-          <a href="mailto:privacy@whatscrm.in" className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
-            privacy@whatscrm.in
+          <a href="mailto:privacy@waboxa.com" className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
+            privacy@waboxa.com
           </a>{" "}
           and a real person will get back to you.
         </p>
