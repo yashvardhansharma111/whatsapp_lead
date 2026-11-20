@@ -106,6 +106,24 @@ export default auth((req) => {
   const { nextUrl } = req;
   const session = req.auth;
   const pathname = nextUrl.pathname;
+
+  /**
+   * The origin the browser actually used.
+   *
+   * `nextUrl` is not it. NextAuth's wrapper pins the request URL to AUTH_URL, so on a
+   * reseller's own domain every URL built from `nextUrl` came out as the platform's:
+   * the rewrite of `/` to the brand site read `https://waboxa.com/site`, Next saw a
+   * cross-origin rewrite and turned it into a redirect, and a visitor to the reseller's
+   * domain landed on ours. The same would have happened to every `/api/*` call, which
+   * is rewritten the same way.
+   *
+   * Taken from the forwarded headers instead, which is what the reverse proxy sets and
+   * what the rest of the app — branding, sign-up attribution — already reads.
+   */
+  const origin =
+    `${req.headers.get("x-forwarded-proto") ?? nextUrl.protocol.replace(":", "")}://` +
+    `${req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? nextUrl.host}`;
+  const here = (path: string) => new URL(path, origin);
   const isLoggedIn = !!session?.user;
   const isReseller = session?.user?.accountType === "RESELLER" && session.user.role !== "SUPER_ADMIN";
 
@@ -188,8 +206,8 @@ export default auth((req) => {
     // Forward everything else to the NestJS backend via the /api/nest proxy route
     // Only active when NEXT_PUBLIC_BACKEND_URL is set (i.e. NestJS is running)
     if (!stayInNext && process.env.NEXT_PUBLIC_BACKEND_URL) {
-      const url = req.nextUrl.clone();
-      url.pathname = pathname.replace(/^\/api\//, "/api/nest/");
+      const url = here(pathname.replace(/^\/api\//, "/api/nest/"));
+      url.search = nextUrl.search;
       return NextResponse.rewrite(url);
     }
 
@@ -197,17 +215,17 @@ export default auth((req) => {
   }
 
   if (pathname.startsWith(ADMIN_ROUTE_PREFIX)) {
-    if (!isLoggedIn) return NextResponse.redirect(new URL("/login", nextUrl));
+    if (!isLoggedIn) return NextResponse.redirect(here("/login"));
     // The same test the admin layout applies. This asked for SUPER_ADMIN instead, which
     // quietly undid delegation for the two screens that live under /admin: an admin who
     // had been given "Manage admins" or "Platform branding" was bounced from the very
     // screen the permission names.
-    if (!canUseAdminPanel(session?.user)) return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
+    if (!canUseAdminPanel(session?.user)) return NextResponse.redirect(here(homeFor(session?.user)));
     return NextResponse.next();
   }
 
   if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (isLoggedIn) return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
+    if (isLoggedIn) return NextResponse.redirect(here(homeFor(session?.user)));
     return NextResponse.next();
   }
 
@@ -216,7 +234,7 @@ export default auth((req) => {
   // The brand site (landing + legal pages) exists only on white-label hosts, where it is
   // reached through the rewrites below. On the platform's own host it doesn't exist.
   if (pathname === "/site" || pathname.startsWith("/site/")) {
-    return whiteLabelHost ? NextResponse.next() : NextResponse.redirect(new URL("/", nextUrl));
+    return whiteLabelHost ? NextResponse.next() : NextResponse.redirect(here("/"));
   }
 
   if (PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
@@ -225,12 +243,12 @@ export default auth((req) => {
     // instead of the platform's marketing pages.
     if (whiteLabelHost) {
       if (pathname === "/") {
-        if (isLoggedIn) return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
-        return NextResponse.rewrite(new URL("/site", nextUrl));
+        if (isLoggedIn) return NextResponse.redirect(here(homeFor(session?.user)));
+        return NextResponse.rewrite(here("/site"));
       }
-      if (pathname === "/terms") return NextResponse.rewrite(new URL("/site/terms", nextUrl));
-      if (pathname === "/privacy-policy") return NextResponse.rewrite(new URL("/site/privacy", nextUrl));
-      const home = new URL("/", nextUrl);
+      if (pathname === "/terms") return NextResponse.rewrite(here("/site/terms"));
+      if (pathname === "/privacy-policy") return NextResponse.rewrite(here("/site/privacy"));
+      const home = here("/");
       if (pathname === "/pricing") home.hash = "pricing";
       return NextResponse.redirect(home);
     }
@@ -238,19 +256,19 @@ export default auth((req) => {
   }
 
   if (!isLoggedIn) {
-    const loginUrl = new URL("/login", nextUrl);
+    const loginUrl = here("/login");
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (isReseller && !matches(pathname, RESELLER_PAGE_PREFIXES)) {
-    return NextResponse.redirect(new URL("/reseller", nextUrl));
+    return NextResponse.redirect(here("/reseller"));
   }
   // The reseller panel is for reseller accounts only (its APIs refuse everyone else too).
   // The Super Admin may open it while viewing a reseller account (lib/viewAs.ts); the
   // page layout and the reseller APIs check the account itself.
   if (!isReseller && session?.user?.role !== "SUPER_ADMIN" && matches(pathname, ["/reseller"])) {
-    return NextResponse.redirect(new URL(homeFor(session?.user), nextUrl));
+    return NextResponse.redirect(here(homeFor(session?.user)));
   }
 
   if (session?.user?.role === "AGENT") {
@@ -261,7 +279,7 @@ export default auth((req) => {
       (p) => pathname === p || pathname.startsWith(`${p}/`),
     );
     if (blocked || !allowed) {
-      return NextResponse.redirect(new URL("/inbox", nextUrl));
+      return NextResponse.redirect(here("/inbox"));
     }
   }
 
