@@ -162,19 +162,34 @@ export interface SiteBrand {
 }
 
 function Wordmark({ brand, onClick }: { brand: SiteBrand; onClick?: () => void }) {
+  // An uploaded logo nearly always has the brand name in it already, so printing the
+  // name beside it said everything twice — and squeezed the logo into a 32px square to
+  // make room for the repetition. With a logo, the logo is the wordmark: bigger, at its
+  // own proportions, on its own. Without one the mark is the brand's initials, which
+  // identify nothing by themselves, so there the name stays.
+  const hasLogo = Boolean(brand.logoUrl?.trim());
   return (
     <Link
       href="/"
       onClick={onClick}
+      // The link's name comes from the text beside the mark; with the text gone it has
+      // to be said here, or the only link to the homepage is unlabelled.
+      aria-label={hasLogo ? brand.name : undefined}
       className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
     >
       <BrandMark
         name={brand.name}
         logoUrl={brand.logoUrl}
         color={brand.primaryColor}
-        className="h-8 w-8 shrink-0 rounded-lg shadow-sm transition-transform duration-300 hover:scale-105"
+        className={
+          hasLogo
+            ? "h-11 w-auto max-w-[190px] shrink-0 transition-transform duration-300 hover:scale-105"
+            : "h-9 w-9 shrink-0 rounded-lg shadow-sm transition-transform duration-300 hover:scale-105"
+        }
       />
-      <span className="truncate text-lg font-bold tracking-tight text-slate-900">{brand.name}</span>
+      {!hasLogo && (
+        <span className="truncate text-lg font-bold tracking-tight text-slate-900">{brand.name}</span>
+      )}
     </Link>
   );
 }
