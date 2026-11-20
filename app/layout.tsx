@@ -21,6 +21,14 @@ export const metadata: Metadata = {
   description:
     "Shared WhatsApp inbox, AI lead qualification, campaigns and analytics for sales teams.",
   manifest: "/manifest.webmanifest",
+  // Declared once, here, so every page in every route group asks for the same two URLs.
+  // Both are route handlers that answer per host, so this stays static while what they
+  // return does not. The (auth) and (dashboard) layouts still set brand metadata for the
+  // title and share image; they no longer need to repeat the icons.
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({
