@@ -136,13 +136,28 @@ export default auth((req) => {
   }
 
   if (pathname.startsWith("/api/")) {
-    if (isReseller && (!matches(pathname, RESELLER_API_PREFIXES) || matches(pathname, RESELLER_API_BLOCKED))) {
+    // A call the rewrite below has already sent to the backend comes back through here
+    // as `/api/nest/<rest>`, because a rewrite re-enters the proxy. Judged as written, a
+    // reseller's own `/api/reseller/overview` arrived on the second pass as
+    // `/api/nest/reseller/overview`, matched nothing in their allowlist and was refused —
+    // so every screen in the reseller panel answered 403, including the one that lists
+    // their clients.
+    //
+    // Folded back to what the caller actually asked for, so the allowlist still reads
+    // the way it is written, and a hand-made request to `/api/nest/contacts` is judged
+    // as `/api/contacts` rather than slipping past under a different name.
+    const NEST_PREFIX = "/api/nest/";
+    const apiPath = pathname.startsWith(NEST_PREFIX)
+      ? `/api/${pathname.slice(NEST_PREFIX.length)}`
+      : pathname;
+
+    if (isReseller && (!matches(apiPath, RESELLER_API_PREFIXES) || matches(apiPath, RESELLER_API_BLOCKED))) {
       // Naming the path matters: a console full of requests all refused with the same
       // sentence says nothing about which rule caught which call.
       return NextResponse.json(
         {
           success: false,
-          error: `Reseller accounts can't access client data or send messages (${pathname})`,
+          error: `Reseller accounts can't access client data or send messages (${apiPath})`,
         },
         { status: 403 },
       );
