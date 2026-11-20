@@ -137,8 +137,13 @@ export default auth((req) => {
 
   if (pathname.startsWith("/api/")) {
     if (isReseller && (!matches(pathname, RESELLER_API_PREFIXES) || matches(pathname, RESELLER_API_BLOCKED))) {
+      // Naming the path matters: a console full of requests all refused with the same
+      // sentence says nothing about which rule caught which call.
       return NextResponse.json(
-        { success: false, error: "Reseller accounts can't access client data or send messages" },
+        {
+          success: false,
+          error: `Reseller accounts can't access client data or send messages (${pathname})`,
+        },
         { status: 403 },
       );
     }
