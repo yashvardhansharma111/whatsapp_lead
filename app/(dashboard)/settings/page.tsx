@@ -21,6 +21,8 @@ import { OptOutTab } from "@/components/settings/OptOutTab";
 import { ActivityTab } from "@/components/settings/ActivityTab";
 import { DepartmentsTab } from "@/components/settings/DepartmentsTab";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useFeature } from "@/hooks/useFeature";
+import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 
@@ -34,6 +36,8 @@ type TabDef = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string;
+  /** Hidden when the plan — or the platform — does not include this. */
+  feature?: keyof PlanFeatures;
 };
 
 /**
@@ -77,7 +81,7 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
     section: "Developer",
     tabs: [
       { key: "webhooks",      label: "Webhooks & API", icon: Webhook,    permission: "settings.manage" },
-      { key: "message-rates", label: "Message rates",  icon: DollarSign, permission: "settings.manage" },
+      { key: "message-rates", label: "Message rates",  icon: DollarSign, permission: "settings.manage", feature: "walletEnabled" },
     ],
   },
 ];
@@ -98,12 +102,17 @@ function SettingsPageInner() {
   // Tabs follow the permission the server checks, not a role name — so a member granted
   // settings.manage in a workspace they were invited to sees exactly those tabs.
   const { can } = usePermissions();
+  const walletOn = useFeature("walletEnabled");
 
   // `/settings?tab=notifications` (from the bell) opens that tab directly.
   const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");
 
   function canSee(t: TabDef): boolean {
     if (isReseller && ["pipeline", "departments", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;
+    // What a message costs only means something where messages are paid for out of a
+    // wallet. With top-ups switched off, a page of per-message prices is a price list
+    // for something nobody is being charged for.
+    if (t.feature && !walletOn) return false;
     return t.permission ? can(t.permission) : true;
   }
 
