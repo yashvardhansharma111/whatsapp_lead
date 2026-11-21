@@ -410,7 +410,7 @@ export default function ContactsPage() {
             {tagOptions.length === 0 && (
               <p className="mt-1.5 text-xs text-slate-500">
                 No labels yet.{" "}
-                <Link href="/tags" className="font-medium text-emerald-700 hover:underline">
+                <Link href="/settings?tab=labels" className="font-medium text-emerald-700 hover:underline">
                   Create one first
                 </Link>
                 .

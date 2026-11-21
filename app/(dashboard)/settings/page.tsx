@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Building2, MessageSquare, Bell, KanbanSquare,
-  UserCircle, Zap, Webhook, DollarSign, BellOff, ChevronRight, Users,
+  Zap, Webhook, DollarSign, BellOff, ChevronRight, Users, Tag,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui";
-import { AccountTab } from "@/components/settings/AccountTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
+import { LabelsTab } from "@/components/settings/LabelsTab";
 import { WhatsAppTab } from "@/components/settings/WhatsAppTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { LeadStagesTab } from "@/components/settings/LeadStagesTab";
@@ -48,7 +48,6 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
   {
     section: "Yours",
     tabs: [
-      { key: "account",       label: "My profile",    icon: UserCircle },
       { key: "notifications", label: "Notifications", icon: Bell },
     ],
   },
@@ -58,6 +57,7 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
       { key: "general",     label: "Business profile", icon: Building2,    permission: "settings.manage" },
       { key: "pipeline",    label: "Lead stages",      icon: KanbanSquare, permission: "settings.manage" },
       { key: "departments", label: "Departments",      icon: Users,        permission: "settings.manage" },
+      { key: "labels",      label: "Labels",           icon: Tag,          permission: "contacts.view" },
     ],
   },
   {
@@ -96,7 +96,7 @@ function SettingsPageInner() {
   const walletOn = useFeature("walletEnabled");
 
   // `/settings?tab=notifications` (from the bell) opens that tab directly.
-  const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "account");
+  const [tab, setTab] = useState<TabKey>(useSearchParams().get("tab") ?? "notifications");
 
   function canSee(t: TabDef): boolean {
     if (isReseller && ["pipeline", "departments", "whatsapp", "quick-replies", "notifications"].includes(t.key)) return false;
@@ -108,7 +108,9 @@ function SettingsPageInner() {
   }
 
   const allVisible = TAB_GROUPS.flatMap((g) => g.tabs.filter(canSee));
-  const activeTab  = allVisible.some((t) => t.key === tab) ? tab : "account";
+  // Falls back to whatever this person can actually open, not a fixed key that
+  // their permissions might hide.
+  const activeTab  = allVisible.some((t) => t.key === tab) ? tab : (allVisible[0]?.key ?? "notifications");
 
   return (
     <div>
@@ -188,7 +190,7 @@ function SettingsPageInner() {
         {/* ── Content ── */}
         <div className="min-w-0 flex-1 max-w-3xl">
           {/* activeTab is always one of `allVisible`, so each panel is already permitted. */}
-          {activeTab === "account"       && <AccountTab />}
+          {activeTab === "labels"        && <LabelsTab />}
           {activeTab === "general"       && <GeneralTab />}
           {activeTab === "pipeline"      && <LeadStagesTab />}
           {activeTab === "departments"   && <DepartmentsTab />}

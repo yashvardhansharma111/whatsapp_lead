@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, CreditCard, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Package, ScrollText,} from "lucide-react";
+  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, CreditCard, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Settings, Sparkles, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Package, ScrollText, UserCircle,} from "lucide-react";
 import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -22,7 +22,6 @@ const NAV = [
       { href: "/inbox", label: "Inbox", icon: MessageSquare, permission: "conversations.view" },
       { href: "/calls", label: "Calls", icon: Phone, permission: "conversations.view", feature: "callingEnabled" as keyof PlanFeatures },
       { href: "/contacts", label: "Contacts", icon: Users, permission: "contacts.view" },
-      { href: "/tags", label: "Labels", icon: Tag, permission: "contacts.view" },
       { href: "/leads", label: "Leads", icon: Target, permission: "contacts.view" },
     ],
   },
@@ -47,6 +46,7 @@ const NAV = [
       { href: "/handovers", label: "Transfers", icon: UserCheck, permission: "conversations.view", badge: "handovers" as const },
       { href: "/analytics", label: "Analytics", icon: BarChart2, permission: "reports.view" },
       { href: "/activity", label: "Activity log", icon: ScrollText, permission: "reports.view" },
+      { href: "/profile", label: "My profile", icon: UserCircle },
       { href: "/blacklist", label: "Blacklist", icon: Ban, permission: "blacklist.view" },
       { href: "/team", label: "Team", icon: UserCog, permission: "users.manage" },
       { href: "/billing", label: "Billing & Plan", icon: CreditCard, permission: "billing.manage" },
