@@ -185,14 +185,20 @@ export function ChatWindow({
    */
   const markReadRef = useRef(markRead);
   useEffect(() => { markReadRef.current = markRead; }, [markRead]);
-  // Once per conversation, whatever the payload says. The count is read from the detail
-  // response, so a stale one there would otherwise keep this effect firing forever.
-  const markedRef = useRef<string | null>(null);
+
+  // Keyed on the newest message, not just the thread: a message arriving while the
+  // thread is open puts the badge straight back. The server counts it as unread because
+  // the server cannot know anyone is looking at it — the socket event carries that fresh
+  // count and it overwrites the row. Only the open window knows better, so it says so
+  // again each time something lands.
+  //
+  // Keying on the id rather than the array means a refetch that returns the same
+  // messages does not re-fire this.
+  const lastMessageId = messages.length ? messages[messages.length - 1].id : null;
   useEffect(() => {
-    if (!conversationId || markedRef.current === conversationId) return;
-    markedRef.current = conversationId;
+    if (!conversationId) return;
     markReadRef.current.mutate(conversationId);
-  }, [conversationId]);
+  }, [conversationId, lastMessageId]);
 
   /**
    * Hand the change to the mutation and nothing else.
