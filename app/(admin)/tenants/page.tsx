@@ -6,8 +6,6 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import {
   AlertTriangle,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Pause,
   Pencil,
@@ -34,6 +32,7 @@ import {
   tdClass,
   thClass,
 } from "@/components/admin/ui";
+import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/ui";
 import { cn, formatCompact, formatDate } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,6 +69,7 @@ interface TenantFilters {
   status: string;
   accountType: string;
   page: number;
+  pageSize: number;
 }
 
 /** "Reseller · White-label", "Client · via Acme", "Client", "Platform". */
@@ -100,7 +100,6 @@ interface PlanOption {
   displayName: string;
 }
 
-const PAGE_SIZE = 20;
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -131,7 +130,7 @@ function useAdminTenants(filters: TenantFilters) {
       if (filters.status) params.set("isActive", filters.status === "active" ? "true" : "false");
       if (filters.accountType) params.set("accountType", filters.accountType);
       params.set("page", String(filters.page));
-      params.set("limit", String(PAGE_SIZE));
+      params.set("limit", String(filters.pageSize));
       const res = await fetch(`/api/admin/tenants?${params.toString()}`);
       if (!res.ok) throw new Error(`Failed to load tenants (${res.status})`);
       const json = await res.json();
@@ -206,6 +205,7 @@ export default function AdminTenantsPage() {
   const [status, setStatus] = useState("");
   const [accountType, setAccountType] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [provisionOpen, setProvisionOpen] = useState(false);
   const [editTenant, setEditTenant] = useState<AdminTenant | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState<AdminTenant | null>(null);
@@ -219,6 +219,7 @@ export default function AdminTenantsPage() {
     status,
     accountType,
     page,
+    pageSize,
   });
   const { data: planOptions = [] } = useAdminPlans();
   const updateTenant = useUpdateTenant();
@@ -227,8 +228,7 @@ export default function AdminTenantsPage() {
   const total = data?.total ?? 0;
   // Typing has outrun the results on screen; the rows below are the previous answer.
   const settling = isFetching || debouncedSearch !== search;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
+  
   const resetPage = () => setPage(1);
 
   // Row action menu — shared by the desktop table and the phone card list.
@@ -513,35 +513,14 @@ export default function AdminTenantsPage() {
             </AdminTable>
             </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
-              <p className="text-xs text-slate-500">
-                {total === 0
-                  ? "No results"
-                  : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 sm:p-1.5"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="min-w-[4rem] text-center text-xs text-slate-600">
-                  Page {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 sm:p-1.5"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              busy={isLoading}
+              onPage={setPage}
+              onPageSize={setPageSize}
+            />
           </>
         )}
       </AdminCard>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Mic, PhoneIncoming, PhoneOutgoing, Play } from "lucide-react";
-import { Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { formatCallDuration } from "@/lib/calls/webrtc";
 import { readList } from "@/lib/api/readList";
@@ -25,7 +25,6 @@ interface RecordingRow {
   };
 }
 
-const PAGE_SIZE = 20;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -49,14 +48,15 @@ function formatWhen(iso: string): string {
 export default function RecordingsPage() {
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [playing, setPlaying] = useState<string | null>(null);
   const [src, setSrc] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["call-recordings", page],
+    queryKey: ["call-recordings", page, pageSize],
     queryFn: async () =>
       readList<RecordingRow>(
-        await fetch(`/api/calls/recordings?page=${page}&limit=${PAGE_SIZE}`),
+        await fetch(`/api/calls/recordings?page=${page}&limit=${pageSize}`),
         "recordings",
         "Failed to load recordings",
       ),
@@ -64,7 +64,6 @@ export default function RecordingsPage() {
 
   const rows = data?.items ?? [];
   const total = data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const play = async (id: string) => {
     try {
@@ -151,22 +150,15 @@ export default function RecordingsPage() {
             })}
           </div>
 
-          {pages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-slate-500">
-                Page {page} of {pages} · {total.toLocaleString()} recording
-                {total === 1 ? "" : "s"}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Previous
-                </Button>
-                <Button variant="secondary" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            busy={isLoading}
+            onPage={setPage}
+            onPageSize={setPageSize}
+            className="mt-4 border-slate-200"
+          />
         </>
       )}
     </div>

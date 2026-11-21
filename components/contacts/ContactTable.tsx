@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Ban,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   MoreHorizontal,
   Pencil,
@@ -15,7 +13,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { Avatar, Badge, Button, Card, EmptyState, SkeletonRows } from "@/components/ui";
+import { Avatar, Badge, Button, Card, EmptyState, Pagination, SkeletonRows } from "@/components/ui";
 import { cn, stageColorClasses, timeAgo } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -125,6 +123,7 @@ export function ContactTable({
   pageSize,
   total,
   onPageChange,
+  onPageSizeChange,
   onAddContact,
   onEditContact,
   onDeleteContact,
@@ -142,6 +141,8 @@ export function ContactTable({
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
+  /** Omit and the size picker is hidden — the pager still works. */
+  onPageSizeChange?: (size: number) => void;
   onAddContact: () => void;
   /** Open the edit form for a row. The page owns the modal. */
   onEditContact: (contact: ContactRow) => void;
@@ -194,9 +195,6 @@ export function ContactTable({
     });
   };
 
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
-  const hasNext = page * pageSize < total;
   const isEmpty = !isLoading && contacts.length === 0;
 
   return (
@@ -444,33 +442,16 @@ export function ContactTable({
         </>
       )}
 
-      {/* Pagination */}
       {!isEmpty && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
-          <p className="text-xs text-slate-500">
-            {isLoading ? "Loading…" : `Showing ${from}–${to} of ${total}`}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1 || isLoading}
-              onClick={() => onPageChange(Math.max(1, page - 1))}
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Prev
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={!hasNext || isLoading}
-              onClick={() => onPageChange(page + 1)}
-            >
-              Next
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          busy={isLoading}
+          onPage={onPageChange}
+          onPageSize={onPageSizeChange}
+          className="border-slate-200"
+        />
       )}
 
       {/* Row action dropdown — fixed so the scroll container can't clip it */}

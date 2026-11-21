@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, ChevronLeft, ChevronRight, Search, Trash2, Undo2 } from "lucide-react";
+import { Ban, Search, Trash2, Undo2 } from "lucide-react";
 import {
   AdminBadge,
   AdminButton,
@@ -17,6 +17,7 @@ import {
   tdClass,
   thClass,
 } from "@/components/admin/ui";
+import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 
 type Status = "active" | "blocked" | "deleted";
@@ -39,8 +40,6 @@ interface ContactsPage {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-const LIMIT = 25;
-
 const DONE: Record<Action, string> = {
   delete: "deleted",
   restore: "restored",
@@ -54,6 +53,7 @@ export function TenantContactsPanel({ tenantId }: { tenantId: string }) {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -63,9 +63,9 @@ export function TenantContactsPanel({ tenantId }: { tenantId: string }) {
   }, [search]);
 
   const { data, isLoading, isError } = useQuery<ContactsPage>({
-    queryKey: ["admin", "tenant", tenantId, "contacts", status, debounced, page],
+    queryKey: ["admin", "tenant", tenantId, "contacts", status, debounced, page, pageSize],
     queryFn: async () => {
-      const q = new URLSearchParams({ status, page: String(page), limit: String(LIMIT) });
+      const q = new URLSearchParams({ status, page: String(page), limit: String(pageSize) });
       if (debounced) q.set("search", debounced);
       const res = await fetch(`/api/admin/tenants/${tenantId}/contacts?${q}`);
       const json = await res.json().catch(() => ({}));
@@ -113,7 +113,6 @@ export function TenantContactsPanel({ tenantId }: { tenantId: string }) {
 
   const rows = data?.data ?? [];
   const total = data?.pagination.total ?? 0;
-  const totalPages = data?.pagination.totalPages ?? 1;
   const allSelected = rows.length > 0 && rows.every((r) => selected.includes(r.id));
   const selectedRows = rows.filter((r) => selected.includes(r.id));
 
@@ -277,21 +276,16 @@ export function TenantContactsPanel({ tenantId }: { tenantId: string }) {
         </AdminTable>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
-          <p className="text-xs text-slate-500">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <AdminButton size="sm" variant="secondary" disabled={page <= 1} onClick={() => { setPage(page - 1); setSelected([]); }}>
-              <ChevronLeft className="h-3.5 w-3.5" /> Prev
-            </AdminButton>
-            <AdminButton size="sm" variant="secondary" disabled={page >= totalPages} onClick={() => { setPage(page + 1); setSelected([]); }}>
-              Next <ChevronRight className="h-3.5 w-3.5" />
-            </AdminButton>
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        busy={isLoading}
+        onPage={(p) => { setPage(p); setSelected([]); }}
+        onPageSize={setPageSize}
+        className="border-slate-200 px-4 sm:px-5"
+      />
+
     </AdminPanel>
   );
 }

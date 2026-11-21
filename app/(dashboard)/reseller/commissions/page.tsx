@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { IndianRupee } from "lucide-react";
-import { Badge, Button, Card, EmptyState, PageHeader, SkeletonRows } from "@/components/ui";
+import { Badge, Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, SkeletonRows } from "@/components/ui";
 import { api, money, STATUS_TONE, Tile } from "@/components/reseller/shared";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -21,12 +21,13 @@ const FILTERS = ["ALL", "PENDING", "PAID", "CANCELLED"] as const;
 export default function ResellerCommissionsPage() {
   const [status, setStatus] = useState<(typeof FILTERS)[number]>("ALL");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["reseller", "commissions", status, page],
+    queryKey: ["reseller", "commissions", status, page, pageSize],
     queryFn: () =>
-      api<{ data: Row[]; totals: Record<string, number>; pagination: { page: number; totalPages: number } }>(
-        `/api/reseller/commissions?page=${page}${status === "ALL" ? "" : `&status=${status}`}`,
+      api<{ data: Row[]; totals: Record<string, number>; pagination: { page: number; totalPages: number; total: number } }>(
+        `/api/reseller/commissions?page=${page}&limit=${pageSize}${status === "ALL" ? "" : `&status=${status}`}`,
       ),
     placeholderData: keepPreviousData,
   });
@@ -97,11 +98,14 @@ export default function ResellerCommissionsPage() {
             </table>
           </div>
         )}
-        {data && data.pagination.totalPages > 1 && (
-          <div className="flex justify-end gap-1 border-t border-slate-100 px-4 py-2.5">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-            <Button variant="secondary" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage(page + 1)}>Next</Button>
-          </div>
+        {data && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={data.pagination.total ?? 0}
+            onPage={setPage}
+            onPageSize={setPageSize}
+          />
         )}
       </Card>
     </div>

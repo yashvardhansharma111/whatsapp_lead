@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Ban, CheckCircle2, History, Loader2, Plus, Search, ShieldOff, Trash2 } from "lucide-react";
-import { Button, Card, EmptyState, Modal, SkeletonRows, inputClass } from "@/components/ui";
+import { Button, Card, DEFAULT_PAGE_SIZE, EmptyState, Modal, Pagination, SkeletonRows, inputClass } from "@/components/ui";
 import { splitNumberInput } from "@/lib/broadcast";
 import { cn, formatDate } from "@/lib/utils";
 import { displayPhone } from "@/lib/phone";
@@ -75,6 +75,7 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo]   = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [numbers, setNumbers] = useState("");
   const [reason, setReason] = useState("");
   const [addResult, setAddResult] = useState<string | null>(null);
@@ -85,9 +86,9 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
   const scopeParam = scope === "platform" ? "&scope=platform" : scope === "all" ? "&scope=all" : "";
 
   const list = useQuery<ListResponse>({
-    queryKey: ["blacklist", scope, search.trim(), dateFrom, dateTo, page],
+    queryKey: ["blacklist", scope, search.trim(), dateFrom, dateTo, page, pageSize],
     queryFn: () => {
-      const params = new URLSearchParams({ page: String(page), limit: "50" });
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (search.trim()) params.set("search", search.trim());
       if (dateFrom)       params.set("from",   dateFrom);
       if (dateTo)         params.set("to",     dateTo);
@@ -314,15 +315,14 @@ export function BlacklistManager({ scope, initialSearch = "" }: { scope: Scope; 
                   </tbody>
                 </table>
               </div>
-              {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5 text-xs text-slate-500">
-                  <span>Page {pagination.page} of {pagination.totalPages}</span>
-                  <div className="flex gap-1">
-                    <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                    <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={pagination?.total ?? 0}
+                busy={list.isFetching}
+                onPage={setPage}
+                onPageSize={setPageSize}
+              />
             </>
           )
         ) : history.isLoading ? (

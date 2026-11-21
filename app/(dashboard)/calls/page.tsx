@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Phone, PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Play } from "lucide-react";
-import { Avatar, Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { Avatar, Badge, Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, Skeleton } from "@/components/ui";
 import { useCallHistory, type CallRow } from "@/hooks/useCalls";
 import { useFeature } from "@/hooks/useFeature";
 import { formatCallDuration } from "@/lib/calls/webrtc";
@@ -90,7 +90,8 @@ export default function CallsPage() {
   const enabled = useFeature("callingEnabled");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError, error } = useCallHistory({ status: status || undefined, page });
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const { data, isLoading, isError, error } = useCallHistory({ status: status || undefined, page, limit: pageSize });
 
   const rows = data?.data ?? [];
   const pagination = data?.pagination;
@@ -201,14 +202,15 @@ export default function CallsPage() {
           </div>
         )}
 
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm text-slate-500">
-            <span>Page {pagination.page} of {pagination.totalPages} · {pagination.total} calls</span>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-              <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-            </div>
-          </div>
+        {pagination && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={pagination.total}
+            busy={isLoading}
+            onPage={setPage}
+            onPageSize={setPageSize}
+          />
         )}
       </Card>
     </div>

@@ -16,7 +16,7 @@ import {
   thClass,
 } from "@/components/admin/ui";
 import { adminSelectClass } from "@/components/admin/ui";
-import { Modal } from "@/components/ui";
+import { DEFAULT_PAGE_SIZE, Modal, Pagination } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 
 interface Row {
@@ -34,15 +34,16 @@ export default function AdminCommissionsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState("PENDING");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [reopenConfirm, setReopenConfirm] = useState<Row | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "commissions", status, page],
+    queryKey: ["admin", "commissions", status, page, pageSize],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/commissions?page=${page}${status ? `&status=${status}` : ""}`);
+      const res = await fetch(`/api/admin/commissions?page=${page}&limit=${pageSize}${status ? `&status=${status}` : ""}`);
       if (!res.ok) throw new Error("Failed to load commissions");
-      return (await res.json()) as { data: Row[]; totals: Record<string, number>; pagination: { page: number; totalPages: number } };
+      return (await res.json()) as { data: Row[]; totals: Record<string, number>; pagination: { page: number; totalPages: number; total: number } };
     },
     placeholderData: keepPreviousData,
   });
@@ -139,11 +140,15 @@ export default function AdminCommissionsPage() {
           </tbody>
         </AdminTable>
       )}
-      {data && data.pagination.totalPages > 1 && (
-        <div className="mt-3 flex justify-end gap-2 sm:gap-1">
-          <AdminButton size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</AdminButton>
-          <AdminButton size="sm" variant="secondary" disabled={page >= data.pagination.totalPages} onClick={() => setPage(page + 1)}>Next</AdminButton>
-        </div>
+      {data && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={data.pagination.total ?? 0}
+          onPage={setPage}
+          onPageSize={setPageSize}
+          className="mt-4 border-slate-200"
+        />
       )}
 
       {reopenConfirm && (

@@ -6,7 +6,7 @@ import {
   AlertTriangle, ArrowRight, Bot, Check, Clock, Inbox, Loader2, MessageSquare,
   RotateCcw, UserCheck, Users,
 } from "lucide-react";
-import { Badge, Button, Card, EmptyState, PageHeader, SkeletonRows } from "@/components/ui";
+import { Badge, Button, Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, SkeletonRows } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -83,6 +83,8 @@ export default function HandoversPage() {
   const [tab, setTab] = useState("OPEN");
   const [departmentId, setDepartmentId] = useState("ALL");
   const [mine, setMine] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const filters = useMemo(() => ({
     // "Needs a person" is two statuses, so the server filter is left off and the rows
@@ -90,7 +92,9 @@ export default function HandoversPage() {
     status: tab === "OPEN" || tab === "ALL" ? "ALL" : tab,
     departmentId,
     assignedToId: mine ? "me" : undefined,
-  }), [tab, departmentId, mine]);
+    page,
+    limit: pageSize,
+  }), [tab, departmentId, mine, page, pageSize]);
 
   const { data, isLoading, isError, error } = useHandovers(filters);
   const { data: departments = [] } = useDepartments();
@@ -148,7 +152,7 @@ export default function HandoversPage() {
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => { setTab(t.key); setPage(1); }}
               className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-medium transition",
                 tab === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700",
@@ -163,7 +167,7 @@ export default function HandoversPage() {
           <select
             aria-label="Department"
             value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
+            onChange={(e) => { setDepartmentId(e.target.value); setPage(1); }}
             className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700"
           >
             <option value="ALL">Every department</option>
@@ -174,7 +178,7 @@ export default function HandoversPage() {
         )}
 
         <button
-          onClick={() => setMine((v) => !v)}
+          onClick={() => { setMine((v) => !v); setPage(1); }}
           aria-pressed={mine}
           className={cn(
             "rounded-lg border px-2.5 py-1.5 text-sm font-medium transition",
@@ -297,6 +301,14 @@ export default function HandoversPage() {
             })}
           </ul>
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={data?.total ?? 0}
+          busy={isLoading}
+          onPage={setPage}
+          onPageSize={setPageSize}
+        />
       </Card>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn, initials, avatarColor } from "@/lib/utils";
 export { PhoneInput } from "./PhoneInput";
+export { Pagination, PAGE_SIZES, DEFAULT_PAGE_SIZE } from "./Pagination";
 export type { PhoneInputProps, Country } from "./PhoneInput";
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────

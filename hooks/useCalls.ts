@@ -45,12 +45,13 @@ export const callApi = {
   hangup: (id: string) => fetch(`/api/calls/${id}/hangup`, { method: "POST" }).then((r) => unwrap<{ ok: boolean }>(r, "Couldn't end the call")),
 };
 
-export function useCallHistory(params: { page?: number; status?: string; contactId?: string; conversationId?: string } = {}) {
+export function useCallHistory(params: { page?: number; limit?: number; status?: string; contactId?: string; conversationId?: string } = {}) {
   return useQuery({
     queryKey: ["calls", params],
     queryFn: async () => {
       const qs = new URLSearchParams();
       if (params.page) qs.set("page", String(params.page));
+      if (params.limit) qs.set("limit", String(params.limit));
       if (params.status) qs.set("status", params.status);
       if (params.contactId) qs.set("contactId", params.contactId);
       if (params.conversationId) qs.set("conversationId", params.conversationId);

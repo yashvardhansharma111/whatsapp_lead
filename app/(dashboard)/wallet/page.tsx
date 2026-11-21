@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Download, Loader2, Plus, Wallet } from "lucide-react";
-import { Badge, Button, Card, EmptyState, PageHeader, SkeletonRows } from "@/components/ui";
+import { Badge, Button, Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, SkeletonRows } from "@/components/ui";
 import { openRazorpay } from "@/components/billing/razorpayCheckout";
 import { api, money } from "@/components/reseller/shared";
 import type { RateSource } from "@/lib/billing/rates";
@@ -70,13 +70,14 @@ const TYPE_TONE: Record<string, string> = {
 export default function WalletPage() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [amount, setAmount] = useState("1000");
   const [threshold, setThreshold] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["wallet", page],
-    queryFn: () => api<{ data: WalletData; pagination: { page: number; totalPages: number } }>(`/api/wallet?page=${page}`),
+    queryKey: ["wallet", page, pageSize],
+    queryFn: () => api<{ data: WalletData; pagination: { page: number; totalPages: number; total: number } }>(`/api/wallet?page=${page}&limit=${pageSize}`),
     placeholderData: keepPreviousData,
   });
 
@@ -277,12 +278,13 @@ export default function WalletPage() {
             </table>
           </div>
         )}
-        {data.pagination.totalPages > 1 && (
-          <div className="flex justify-end gap-1 border-t border-slate-100 px-4 py-2.5">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-            <Button variant="secondary" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage(page + 1)}>Next</Button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={data.pagination.total ?? 0}
+          onPage={setPage}
+          onPageSize={setPageSize}
+        />
       </Card>
     </div>
   );

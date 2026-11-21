@@ -11,7 +11,7 @@ import {
   type ContactBulkAction,
 } from "@/hooks/useContacts";
 import { ExportButton } from "@/components/ExportButton";
-import { Button, Card, Modal, PageHeader, inputClass } from "@/components/ui";
+import { Button, Card, DEFAULT_PAGE_SIZE, Modal, PageHeader, inputClass } from "@/components/ui";
 import { AddContactModal } from "@/components/contacts/AddContactModal";
 import { EditContactModal } from "@/components/contacts/EditContactModal";
 import { ImportContactsModal } from "@/components/contacts/ImportContactsModal";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSegments } from "@/hooks/useSegments";
 
-const PAGE_SIZE = 20;
+
 
 type Status = "active" | "blocked" | "deleted";
 
@@ -59,6 +59,7 @@ export default function ContactsPage() {
   const [source, setSource] = useState("");
   const [segmentId, setSegmentId] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -90,7 +91,7 @@ export default function ContactsPage() {
     segmentId: segmentId || undefined,
     status,
     page,
-    limit: PAGE_SIZE,
+    limit: pageSize,
   });
   const { data: sourceOptions = [] } = useContactSources();
   const { data: tagOptions = [] } = useContactTags();
@@ -107,7 +108,6 @@ export default function ContactsPage() {
 
   const pagination = (data as { pagination?: { total?: number; limit?: number } } | undefined)
     ?.pagination;
-  const pageSize = pagination?.limit ?? PAGE_SIZE;
   const total = pagination?.total ?? rows.length;
 
   const chosenSegment = segments.find((s) => s.id === segmentId) ?? null;
@@ -327,6 +327,7 @@ export default function ContactsPage() {
         onSelectedChange={setSelected}
         page={page}
         pageSize={pageSize}
+        onPageSizeChange={setPageSize}
         total={total}
         onPageChange={(next) => {
           setPage(next);

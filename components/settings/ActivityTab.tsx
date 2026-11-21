@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, ScrollText } from "lucide-react";
-import { Button, Card, EmptyState, Skeleton } from "@/components/ui";
+import { ScrollText } from "lucide-react";
+import { Card, DEFAULT_PAGE_SIZE, EmptyState, Pagination, Skeleton } from "@/components/ui";
 import { SettingsIntro } from "@/components/settings/SettingsPrimitives";
 import { timeAgo } from "@/lib/utils";
 
@@ -42,10 +42,10 @@ function prettyAction(action: string) {
 
 export function ActivityTab() {
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const { data, isLoading } = useQuery<AuditResponse>({
-    queryKey: ["account-audit-logs", page],
+    queryKey: ["account-audit-logs", page, limit],
     queryFn: async () => {
       const r = await fetch(`/api/account/audit-logs?page=${page}&limit=${limit}`);
       const j = await r.json();
@@ -60,8 +60,6 @@ export function ActivityTab() {
     },
     staleTime: 30_000,
   });
-
-  const totalPages = data?.total ? Math.ceil(data.total / limit) : 1;
 
   return (
     <div className="space-y-4">
@@ -121,31 +119,15 @@ export function ActivityTab() {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-                <p className="text-xs text-slate-400">
-                  Page {data.page} of {totalPages} · {data.total} entries
-                </p>
-                <div className="flex gap-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              page={page}
+              pageSize={limit}
+              total={data.total}
+              busy={isLoading}
+              onPage={setPage}
+              onPageSize={setLimit}
+              className="px-5"
+            />
           </>
         )}
       </Card>

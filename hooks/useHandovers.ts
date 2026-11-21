@@ -85,6 +85,8 @@ export interface HandoverFilters {
   reason?: string;
   departmentId?: string;
   assignedToId?: string;
+  page?: number;
+  limit?: number;
 }
 
 export function useHandovers(filters: HandoverFilters = {}) {
@@ -93,7 +95,7 @@ export function useHandovers(filters: HandoverFilters = {}) {
     queryFn: async () => {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(filters)) {
-        if (value && value !== "ALL") params.set(key, value);
+        if (value && value !== "ALL") params.set(key, String(value));
       }
       const res = await fetch(`/api/handovers?${params}`);
       const json = await res.json().catch(() => ({}));

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Search, Smartphone } from "lucide-react";
-import { Button, Card, EmptyState, PageHeader, Skeleton, inputClass } from "@/components/ui";
+import { Card, DEFAULT_PAGE_SIZE, EmptyState, PageHeader, Pagination, Skeleton, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useContactTags } from "@/hooks/useContacts";
 import { readList } from "@/lib/api/readList";
@@ -24,7 +24,6 @@ interface NumberRow {
 
 type View = "mine" | "clients" | "platform";
 
-const PAGE_SIZE = 50;
 
 /**
  * How often each number has been messaged.
@@ -46,6 +45,7 @@ export default function NumberActivityPage() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [tag, setTag] = useState("");
   const { data: labels = [] } = useContactTags();
 
@@ -55,9 +55,9 @@ export default function NumberActivityPage() {
   }, [search]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["number-activity", view, debounced, tag, page],
+    queryKey: ["number-activity", view, debounced, tag, page, pageSize],
     queryFn: async () => {
-      const q = new URLSearchParams({ view, page: String(page), limit: String(PAGE_SIZE) });
+      const q = new URLSearchParams({ view, page: String(page), limit: String(pageSize) });
       if (debounced) q.set("search", debounced);
       if (tag) q.set("tag", tag);
       return readList<NumberRow>(
@@ -70,7 +70,6 @@ export default function NumberActivityPage() {
 
   const rows = data?.items ?? [];
   const total = data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Only offered where it means something: a plain workspace has one scope to look at.
   const views: { value: View; label: string }[] = [
@@ -188,21 +187,15 @@ export default function NumberActivityPage() {
         </Card>
       )}
 
-      {pages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
-            Page {page} of {pages} · {total.toLocaleString()} number{total === 1 ? "" : "s"}
-          </p>
-          <div className="flex gap-2">
-            <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="secondary" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        busy={isLoading}
+        onPage={setPage}
+        onPageSize={setPageSize}
+        className="mt-4 border-slate-200"
+      />
     </div>
   );
 }

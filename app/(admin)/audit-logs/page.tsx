@@ -12,7 +12,7 @@ import {
   tdClass,
   thClass,
 } from "@/components/admin/ui";
-import { inputClass } from "@/components/ui";
+import { DEFAULT_PAGE_SIZE, Pagination, inputClass } from "@/components/ui";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 
 type LogEntry = {
@@ -25,11 +25,11 @@ type LogEntry = {
   user: { name: string; email: string } | null;
 };
 
-function useAuditLogs(search: string, page: number) {
+function useAuditLogs(search: string, page: number, pageSize: number) {
   return useQuery<{ data: LogEntry[]; total: number }>({
-    queryKey: ["admin", "audit-logs", search, page],
+    queryKey: ["admin", "audit-logs", search, page, pageSize],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: "50" });
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (search) params.set("q", search);
       const r = await fetch(`/api/admin/audit-logs?${params}`);
       if (!r.ok) throw new Error("Failed to load audit logs");
@@ -53,12 +53,12 @@ export default function AuditLogsPage() {
   const [inputValue, setInputValue] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data, isLoading } = useAuditLogs(search, page);
+  const { data, isLoading } = useAuditLogs(search, page, pageSize);
 
   const logs = data?.data ?? [];
   const total = data?.total ?? 0;
-  const pages = Math.ceil(total / 50);
 
   return (
     <>
@@ -152,19 +152,14 @@ export default function AuditLogsPage() {
         )}
       </AdminPanel>
 
-      {pages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            className="min-h-10 rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-40 sm:min-h-0">
-            Previous
-          </button>
-          <span className="text-sm text-slate-500">Page {page} of {pages}</span>
-          <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages}
-            className="min-h-10 rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-40 sm:min-h-0">
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPage={setPage}
+        onPageSize={setPageSize}
+        className="mt-4 border-slate-200"
+      />
     </>
   );
 }

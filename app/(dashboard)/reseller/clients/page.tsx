@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Building2, Check, Copy, Loader2, Plus, Search } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
+import { Badge, Button, Card, DEFAULT_PAGE_SIZE, Pagination, EmptyState, Field, Modal, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
 import { api, money, rupees, STATUS_TONE } from "@/components/reseller/shared";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -32,13 +32,14 @@ function ClientsPageInner() {
   const params = useSearchParams();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [creating, setCreating] = useState(params.get("new") === "1");
 
   const list = useQuery({
-    queryKey: ["reseller", "clients", search.trim(), page],
+    queryKey: ["reseller", "clients", search.trim(), page, pageSize],
     queryFn: () =>
       api<{ data: ClientRow[]; pagination: { total: number; totalPages: number; page: number } }>(
-        `/api/reseller/clients?page=${page}&search=${encodeURIComponent(search.trim())}`,
+        `/api/reseller/clients?page=${page}&limit=${pageSize}&search=${encodeURIComponent(search.trim())}`,
       ),
     placeholderData: keepPreviousData,
   });
@@ -158,14 +159,15 @@ function ClientsPageInner() {
           </div>
           </>
         )}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2.5 text-xs text-slate-500">
-            <span>{pagination.total} clients · page {pagination.page} of {pagination.totalPages}</span>
-            <div className="flex gap-1">
-              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-              <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>Next</Button>
-            </div>
-          </div>
+        {pagination && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={pagination.total}
+            busy={list.isFetching}
+            onPage={setPage}
+            onPageSize={setPageSize}
+          />
         )}
       </Card>
 
