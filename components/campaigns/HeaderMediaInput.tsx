@@ -12,6 +12,12 @@ export interface HeaderMediaValue {
   mediaId: string;
   /** Public URL, used when the user chose to link rather than upload. */
   mediaUrl: string;
+  /**
+   * Our own copy of an uploaded file. Meta drops a media id after about 30 days, so this
+   * is what a sent message is rendered from afterwards — and what a preview can draw
+   * before the file is sent at all.
+   */
+  storedUrl?: string;
 }
 
 /**
@@ -73,7 +79,8 @@ export function HeaderMediaInput({
       const res = await fetch("/api/campaigns/upload-media", { method: "POST", body: form });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error ?? "Upload failed");
-      onChange({ mediaId: (json.data as { mediaId: string }).mediaId, mediaUrl: "" });
+      const data = json.data as { mediaId: string; storedUrl?: string | null };
+      onChange({ mediaId: data.mediaId, mediaUrl: "", storedUrl: data.storedUrl ?? undefined });
       setUploadState("done");
     } catch (err) {
       setUploadState("error");

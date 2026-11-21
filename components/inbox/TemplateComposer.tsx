@@ -29,7 +29,7 @@ import {
   type TemplateButton,
   type TemplateShape,
 } from "@/lib/campaigns/templateVars";
-import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
+import { HeaderMediaInput, type HeaderMediaValue, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import { cn } from "@/lib/utils";
 
 const MEDIA_HEADERS = ["IMAGE", "VIDEO", "DOCUMENT"] as const;
@@ -78,7 +78,7 @@ export function TemplateComposer({
   const [vars, setVars] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([]);
   const [headerVars, setHeaderVars] = useState<string[]>([]);
-  const [media, setMedia] = useState({ mediaId: "", mediaUrl: "" });
+  const [media, setMedia] = useState<HeaderMediaValue>({ mediaId: "", mediaUrl: "" });
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +155,7 @@ export function TemplateComposer({
           headerVarMapping: Array.from({ length: headerSlots }, (_, i) => headerVars[i] ?? ""),
           headerMediaId: media.mediaId || undefined,
           headerMediaUrl: media.mediaUrl.trim() || undefined,
+          headerMediaStoredUrl: media.storedUrl || undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -169,7 +170,7 @@ export function TemplateComposer({
     }
   }
 
-  const previewImage = localPreview ?? (media.mediaUrl.trim() || null);
+  const previewImage = media.storedUrl || localPreview || media.mediaUrl.trim() || null;
 
   return (
     <>
