@@ -1,17 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  FileText,
-  Plus,
-  Pencil,
-  Copy,
-  Trash2,
-  Send,
-  RefreshCw,
-  Download,
-  AlertCircle,
-  RotateCw, BookOpen,} from "lucide-react";
+import { AlertCircle, BookOpen, Copy, Download, Eye, FileText, Pencil, Plus, RefreshCw, RotateCw, Send, Trash2 } from "lucide-react";
 import {
   Badge,
   Button,
@@ -26,6 +16,7 @@ import { TemplateBuilder } from "@/components/templates/TemplateBuilder";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { cn, formatDate } from "@/lib/utils";
 import { TemplateLibraryModal } from "@/components/templates/TemplateLibraryModal";
+import { TemplatePreviewModal } from "@/components/templates/TemplatePreviewModal";
 import {
   useTemplates,
   useDeleteTemplate,
@@ -74,6 +65,10 @@ export default function TemplatesPage() {
   const { data, isLoading, isError, refetch } = useTemplates(numberId || undefined);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
+  // Seeing a template used to mean opening the editor, which is the screen for changing
+  // it — reading meant entering an editor and backing out, with a real chance of saving
+  // something by accident.
+  const [preview, setPreview] = useState<TemplateDTO | null>(null);
   const [rejection, setRejection] = useState<TemplateDTO | null>(null);
   const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<TemplateDTO | null>(null);
   const { showToast } = useToast();
@@ -204,6 +199,15 @@ export default function TemplatesPage() {
           <RotateCw className="h-4 w-4" />
         </Button>
       )}
+      <Button
+        variant="ghost"
+        size="sm"
+        title="Preview"
+        aria-label="Preview template"
+        onClick={() => setPreview(t)}
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
       {EDITABLE.has(t.status) && (
         <Button
           variant="ghost"
@@ -409,6 +413,8 @@ export default function TemplatesPage() {
       />
 
       <TemplateLibraryModal open={libraryOpen} onClose={() => setLibraryOpen(false)} />
+
+      <TemplatePreviewModal template={preview} onClose={() => setPreview(null)} />
 
       <Modal
         open={Boolean(rejection)}

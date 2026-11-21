@@ -61,7 +61,13 @@ const SCRIPTS: Record<string, { label: string; pattern: RegExp }> = {
   ar_AR: { label: "Arabic",   pattern: /[؀-ۿ]/ },
 };
 
-function initialDraft(editing: TemplateDTO | null): TemplateDraft {
+/**
+ * A stored template as the preview and the editor both understand it.
+ *
+ * Exported because the list needs to show a template without opening the editor to see
+ * it — the only way to look at one was to start editing it.
+ */
+export function initialDraft(editing: TemplateDTO | null): TemplateDraft {
   const body = editing?.body ?? "";
   // A media header stored as anything but an upload handle is a hand-typed sample URL.
   return {
