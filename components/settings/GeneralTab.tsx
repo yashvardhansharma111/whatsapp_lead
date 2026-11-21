@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Building2, ImagePlus, Mail, Save } from "lucide-react";
@@ -38,6 +40,8 @@ type CategoryData = {
 };
 
 export function GeneralTab() {
+  const { data: session } = useSession();
+  const isReseller = session?.user?.accountType === "RESELLER";
   const qc = useQueryClient();
   const { data, isLoading } = useQuery<SettingsData>({
     queryKey: ["settings"],
@@ -207,6 +211,9 @@ export function GeneralTab() {
               </select>
             </Field>
 
+            {/* A white-label address belongs to a reseller. On an ordinary account it
+                offered to point a CNAME at a domain the account cannot serve. */}
+            {isReseller && (
             <Field label="Custom domain" htmlFor="ws-domain">
               <input
                 id="ws-domain"
@@ -219,6 +226,7 @@ export function GeneralTab() {
                 Point a CNAME record at <code className="font-mono">{process.env.NEXT_PUBLIC_CNAME_TARGET ?? "cname.vercel-dns.com"}</code>, then contact support to activate it.
               </p>
             </Field>
+            )}
 
             <Field label="Timezone" htmlFor="ws-tz">
               <select
@@ -317,6 +325,7 @@ export function GeneralTab() {
         </div>
       </Card>
 
+      {isReseller && (
       <Card className="p-5">
         <h2 className="font-semibold text-slate-900">Social Media Links</h2>
         <p className="mt-0.5 text-sm text-slate-500">
@@ -382,6 +391,7 @@ export function GeneralTab() {
           </div>
         </div>
       </Card>
+      )}
 
       <Card className="border-rose-300 p-5">
         <div className="flex items-start gap-3">
