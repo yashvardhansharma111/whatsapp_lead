@@ -31,7 +31,7 @@ import {
   Trash2,
   ShoppingCart,
   UserRound,
-  X, Phone, ExternalLink,} from "lucide-react";
+  X, Phone, ExternalLink, PlayCircle,} from "lucide-react";
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 import { Avatar, Badge, Button, EmptyState, Skeleton, WaText, inputClass } from "@/components/ui";
 import { NumberBadge } from "@/components/NumberPicker";
@@ -185,6 +185,26 @@ export function ChatWindow({
   const sendMessage = useSendMessage();
   const setAiActive = useSetConversationAiActive();
   const markRead = useMarkConversationRead();
+
+  /**
+   * Opening a thread is reading it.
+   *
+   * The server already zeroes the count when it serves the conversation, so the badge
+   * was outliving the thing it counted: the row kept saying "1" until the agent happened
+   * to reply, and clicking it again changed nothing. This patches the cached list to
+   * match what the server has already done. Replying still marks read as well, for the
+   * case where a message lands while the thread is open.
+   */
+  const markReadRef = useRef(markRead);
+  useEffect(() => { markReadRef.current = markRead; }, [markRead]);
+  // Once per conversation, whatever the payload says. The count is read from the detail
+  // response, so a stale one there would otherwise keep this effect firing forever.
+  const markedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!conversationId || markedRef.current === conversationId) return;
+    markedRef.current = conversationId;
+    markReadRef.current.mutate(conversationId);
+  }, [conversationId]);
 
   /**
    * Hand the change to the mutation and nothing else.
@@ -1053,7 +1073,9 @@ function KnowledgeCitation({
 
 /** Centered event line — today that is a call ("Missed call", "Voice call · 2:13"). */
 function SystemLine({ message }: { message: InboxMessage }) {
-  const call = (message.metadata?.call ?? null) as { status?: string; answeredBy?: string | null } | null;
+  const call = (message.metadata?.call ?? null) as {
+    status?: string; answeredBy?: string | null; callId?: string;
+  } | null;
   const status = call?.status ?? "";
   const Icon =
     status === "MISSED" ? PhoneMissed
@@ -1064,8 +1086,11 @@ function SystemLine({ message }: { message: InboxMessage }) {
     status === "MISSED" || status === "FAILED" ? "bg-rose-50 text-rose-700 ring-rose-600/20"
     : status === "IN_PROGRESS" || status === "RINGING" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
     : "bg-slate-100 text-slate-600 ring-slate-500/20";
+  // Only a call that was actually answered can have audio to play.
+  const playable = Boolean(call?.callId) && status === "COMPLETED";
+
   return (
-    <div className="my-2 flex justify-center">
+    <div className="my-2 flex flex-col items-center gap-1">
       <span className={cn("inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1 ring-inset", tone)}>
         <Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">
@@ -1074,7 +1099,58 @@ function SystemLine({ message }: { message: InboxMessage }) {
         </span>
         <span className="shrink-0 opacity-60">{formatTime(message.createdAt)}</span>
       </span>
+      {playable && <CallRecordingPlayer callId={call!.callId!} />}
     </div>
+  );
+}
+
+/**
+ * Listening back to a call without leaving the conversation.
+ *
+ * The recording was only reachable from the Recordings page, which meant finding the
+ * right row again by time and number — while the thread the agent was already reading
+ * knew exactly which call it was.
+ *
+ * Fetched on demand rather than with the thread: the link is presigned and short-lived,
+ * and most calls in a long history are never played.
+ */
+function CallRecordingPlayer({ callId }: { callId: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "ready" | "none" | "error">("idle");
+  const [url, setUrl] = useState<string | null>(null);
+
+  async function load() {
+    setState("loading");
+    try {
+      const res = await fetch(`/api/calls/${callId}/recording-url`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error ?? "Couldn't load the recording");
+      const data = json?.data ?? json;
+      if (!data?.url) { setState("none"); return; }
+      setUrl(data.url as string);
+      setState("ready");
+    } catch {
+      setState("error");
+    }
+  }
+
+  if (state === "ready" && url) {
+    return <audio src={url} controls preload="metadata" autoPlay className="h-9 w-64 max-w-full" />;
+  }
+
+  if (state === "none") {
+    return <span className="text-[11px] text-slate-400">No recording was saved for this call</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={load}
+      disabled={state === "loading"}
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+    >
+      <PlayCircle className="h-3.5 w-3.5" />
+      {state === "loading" ? "Loading…" : state === "error" ? "Try again" : "Play recording"}
+    </button>
   );
 }
 
