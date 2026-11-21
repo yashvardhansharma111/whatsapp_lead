@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link2, Package, Search, Unlink } from "lucide-react";
 import { Button, Card, EmptyState, PageHeader, Skeleton, inputClass } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { cn } from "@/lib/utils";
 
 interface NumberStatus {
@@ -51,7 +52,14 @@ export default function CataloguePage() {
     queryFn: async () => readJson<NumberStatus[]>(await fetch("/api/catalogue"), "Failed to load"),
   });
 
-  const connected = numbers.find((n) => n.connected) ?? null;
+  // Follow the number chosen in the top bar, the way every other screen does. This took
+  // the first connected number it found, so a workspace with a catalogue on two numbers
+  // could only ever look at one of them — and which one depended on row order.
+  const { numberId } = useNumberFilter();
+  const connected =
+    numbers.find((n) => n.connected && n.id === numberId) ??
+    numbers.find((n) => n.connected) ??
+    null;
 
   const { data: catalogue, isLoading: productsLoading } = useQuery<{ products: Product[] }>({
     queryKey: ["catalogue-products", connected?.id, search],

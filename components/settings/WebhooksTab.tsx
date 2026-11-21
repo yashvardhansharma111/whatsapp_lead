@@ -324,6 +324,10 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [events, setEvents] = useState<string[]>([]);
+  // Optional: every delivery already carries an HMAC signature proving it is ours. Some
+  // receivers authenticate the other way round and expect a key they issued.
+  const [headerKey, setHeaderKey] = useState("");
+  const [headerValue, setHeaderValue] = useState("");
   const [revealSecret, setRevealSecret] = useState<string | null>(null);
 
   const create = useMutation({
@@ -335,6 +339,8 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
         setUrl("");
         setDescription("");
         setEvents([]);
+        setHeaderKey("");
+        setHeaderValue("");
         showToast("Webhook endpoint added.", "success");
         onAdded();
       } else {
@@ -351,7 +357,11 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
     ev.preventDefault();
     if (!url) { showToast("URL is required", "error"); return; }
     if (!events.length) { showToast("Select at least one event", "error"); return; }
-    create.mutate({ url, description, events });
+    if (headerKey.trim() && !headerValue.trim()) {
+      showToast("Give the header a value, or leave both empty.", "error");
+      return;
+    }
+    create.mutate({ url, description, events, headerKey, headerValue });
   }
 
   return (
@@ -379,6 +389,31 @@ function AddEndpointForm({ onAdded }: { onAdded: () => void }) {
           onChange={(e) => setDescription(e.target.value)}
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
+      </div>
+
+      <div className="rounded-lg bg-slate-50 p-3">
+        <p className="text-sm font-medium text-slate-700">Extra header (optional)</p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Every delivery is already signed with <code className="font-mono">X-Webhook-Signature</code>,
+          which proves it came from us. Add a key here only if your endpoint expects one of its own.
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <input
+            type="text"
+            placeholder="X-Api-Key"
+            value={headerKey}
+            onChange={(e) => setHeaderKey(e.target.value)}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <input
+            type="password"
+            placeholder="Its value"
+            value={headerValue}
+            onChange={(e) => setHeaderValue(e.target.value)}
+            autoComplete="off"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
       </div>
 
       <div>
