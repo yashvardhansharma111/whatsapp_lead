@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useConversation, useConversations } from "@/hooks/useMessages";
 import { useInboxRealtime } from "@/hooks/useInboxRealtime";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
+import { useAssignableAgents } from "@/hooks/useAgents";
 import { ChatWindow } from "@/components/inbox/ChatWindow";
 import { ContactPanel } from "@/components/inbox/ContactPanel";
 import {
@@ -125,9 +126,18 @@ function InboxPageInner() {
     return toArray<InboxMessage>(detail?.messages ?? unwrap<unknown>(detailData));
   }, [detailData]);
 
-  /** No team endpoint exists yet — build the assignee options from what we have. */
+  /**
+   * Who a chat can be handed to.
+   *
+   * The real team, from the server. This was built from whoever already appeared as an
+   * assignee on a loaded row, so a teammate who had never been assigned anything could
+   * never be assigned anything. Anyone still on a thread but no longer on the team is
+   * merged in so their name renders instead of a bare id.
+   */
+  const { data: teamData } = useAssignableAgents();
   const agents = useMemo<InboxAgent[]>(() => {
     const byId = new Map<string, InboxAgent>();
+    for (const a of teamData?.agents ?? []) byId.set(a.id, a);
     if (userId) {
       byId.set(userId, {
         id: userId,
@@ -140,7 +150,7 @@ function InboxPageInner() {
       if (agent?.id && !byId.has(agent.id)) byId.set(agent.id, agent);
     }
     return [...byId.values()];
-  }, [all, userId, userName, userAvatar]);
+  }, [all, teamData, userId, userName, userAvatar]);
 
   return (
     // The dashboard <main> adds p-4/lg:p-6 and the topbar is h-16 — cancel both so

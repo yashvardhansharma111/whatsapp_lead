@@ -41,6 +41,7 @@ import {
   type InboxConversation,
   type InboxLead,
 } from "./ConversationList";
+import { LabelPicker } from "./LabelPicker";
 
 interface Ticket {
   id: string;
@@ -205,8 +206,13 @@ export function ContactPanel({
             })}
           </div>
         ) : (
-          <p className="text-xs text-slate-400">No labels.</p>
+          <p className="text-xs text-slate-400">No labels yet.</p>
         )}
+        {/* The panel listed labels and stopped there, so the one place in the inbox
+            where someone reads them was the one place they could not be changed. */}
+        <div className="mt-2">
+          <LabelPicker conversation={conversation} onError={setActionError} />
+        </div>
       </Section>
 
       {/* Quick actions */}
