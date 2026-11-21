@@ -4,23 +4,37 @@ import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search,
-  Gem, Sparkles, UserCheck, UserRound,
+  Check, Gem, Sparkles, UserCheck, UserRound,
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
 import { NumberPicker } from "@/components/NumberPicker";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
+import { useMyPresence, type PresenceState } from "@/hooks/usePresence";
 import { useMarkNotificationsRead, useNotificationList, useUnreadCount, type AppNotification } from "@/hooks/useNotifications";
 import {
   askNotifyPermission, notifyPermission, notifyPermissionOnServer, subscribeNotifyPermission,
 } from "@/lib/notifications/browser";
 
-type AgentStatus = "Online" | "Busy" | "Away";
+/**
+ * Online follows the socket; Away and Busy are chosen and stored.
+ *
+ * This used to be a local `useState` that began at "Online", reset on every reload and
+ * was visible to nobody — a label the person picked for themselves and no teammate ever
+ * saw. "Offline" had no entry at all, because nothing could ever set it.
+ */
+const PRESENCE_DOT: Record<PresenceState, string> = {
+  ONLINE:  "bg-emerald-500",
+  AWAY:    "bg-amber-500",
+  BUSY:    "bg-rose-500",
+  OFFLINE: "bg-slate-300",
+};
 
-const STATUS_DOT: Record<AgentStatus, string> = {
-  Online: "bg-emerald-500",
-  Busy: "bg-rose-500",
-  Away: "bg-amber-500",
+const PRESENCE_LABEL: Record<PresenceState, string> = {
+  ONLINE:  "Online",
+  AWAY:    "Away",
+  BUSY:    "Busy",
+  OFFLINE: "Offline",
 };
 
 const TYPE_ICON: Record<string, typeof Bell> = {
@@ -226,7 +240,7 @@ export function Topbar({
 }
 
 function ClientTopbar({ tenantName, plan }: { tenantName?: string | null; plan?: string | null }) {
-  const [status, setStatus] = useState<AgentStatus>("Online");
+  const presence = useMyPresence();
   const { numberId, setNumberId } = useNumberFilter();
   const [statusOpen, setStatusOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -363,18 +377,34 @@ function ClientTopbar({ tenantName, plan }: { tenantName?: string | null; plan?:
             aria-expanded={statusOpen}
             className="flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50"
           >
-            <span className={cn("h-2 w-2 rounded-full", STATUS_DOT[status])} />
-            <span className="hidden sm:inline">{status}</span>
+            <span className={cn("h-2 w-2 rounded-full", PRESENCE_DOT[presence.state])} />
+            <span className="hidden sm:inline">{PRESENCE_LABEL[presence.state]}</span>
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
 
           {statusOpen && (
             <div role="menu" className="absolute right-0 z-20 mt-1.5 w-36 overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-slate-900/5">
-              {(Object.keys(STATUS_DOT) as AgentStatus[]).map((s) => (
-                <button key={s} role="menuitem" onClick={() => { setStatus(s); setStatusOpen(false); }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50">
-                  <span className={cn("h-2 w-2 rounded-full", STATUS_DOT[s])} />
-                  {s}
+              {/* "Automatic" has to be offerable, or choosing Away once is a one-way
+                  door — there would be no way back to the dot following your connection. */}
+              <button
+                role="menuitem"
+                onClick={() => { void presence.choose(null); setStatusOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+              >
+                <span className={cn("h-2 w-2 rounded-full", presence.manual ? "bg-slate-300" : "bg-emerald-500")} />
+                Automatic
+                {!presence.manual && <Check className="ml-auto h-3.5 w-3.5 text-emerald-600" />}
+              </button>
+              {(["AWAY", "BUSY"] as const).map((s) => (
+                <button
+                  key={s}
+                  role="menuitem"
+                  onClick={() => { void presence.choose(s); setStatusOpen(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                >
+                  <span className={cn("h-2 w-2 rounded-full", PRESENCE_DOT[s])} />
+                  {PRESENCE_LABEL[s]}
+                  {presence.state === s && <Check className="ml-auto h-3.5 w-3.5 text-emerald-600" />}
                 </button>
               ))}
             </div>

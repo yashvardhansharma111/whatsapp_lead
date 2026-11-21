@@ -9,7 +9,6 @@ import {
   BookOpen,
   Clock,
   FileText,
-  HelpCircle,
   LayoutList,
   MessageSquare,
   Paperclip,
@@ -29,7 +28,6 @@ import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } f
 import type { InteractivePayload } from "@/lib/validators/message";
 import { useQuickReplies, type QuickReply } from "@/hooks/useQuickReplies";
 import { contactName, type InboxAgent, type InboxConversation, type InboxMessage } from "./ConversationList";
-import { FaqMenuPicker } from "./FaqMenuPicker";
 import { ChatActionsMenu } from "./ChatActionsMenu";
 import { MenuItem } from "./MenuItem";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
@@ -169,7 +167,6 @@ export function ChatWindow({
    * words to a document.
    */
   const [aiSources, setAiSources] = useState<string[]>([]);
-  const [showFaqMenu, setShowFaqMenu] = useState(false);
   const sendMessage = useSendMessage();
   const setAiActive = useSetConversationAiActive();
   const markRead = useMarkConversationRead();
@@ -705,7 +702,7 @@ export function ChatWindow({
             <div ref={moreRef} className="relative">
               <ComposerIcon
                 icon={Plus}
-                label="More — attach, AI reply, FAQ menu, buttons, note"
+                label="More — attach, template, AI reply, buttons, note"
                 active={showMore}
                 onClick={() => setShowMore((v) => !v)}
               />
@@ -738,13 +735,6 @@ export function ChatWindow({
                     onClick={() => { setShowMore(false); void handleAiSuggest(); }}
                   />
                   <MenuItem
-                    icon={HelpCircle}
-                    label="FAQ menu"
-                    hint="Send a list of common questions"
-                    tone="emerald"
-                    onClick={() => { setShowMore(false); setShowFaqMenu(true); }}
-                  />
-                  <MenuItem
                     icon={LayoutList}
                     label="Buttons or list"
                     hint="An interactive message"
@@ -768,12 +758,6 @@ export function ChatWindow({
               active={showEmoji}
               onClick={() => setShowEmoji((v) => !v)}
             />
-            {showFaqMenu && conversationId && (
-              <FaqMenuPicker
-                conversationId={conversationId}
-                onClose={() => setShowFaqMenu(false)}
-              />
-            )}
             {showEmoji && (
               <div ref={emojiRef} className="absolute bottom-11 left-0 z-30">
                 <EmojiPicker
