@@ -46,15 +46,16 @@ export function useCallControls(): CallControls | null {
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const enabled = useFeature("callingEnabled");
-  return (
-    <>
-      {children}
-      {enabled && <CallManager />}
-    </>
-  );
+  // The manager has to wrap the tree, not sit beside it. As siblings, the context it
+  // provides reached only its own banner and panel, so `useCallControls()` was null
+  // everywhere that matters and the chat's call button never rendered: calls could be
+  // answered but never placed. Without calling in the plan there is still no provider,
+  // which is what hides the button rather than offering one that cannot work.
+  if (!enabled) return <>{children}</>;
+  return <CallManager>{children}</CallManager>;
 }
 
-function CallManager() {
+function CallManager({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const router = useRouter();
   const { data: session } = useSession();
@@ -323,6 +324,7 @@ function CallManager() {
 
   return (
     <CallControlsContext.Provider value={{ placeCall, busy: Boolean(active) || Boolean(connectingId) }}>
+      {children}
       <audio ref={remoteAudio} autoPlay playsInline className="hidden" />
       {banner && (
         <IncomingCallBanner

@@ -50,6 +50,8 @@ import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
 import { TemplateComposer } from "./TemplateComposer";
 import { useAttachmentComposer } from "./useAttachmentComposer";
 import { useCallControls } from "@/components/calls/CallProvider";
+import { callApi, useCallability } from "@/hooks/useCalls";
+import { useToast } from "@/components/ui/toast";
 
 // Lazy-load the picker so its ~400 KB data bundle only downloads when the Smile
 // button is first clicked, not on every inbox load.
@@ -418,21 +420,11 @@ export function ChatWindow({
           {/* Only offered where calling is actually usable: the provider is absent outside
               the dashboard shell, and the contact needs a number to be reachable on. */}
           {callControls && conversation.contact?.id && (
-            <button
-              type="button"
-              onClick={() =>
-                callControls.placeCall(
-                  conversation.contact!.id,
-                  conversation.contact?.name ?? conversation.contact?.phone ?? undefined,
-                )
-              }
-              disabled={callControls.busy}
-              title={callControls.busy ? "Finish the current call first" : "Call this contact"}
-              aria-label="Call this contact"
-              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Phone className="h-4 w-4" />
-            </button>
+            <CallButton
+              contactId={conversation.contact.id}
+              displayName={conversation.contact.name ?? conversation.contact.phone ?? undefined}
+              controls={callControls}
+            />
           )}
           {/* Note, labels, assign, ticket, resolve. These lived only in the panel on the
               right, which is a closed drawer below xl — so from the chat itself there was
@@ -1083,6 +1075,86 @@ function SystemLine({ message }: { message: InboxMessage }) {
         <span className="shrink-0 opacity-60">{formatTime(message.createdAt)}</span>
       </span>
     </div>
+  );
+}
+
+/**
+ * Call, or ask to be allowed to.
+ *
+ * A business cannot simply ring a WhatsApp user: Meta requires permission, it expires,
+ * and it is withdrawn after four unanswered calls. The button used to offer a call
+ * regardless and let Meta refuse it afterwards, which left the agent holding an error
+ * code and no next step. It now asks Meta what is possible and offers that — a call, a
+ * request, or the reason for neither.
+ */
+function CallButton({
+  contactId,
+  displayName,
+  controls,
+}: {
+  contactId: string;
+  displayName?: string;
+  controls: { placeCall: (id: string, name?: string) => Promise<void>; busy: boolean };
+}) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useCallability(contactId);
+  const [asking, setAsking] = useState(false);
+
+  // Until Meta has answered, offer the call. The old behaviour is the safe default:
+  // worst case Meta refuses and says why, which beats hiding a call that would work.
+  const canCall = data?.canCall ?? true;
+  const canAsk = !canCall && Boolean(data?.canRequest);
+
+  async function ask() {
+    setAsking(true);
+    try {
+      await callApi.requestPermission(contactId);
+      showToast("Asked them to allow calls — they answer from their own chat", "success");
+      void queryClient.invalidateQueries({ queryKey: ["callability", contactId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversation"] });
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Couldn't ask for call permission", "error");
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  if (canAsk) {
+    return (
+      <button
+        type="button"
+        onClick={ask}
+        disabled={asking}
+        title={data?.reason ?? "Ask them to allow calls"}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <PhoneCall className="h-4 w-4" />
+        <span className="hidden sm:inline">{asking ? "Asking…" : "Ask to call"}</span>
+      </button>
+    );
+  }
+
+  const blocked = !canCall && !canAsk && !isLoading;
+  const why = blocked
+    ? data?.reason ?? "WhatsApp will not allow a call to this contact yet"
+    : controls.busy
+      ? "Finish the current call first"
+      : data?.expiresAt
+        ? `Call this contact — they allowed calls until ${new Date(data.expiresAt).toLocaleString()}`
+        : "Call this contact";
+
+  return (
+    <button
+      type="button"
+      onClick={() => controls.placeCall(contactId, displayName)}
+      disabled={controls.busy || blocked}
+      title={why}
+      aria-label={why}
+      className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Phone className="h-4 w-4" />
+    </button>
   );
 }
 

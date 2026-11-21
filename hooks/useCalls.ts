@@ -43,7 +43,41 @@ export const callApi = {
       .then((r) => unwrap<{ ok: boolean }>(r, "Couldn't answer the call")),
   reject: (id: string) => fetch(`/api/calls/${id}/reject`, { method: "POST" }).then((r) => unwrap<{ ok: boolean }>(r, "Couldn't decline the call")),
   hangup: (id: string) => fetch(`/api/calls/${id}/hangup`, { method: "POST" }).then((r) => unwrap<{ ok: boolean }>(r, "Couldn't end the call")),
+  /** What WhatsApp currently allows for this contact — Meta decides, we only report it. */
+  callability: (contactId: string) =>
+    fetch(`/api/calls/permission/${contactId}`).then((r) => unwrap<Callability>(r, "Couldn't check calling")),
+  /** Sends the in-chat prompt asking them to allow calls. */
+  requestPermission: (contactId: string) =>
+    fetch(`/api/calls/permission/${contactId}`, { method: "POST" })
+      .then((r) => unwrap<{ success: boolean }>(r, "Couldn't ask for call permission")),
 };
+
+export interface Callability {
+  /** Meta will accept a call to this contact right now. */
+  canCall: boolean;
+  /** Meta will accept a permission request right now. */
+  canRequest: boolean;
+  status: "temporary" | "permanent" | "no_permission" | "disabled" | "unknown" | string;
+  expiresAt: string | null;
+  /** Why neither is possible, in words an agent can act on. Null when calling is fine. */
+  reason: string | null;
+}
+
+/**
+ * Whether this contact can be called.
+ *
+ * Asked per contact rather than assumed, because permission expires, is revoked after
+ * four unanswered calls, and both calling and asking are rate-limited by Meta.
+ */
+export function useCallability(contactId: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["callability", contactId],
+    queryFn: () => callApi.callability(contactId!),
+    enabled: Boolean(contactId) && enabled,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
 
 export function useCallHistory(params: { page?: number; limit?: number; status?: string; contactId?: string; conversationId?: string } = {}) {
   return useQuery({
