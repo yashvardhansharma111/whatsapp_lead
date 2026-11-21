@@ -4,21 +4,19 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  Building2, MessageSquare, CreditCard, Bell, KanbanSquare,
-  UserCircle, Zap, Webhook, DollarSign, BellOff, ScrollText, ChevronRight, Users,
+  Building2, MessageSquare, Bell, KanbanSquare,
+  UserCircle, Zap, Webhook, DollarSign, BellOff, ChevronRight, Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { AccountTab } from "@/components/settings/AccountTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { WhatsAppTab } from "@/components/settings/WhatsAppTab";
-import { BillingTab } from "@/components/settings/BillingTab";
 import { NotificationsTab } from "@/components/settings/NotificationsTab";
 import { LeadStagesTab } from "@/components/settings/LeadStagesTab";
 import { QuickRepliesTab } from "@/components/settings/QuickRepliesTab";
 import { WebhooksTab } from "@/components/settings/WebhooksTab";
 import { MessageRatesTab } from "@/components/settings/MessageRatesTab";
 import { OptOutTab } from "@/components/settings/OptOutTab";
-import { ActivityTab } from "@/components/settings/ActivityTab";
 import { DepartmentsTab } from "@/components/settings/DepartmentsTab";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFeature } from "@/hooks/useFeature";
@@ -68,13 +66,6 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
       { key: "whatsapp",      label: "WhatsApp numbers", icon: MessageSquare, permission: "settings.manage" },
       { key: "quick-replies", label: "Quick replies",    icon: Zap,           permission: "campaigns.view" },
       { key: "opt-out",       label: "Opt-out manager",  icon: BellOff,       permission: "settings.manage" },
-    ],
-  },
-  {
-    section: "Plan & records",
-    tabs: [
-      { key: "billing",  label: "Billing",      icon: CreditCard, permission: "billing.manage" },
-      { key: "activity", label: "Activity log", icon: ScrollText, permission: "reports.view" },
     ],
   },
   {
@@ -203,12 +194,10 @@ function SettingsPageInner() {
           {activeTab === "departments"   && <DepartmentsTab />}
           {activeTab === "whatsapp"      && <WhatsAppTab />}
           {activeTab === "quick-replies" && <QuickRepliesTab />}
-          {activeTab === "billing"       && <BillingTab />}
           {activeTab === "opt-out"       && <OptOutTab />}
           {activeTab === "webhooks"      && <WebhooksTab />}
           {activeTab === "message-rates" && <MessageRatesTab />}
           {activeTab === "notifications" && <NotificationsTab />}
-          {activeTab === "activity"      && <ActivityTab />}
         </div>
       </div>
     </div>

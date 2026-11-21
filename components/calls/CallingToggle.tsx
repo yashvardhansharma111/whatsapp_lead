@@ -63,7 +63,7 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
           <p className="text-sm font-medium text-slate-800">WhatsApp calling</p>
           <p className="text-xs text-slate-500">
             {settings.data?.error
-              ? `Couldn't read the setting from Meta: ${settings.data.error}`
+              ? settings.data.error
               : on
                 ? "Customers can call this number; agents answer from the inbox."
                 : "Off. Needs the calls webhook subscribed in your Meta app and the 2,000/day tier."}

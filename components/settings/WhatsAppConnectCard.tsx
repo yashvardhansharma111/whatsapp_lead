@@ -777,16 +777,34 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
             only option when it is not. Users who already have a permanent system
             user access token can use this instead of the Facebook flow.         */}
         <div className="mt-4">
+          {/* A real option, not a footnote. This was grey text the width of a sentence,
+              which read as small print next to the big blue Facebook button — so the
+              path most people with an existing token should take looked like the one
+              they were not meant to. */}
           <button
             type="button"
             onClick={() => setManualOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
             aria-expanded={manualOpen}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition",
+              manualOpen
+                ? "border-slate-300 bg-slate-50"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+            )}
           >
-            <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {config?.enabled ? "Or enter credentials manually" : "Enter credentials manually"}
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <KeyRound className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-slate-800">
+                {config?.enabled ? "Connect with your own token instead" : "Connect with your own token"}
+              </span>
+              <span className="block text-xs text-slate-500">
+                For a number already set up in Meta Business Suite. Four values, two minutes.
+              </span>
+            </span>
             <ChevronDown
-              className={cn("h-3.5 w-3.5 shrink-0 transition-transform", manualOpen && "rotate-180")}
+              className={cn("h-4 w-4 shrink-0 text-slate-400 transition-transform", manualOpen && "rotate-180")}
               aria-hidden
             />
           </button>
@@ -796,13 +814,20 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
               onSubmit={(e) => { e.preventDefault(); submitManual(); }}
               className="mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4"
             >
-              <p className="text-xs text-slate-500">
-                Get these from{" "}
-                <span className="font-medium text-slate-700">Meta Business Suite → WhatsApp Manager</span>{" "}
-                or a permanent system-user access token. The token is encrypted before it is stored.
+              <p className="text-xs leading-relaxed text-slate-500">
+                All four come from your Meta app. Open{" "}
+                <a
+                  href="https://business.facebook.com/wa/manage/phone-numbers/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-emerald-700 underline underline-offset-2"
+                >
+                  WhatsApp Manager
+                </a>{" "}
+                in another tab and copy them across. The token is encrypted before it is stored.
               </p>
 
-              <Field label="Access Token">
+              <Field label="Access token — WhatsApp Manager → API Setup, or a permanent system-user token">
                 <input
                   className={inputClass}
                   type="password"
@@ -814,7 +839,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
                 />
               </Field>
 
-              <Field label="Phone Number ID">
+              <Field label="Phone number ID — under the number in API Setup (digits, not the phone number)">
                 <input
                   className={inputClass}
                   value={manualPhoneId}
@@ -825,7 +850,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
                 />
               </Field>
 
-              <Field label="WhatsApp Business Account (WABA) ID">
+              <Field label="WhatsApp Business Account ID — same page, above the number">
                 <input
                   className={inputClass}
                   value={manualWabaId}
@@ -836,7 +861,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
                 />
               </Field>
 
-              <Field label="App Secret (optional — needed to receive inbound messages)">
+              <Field label="App secret — Meta app → Settings → Basic. Without it, messages cannot be received">
                 <input
                   className={inputClass}
                   type="password"
