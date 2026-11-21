@@ -68,19 +68,24 @@ export function useWhatsAppNumbers() {
 }
 
 /**
- * The number a view is filtered to, remembered across a refresh.
+ * The number the whole app is filtered to, remembered across a refresh.
  *
- * Choosing a number and losing it on reload is worse than never offering the choice, so
- * it is kept per browser. A remembered id that no longer resolves — the number was
- * removed, or belongs to a workspace since switched away from — reads as "all numbers"
- * rather than leaving the chooser blank and the list silently empty.
+ * One choice, made once in the top bar. It used to be per view — the inbox and the
+ * template list each kept their own — which meant picking a number in one place and
+ * finding the other still showing everything, with two dropdowns on screen saying
+ * different things.
  *
- * @param scope separates one view's choice from another's, so the inbox and the template
- *   list are not forced to agree.
+ * No provider: `useStickyState` is a `useSyncExternalStore` over one localStorage key
+ * with a shared listener, so every caller of this hook already re-renders together,
+ * wherever it sits in the tree.
+ *
+ * A remembered id that no longer resolves — the number was removed, or belongs to a
+ * workspace since switched away from — reads as "all numbers" rather than leaving the
+ * chooser blank and the list silently empty.
  */
-export function useNumberFilter(scope: string) {
+export function useNumberFilter() {
   const query = useWhatsAppNumbers();
-  const [stored, setNumberId] = useStickyState(`wa.number.${scope}`);
+  const [stored, setNumberId] = useStickyState("wa.number");
 
   const known = !stored || query.isLoading || query.numbers.some((n) => n.id === stored);
 

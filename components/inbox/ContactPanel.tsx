@@ -355,6 +355,19 @@ export function ContactPanel({
             value={agents.find((a) => a.id === assignee)?.name || "Unassigned"}
           />
           <Detail label="Channel" value={conversation.channel ?? "WHATSAPP"} />
+          {/* Which of our numbers this thread is on. It used to be a chip on every row
+              and again in the chat header, repeating the same word down the screen;
+              asked for once, here, it is answered without the noise. */}
+          {conversation.whatsappIntegration && (
+            <Detail
+              label="Number"
+              value={
+                conversation.whatsappIntegration.displayName?.trim() ||
+                conversation.whatsappIntegration.phoneNumber ||
+                "—"
+              }
+            />
+          )}
           <Detail
             label="Status"
             value={

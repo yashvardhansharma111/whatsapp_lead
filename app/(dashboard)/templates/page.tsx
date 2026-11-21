@@ -23,7 +23,6 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { TemplateBuilder } from "@/components/templates/TemplateBuilder";
-import { NumberPicker } from "@/components/NumberPicker";
 import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { cn, formatDate } from "@/lib/utils";
 import { TemplateLibraryModal } from "@/components/templates/TemplateLibraryModal";
@@ -71,7 +70,7 @@ export default function TemplatesPage() {
   // Which number's templates to show. A template belongs to a WhatsApp account, so in a
   // workspace with numbers on different accounts the full list is not sendable from any
   // one of them.
-  const { numberId, setNumberId } = useNumberFilter("templates");
+  const { numberId } = useNumberFilter();
   const { data, isLoading, isError, refetch } = useTemplates(numberId || undefined);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [modal, setModal] = useState<{ open: boolean; editing: TemplateDTO | null }>({ open: false, editing: null });
@@ -270,16 +269,6 @@ export default function TemplatesPage() {
             </Button>
           </div>
         }
-      />
-
-      {/* Renders nothing when the workspace has one connected number. */}
-      <NumberPicker
-        id="templates-number"
-        value={numberId}
-        onChange={setNumberId}
-        anyLabel="All numbers"
-        hint="A template can only be sent from a number in its own WhatsApp account."
-        className="mb-4 max-w-sm"
       />
 
       <div className="scrollbar-slim mb-4 flex gap-1 overflow-x-auto border-b border-slate-200">

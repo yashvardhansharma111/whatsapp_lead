@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
+import { NumberPicker } from "@/components/NumberPicker";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 import { useMarkNotificationsRead, useNotificationList, useUnreadCount, type AppNotification } from "@/hooks/useNotifications";
 import {
   askNotifyPermission, notifyPermission, notifyPermissionOnServer, subscribeNotifyPermission,
@@ -217,6 +219,7 @@ export function Topbar({ tenantName, reseller = false }: { tenantName?: string |
 
 function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
   const [status, setStatus] = useState<AgentStatus>("Online");
+  const { numberId, setNumberId } = useNumberFilter();
   const [statusOpen, setStatusOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<{ contacts: {id:string;name:string;phone:string}[]; leads: {id:string;title:string;stage:{name?:string|null}|null}[] } | null>(null);
@@ -260,6 +263,13 @@ function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
 
   return (
     <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 pl-16 backdrop-blur-sm lg:px-6 lg:pl-6">
+      {/* One number for the whole app. It sits here rather than on each screen because
+          the answer is the same everywhere: inbox, templates and reports were each
+          asking separately and could disagree. Self-hides when there is one number. */}
+      <div className="hidden shrink-0 md:block">
+        <NumberPicker id="global-number" anyLabel="All numbers" value={numberId} onChange={setNumberId} />
+      </div>
+
       {/* Global search */}
       <div className="relative w-full max-w-sm" ref={searchRef}>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

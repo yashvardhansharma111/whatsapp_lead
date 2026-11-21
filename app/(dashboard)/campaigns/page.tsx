@@ -562,7 +562,7 @@ function CreateCampaignModal({
     numbers,
     isLoading: numbersLoading,
     isError: numbersError,
-  } = useNumberFilter("campaigns");
+  } = useNumberFilter();
   const sendFromId = numberId || (!hasChoice ? defaultNumber?.id ?? "" : "");
   const [bodyVarMapping, setBodyVarMapping] = useState<string[]>([]);
   // Dynamic URL buttons: a contact field ("name" / "phone" / "company") or literal text per link.

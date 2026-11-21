@@ -1,7 +1,7 @@
 "use client";
 
 import { Phone } from "lucide-react";
-import { numberLabel, useWhatsAppNumbers, type WhatsAppNumber } from "@/hooks/useWhatsAppNumbers";
+import { numberLabel, useWhatsAppNumbers } from "@/hooks/useWhatsAppNumbers";
 import { cn } from "@/lib/utils";
 
 /**
@@ -64,18 +64,3 @@ export function NumberPicker({
 }
 
 /** A small label saying which number a thread is on. */
-export function NumberBadge({ number, className }: { number: WhatsAppNumber | null; className?: string }) {
-  const { hasChoice } = useWhatsAppNumbers();
-  // With one number connected, saying which one is noise on every row.
-  if (!hasChoice || !number) return null;
-
-  return (
-    <span className={cn(
-      "inline-flex shrink-0 items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600",
-      className,
-    )}>
-      <Phone className="h-2.5 w-2.5" />
-      {number.displayName?.trim() || number.phoneNumber || "number"}
-    </span>
-  );
-}

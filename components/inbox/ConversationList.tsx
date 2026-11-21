@@ -7,7 +7,6 @@ type MessageDirection = string;
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
 type MessageType = string;
 import { Avatar, EmptyState, Skeleton } from "@/components/ui";
-import { NumberBadge, NumberPicker } from "@/components/NumberPicker";
 import { cn, timeAgo } from "@/lib/utils";
 import { NewChatButton } from "@/components/inbox/NewChatButton";
 
@@ -140,8 +139,6 @@ export function ConversationList({
   onSearchChange,
   tab,
   onTabChange,
-  numberId,
-  onNumberChange,
   onStartChat,
   className,
 }: {
@@ -154,9 +151,6 @@ export function ConversationList({
   onSearchChange: (value: string) => void;
   tab: InboxTab;
   onTabChange: (tab: InboxTab) => void;
-  /** Which connected number's threads to show. Empty means all of them. */
-  numberId: string;
-  onNumberChange: (id: string) => void;
   /** Opens a chat with a number that has not written in. */
   onStartChat: (conversationId: string) => void;
   className?: string;
@@ -181,15 +175,6 @@ export function ConversationList({
           </div>
           <NewChatButton onOpened={onStartChat} />
         </div>
-
-        {/* Which connected number. Renders nothing when the workspace has one. */}
-        <NumberPicker
-          id="inbox-number"
-          value={numberId}
-          onChange={onNumberChange}
-          anyLabel="All numbers"
-          className="mt-2"
-        />
 
         {/* Filter tabs. Five of these have to survive a 320px column, so the
             padding is tight enough that "Mine" isn't clipped off the end. */}
@@ -342,17 +327,7 @@ function ConversationRow({
           </span>
 
           {/* Which number this came in on. Hidden unless the workspace has several. */}
-          {conversation.whatsappIntegration && (
-            <span className="mt-1 flex">
-              <NumberBadge number={{
-                id: conversation.whatsappIntegration.id,
-                displayName: conversation.whatsappIntegration.displayName,
-                phoneNumber: conversation.whatsappIntegration.phoneNumber,
-                phoneNumberId: null, whatsappBusinessId: null, isDefault: false, isActive: true,
-              }} />
-            </span>
-          )}
-
+    
           {labels.length > 0 && (
             <span className="mt-1.5 flex flex-wrap gap-1">
               {labels.slice(0, 3).map((label) => (

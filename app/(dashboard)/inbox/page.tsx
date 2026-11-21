@@ -59,7 +59,7 @@ function InboxPageInner() {
   /** Empty means every connected number. Only offered when more than one exists. */
   // Remembered per browser: picking a number and losing it on reload is worse than
   // never having offered the choice.
-  const { numberId, setNumberId } = useNumberFilter("inbox");
+  const { numberId } = useNumberFilter();
   /** Below xl the contact panel is a slide-over drawer rather than a third column. */
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -164,8 +164,6 @@ function InboxPageInner() {
         onSearchChange={setSearch}
         tab={tab}
         onTabChange={setTab}
-        numberId={numberId}
-        onNumberChange={setNumberId}
         onStartChat={handleSelect}
         className={cn("w-full shrink-0 md:w-80", selectedId && "hidden md:flex")}
       />

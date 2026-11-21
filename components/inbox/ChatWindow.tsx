@@ -23,7 +23,6 @@ import {
   X,
 } from "lucide-react";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
-import { NumberBadge } from "@/components/NumberPicker";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT } from "@/lib/attachments";
 import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
@@ -413,14 +412,6 @@ export function ChatWindow({
             </p>
             {/* Which of your numbers this thread is on. Replies go back out from it,
                 never from another, so it is worth seeing before typing. */}
-            {conversation.whatsappIntegration && (
-              <NumberBadge number={{
-                id: conversation.whatsappIntegration.id,
-                displayName: conversation.whatsappIntegration.displayName,
-                phoneNumber: conversation.whatsappIntegration.phoneNumber,
-                phoneNumberId: null, whatsappBusinessId: null, isDefault: false, isActive: true,
-              }} />
-            )}
           </div>
         </div>
 
