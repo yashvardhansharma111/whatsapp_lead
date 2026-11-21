@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BookOpen,
   Clock,
+  FileText,
   HelpCircle,
   LayoutList,
   MessageSquare,
@@ -19,7 +20,6 @@ import {
   Sparkles,
   StickyNote,
   Trash2,
-  UserRound,
   X,
 } from "lucide-react";
 import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
@@ -85,6 +85,7 @@ export function ChatWindow({
   const [isNote, setIsNote] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<InboxMessage | null>(null);
   const [showInteractive, setShowInteractive] = useState(false);
@@ -402,9 +403,13 @@ export function ChatWindow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
-            <Badge className={cn("hidden sm:inline-flex", CONVERSATION_STATUS_STYLE[status])}>
-              {String(status).toLowerCase()}
-            </Badge>
+            {/* "open" is the state nearly every thread is in, so saying it on nearly
+                every thread says nothing. Resolved and closed are worth a word. */}
+            {status !== "OPEN" && (
+              <Badge className={cn("hidden sm:inline-flex", CONVERSATION_STATUS_STYLE[status])}>
+                {String(status).toLowerCase()}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <p className="truncate text-xs text-slate-500">
@@ -425,30 +430,16 @@ export function ChatWindow({
               controls={callControls}
             />
           )}
-          {/* Note, labels, assign, ticket, resolve. These lived only in the panel on the
-              right, which is a closed drawer below xl — so from the chat itself there was
-              no way to do any of them. */}
-          <ChatActionsMenu conversation={conversation} agents={agents} />
-          <span className="hidden text-xs font-medium text-slate-600 sm:inline">AI Auto-Reply</span>
-          <Sparkles
-            className={cn("h-4 w-4 sm:hidden", aiActive ? "text-emerald-600" : "text-slate-400")}
+          {/* Everything else — note, labels, assign, ticket, resolve, the AI switch and
+              the contact drawer — is behind one menu. The header carried six controls
+              and the contact's name had to compete with them for the width. */}
+          <ChatActionsMenu
+            conversation={conversation}
+            agents={agents}
+            aiActive={aiActive}
+            onAiToggle={handleAiToggle}
+            onShowContact={onShowContact}
           />
-          <Switch
-            checked={aiActive}
-            onChange={handleAiToggle}
-            label="Toggle AI auto-reply for this conversation"
-          />
-          {onShowContact && (
-            <button
-              type="button"
-              onClick={onShowContact}
-              aria-label="Show contact details"
-              title="Contact details"
-              className="-mr-1.5 rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 xl:hidden"
-            >
-              <UserRound className="h-5 w-5" />
-            </button>
-          )}
         </div>
       </header>
 
@@ -518,6 +509,19 @@ export function ChatWindow({
       {/* A chat WhatsApp will not carry a typed message to gets the template composer in
           place of the text box, not beside it — offering a box that cannot work is how
           an agent ends up watching a reply fail silently at Meta. */}
+      {conversationId && !windowShut && (
+        <TemplateComposer
+          conversationId={conversationId}
+          whatsappIntegrationId={conversation?.whatsappIntegrationId}
+          footer={false}
+          open={showTemplate}
+          onOpenChange={setShowTemplate}
+          onSent={() => {
+            void queryClient.invalidateQueries({ queryKey: ["conversations", conversationId] });
+          }}
+        />
+      )}
+
       {windowShut && conversationId ? (
         <TemplateComposer
           conversationId={conversationId}
@@ -709,6 +713,16 @@ export function ChatWindow({
                     label="Attach a file"
                     onClick={() => { setShowMore(false); fileRef.current?.click(); }}
                   />
+                  {/* A template was only reachable once the 24-hour window had shut, as
+                      the thing that replaced the text box. But a template is also how you
+                      send an image header or buttons to someone who wrote a minute ago,
+                      and there was no way to do that from the inbox at all. */}
+                  <MenuItem
+                    icon={FileText}
+                    label="Send a template"
+                    hint="Approved message, with image or buttons"
+                    onClick={() => { setShowMore(false); setShowTemplate(true); }}
+                  />
                   <MenuItem
                     icon={Sparkles}
                     label={isAiGenerating ? "Generating…" : "AI reply"}
@@ -895,41 +909,6 @@ export function ChatWindow({
     </div>
   );
 }
-
-function Switch({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
-        checked ? "bg-emerald-600" : "bg-slate-300",
-      )}
-    >
-      <span
-        className={cn(
-          "inline-block h-4 w-4 rounded-full bg-white shadow transition",
-          checked ? "translate-x-4.5" : "translate-x-0.5",
-        )}
-      />
-    </button>
-  );
-}
-
-/** A row in the composer's "+" menu: what it does, and a line on why you would. */
-
 function ComposerIcon({
   icon: Icon,
   label,

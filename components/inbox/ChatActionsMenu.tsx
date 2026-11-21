@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   CheckCircle,
   Loader2,
-  Plus,
+  Menu,
+  Sparkles,
   StickyNote,
   Tag,
   Ticket as TicketIcon,
@@ -53,9 +54,17 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function ChatActionsMenu({
   conversation,
   agents = [],
+  aiActive,
+  onAiToggle,
+  onShowContact,
 }: {
   conversation: InboxConversation;
   agents?: InboxAgent[];
+  /** The per-thread auto-reply switch, moved in from the header. */
+  aiActive?: boolean;
+  onAiToggle?: (next: boolean) => void;
+  /** Below xl the contact panel is a drawer, and this is the way into it. */
+  onShowContact?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
@@ -118,14 +127,19 @@ export function ChatActionsMenu({
         onClick={() => (open ? close() : setOpen(true))}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Chat actions — note, labels, assign, ticket"
-        title="Note, labels, assign, ticket"
+        aria-label="Chat actions — AI auto-reply, note, labels, assign, ticket"
+        title="Chat actions"
         className={cn(
           "rounded-lg p-1.5 transition",
           open ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
         )}
       >
-        <Plus className="h-4 w-4" />
+        <Menu className="h-4 w-4" />
+        {/* The AI switch decides whether a bot answers your customer. Hidden behind a
+            menu it could be on for days unnoticed, so its state stays on the trigger. */}
+        {aiActive && (
+          <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+        )}
       </button>
 
       {open && (
@@ -150,6 +164,36 @@ export function ChatActionsMenu({
 
           {view === "menu" && (
             <div className="py-1">
+              {onAiToggle && (
+                <label className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition hover:bg-slate-50">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-slate-800">AI auto-reply</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {aiActive ? "Answering this chat" : "Off for this chat"}
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={Boolean(aiActive)}
+                    onChange={(e) => onAiToggle(e.target.checked)}
+                    aria-label="Toggle AI auto-reply for this conversation"
+                    className="h-4 w-4 shrink-0 accent-emerald-600"
+                  />
+                </label>
+              )}
+              {onShowContact && (
+                <div className="xl:hidden">
+                  <MenuItem
+                    icon={UserRound}
+                    label="Contact details"
+                    onClick={() => { close(); onShowContact(); }}
+                  />
+                </div>
+              )}
               <MenuItem
                 icon={StickyNote}
                 label="Add a note"

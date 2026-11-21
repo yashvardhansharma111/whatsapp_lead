@@ -65,15 +65,28 @@ export function TemplateComposer({
   whatsappIntegrationId,
   reason,
   onSent,
+  footer = true,
+  open: openProp,
+  onOpenChange,
 }: {
   conversationId: string;
   whatsappIntegrationId?: string | null;
   /** Why the text box is not available, in words the agent can repeat to a colleague. */
-  reason: string;
+  reason?: string;
   onSent: () => void;
+  /**
+   * The amber bar that replaces the text box when the window is shut. Omitted when the
+   * window is open and a template is a choice rather than the only option — the dialog
+   * is then opened from the composer menu instead.
+   */
+  footer?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { data, isLoading } = useTemplates(whatsappIntegrationId ?? undefined);
-  const [open, setOpen] = useState(false);
+  const [openSelf, setOpenSelf] = useState(false);
+  const open = openProp ?? openSelf;
+  const setOpen = onOpenChange ?? setOpenSelf;
   const [templateId, setTemplateId] = useState("");
   const [vars, setVars] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([]);
@@ -175,6 +188,7 @@ export function TemplateComposer({
   return (
     <>
       {/* The footer stays one line tall whatever the template needs. */}
+      {footer && (
       <div className="shrink-0 border-t border-slate-200 bg-amber-50/60 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:px-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="min-w-[12rem] flex-1 text-xs leading-relaxed text-amber-900">{reason}</p>
@@ -194,12 +208,17 @@ export function TemplateComposer({
           </p>
         )}
       </div>
+      )}
 
       <Modal
         open={open}
         onClose={() => { if (!sending) { setOpen(false); reset(); } }}
         title="Send a template"
-        description="Outside the 24-hour window only an approved template reaches them. This is what they will see."
+        description={
+          footer
+            ? "Outside the 24-hour window only an approved template reaches them. This is what they will see."
+            : "An approved message, with an image header or buttons if the template has them. This is what they will see."
+        }
         className="sm:max-w-3xl"
       >
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_17rem]">
