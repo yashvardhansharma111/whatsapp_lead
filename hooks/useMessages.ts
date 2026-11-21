@@ -76,20 +76,23 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 interface ConversationFilters {
   status?: string;
-  assigneeId?: string;
+  assignedToId?: string;
   /** Narrow the inbox to threads that arrived on one connected number. */
   whatsappIntegrationId?: string;
 }
 
 /**
- * PATCH /api/conversations/[id] validates with a `strictObject` naming the field `assigneeId` — the
- * API name and the `assignedToId` column it writes deliberately differ. This interface said
- * `assignedToId`, which that validator rejects outright, so any assignment made through this hook
- * would have failed; it names what the route actually accepts.
+ * The field is `assignedToId`, which is what the gateway reads.
+ *
+ * It was `assigneeId`, named after a Next.js route that validated and renamed it. That
+ * route is gone — `/api/conversations/*` is proxied straight to the gateway now, and the
+ * gateway destructures `assignedToId`. So `assigneeId` arrived as an unknown key, the
+ * column was written with `undefined`, and the PATCH returned 200 having changed nothing.
+ * Assigning a chat to a teammate looked like it worked and never did.
  */
 interface UpdateConversationInput {
   status?: "OPEN" | "ASSIGNED" | "RESOLVED" | "CLOSED";
-  assigneeId?: string | null;
+  assignedToId?: string | null;
   /** Per-conversation AI auto-reply switch, stored on the conversation itself. */
   isAiActive?: boolean;
   /** Pass 0 to mark the conversation as fully read. Only 0 is accepted by the API. */
@@ -102,7 +105,7 @@ export function useConversations(filters?: ConversationFilters) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
-      if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
+      if (filters?.assignedToId) params.set("assignedToId", filters.assignedToId);
       if (filters?.whatsappIntegrationId) params.set("whatsappIntegrationId", filters.whatsappIntegrationId);
       const res = await fetch(`/api/conversations?${params}`);
       if (!res.ok) throw new Error("Failed to fetch conversations");

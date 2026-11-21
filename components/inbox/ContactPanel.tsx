@@ -324,7 +324,7 @@ export function ContactPanel({
             update.mutate(
               // "" is the Unassigned option; the API models that as an explicit null, not a
               // missing field — omitting it would fail the "provide at least one" refinement.
-              { id: conversation.id, data: { assigneeId: next === "" ? null : next } },
+              { id: conversation.id, data: { assignedToId: next === "" ? null : next } },
               {
                 onError: (e: Error) => {
                   setAssignee(conversation.assignedTo?.id ?? conversation.assignedToId ?? "");

@@ -525,7 +525,7 @@ export function ChatWindow({
           whatsappIntegrationId={conversation?.whatsappIntegrationId}
           reason={windowReason}
           onSent={() => {
-            void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+            void queryClient.invalidateQueries({ queryKey: ["conversations", conversationId] });
           }}
         />
       ) : (

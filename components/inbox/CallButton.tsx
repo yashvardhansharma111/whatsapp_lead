@@ -40,7 +40,7 @@ export function CallButton({
       await callApi.requestPermission(contactId);
       showToast("Asked them to allow calls — they answer from their own chat", "success");
       void queryClient.invalidateQueries({ queryKey: ["callability", contactId] });
-      void queryClient.invalidateQueries({ queryKey: ["conversation"] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Couldn't ask for call permission", "error");
     } finally {

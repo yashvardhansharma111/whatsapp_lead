@@ -520,10 +520,10 @@ function AssignPicker({
   const update = useUpdateConversation();
   const current = conversation.assignedTo?.id ?? conversation.assignedToId ?? "";
 
-  const pick = (assigneeId: string | null) => {
+  const pick = (assignedToId: string | null) => {
     onError(null);
     update.mutate(
-      { id: conversation.id, data: { assigneeId } },
+      { id: conversation.id, data: { assignedToId } },
       { onSuccess: onPicked, onError: (e: Error) => onError(e.message) },
     );
   };

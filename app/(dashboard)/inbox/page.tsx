@@ -74,7 +74,7 @@ function InboxPageInner() {
     const status = STATUS_BY_TAB[tab];
     const forNumber = numberId ? { whatsappIntegrationId: numberId } : {};
     if (status) return { status, ...forNumber };
-    if (tab === "mine" && userId) return { assigneeId: userId, ...forNumber };
+    if (tab === "mine" && userId) return { assignedToId: userId, ...forNumber };
     return numberId ? forNumber : undefined;
   }, [tab, userId, numberId]);
 
