@@ -115,7 +115,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {/* A reseller is billed for the white-label fee, not a plan, and the Super
             Admin viewing an account is not the person who would renew it. */}
         {!isReseller && !viewing && <PlanDueBanner />}
-        <Topbar tenantName={session.user.tenantName} reseller={isReseller} />
+        <Topbar
+          tenantName={session.user.tenantName}
+          plan={plan}
+          reseller={isReseller}
+        />
         <main className="scrollbar-slim flex-1 overflow-auto p-4 lg:p-6">{children}</main>
       </div>
 

@@ -33,7 +33,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
-type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
+type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "COMPLETED" | "FAILED" | "PAUSED" | "CANCELLED";
 import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/components/ui";
 import { COUNTRIES } from "@/components/ui/PhoneInput";
 import { useToast } from "@/components/ui/toast";
@@ -1306,7 +1306,7 @@ function MessagePreview({ template, values, caption }: { template: TemplateDTO; 
   );
 }
 
-const DONE: CampaignStatus[] = ["COMPLETED", "SENT", "FAILED", "CANCELLED"];
+const DONE: CampaignStatus[] = ["COMPLETED", "FAILED", "CANCELLED"];
 
 /**
  * Live progress for a launched broadcast. Polls the campaigns list (a light summary

@@ -21,7 +21,7 @@ import {
   Send,
   Filter,
 } from "lucide-react";
-type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PROCESSING" | "COMPLETED" | "SENT" | "FAILED" | "PAUSED" | "CANCELLED";
+type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "COMPLETED" | "FAILED" | "PAUSED" | "CANCELLED";
 type Campaign = { id: string; name: string; status: CampaignStatus; scheduledAt?: string | null; createdAt: string; totalCount: number; sentCount: number; deliveredCount: number; readCount: number; clickedCount?: number; repliedCount: number; failedCount: number; [key: string]: unknown; };
 import {
   Badge,
@@ -64,9 +64,7 @@ const STATUS_STYLE: Record<CampaignStatus, string> = {
   DRAFT: "bg-slate-100 text-slate-600 ring-slate-500/20",
   SCHEDULED: "bg-sky-50 text-sky-700 ring-sky-600/20",
   RUNNING: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  PROCESSING: "bg-blue-50 text-blue-700 ring-blue-600/20",
   COMPLETED: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
-  SENT: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
   FAILED: "bg-rose-50 text-rose-700 ring-rose-600/20",
   PAUSED: "bg-amber-50 text-amber-800 ring-amber-600/20",
   CANCELLED: "bg-slate-100 text-slate-500 ring-slate-400/20",
@@ -77,9 +75,7 @@ const TABS: { key: "ALL" | CampaignStatus; label: string }[] = [
   { key: "DRAFT", label: "Drafts" },
   { key: "SCHEDULED", label: "Scheduled" },
   { key: "RUNNING", label: "Running" },
-  { key: "PROCESSING", label: "Processing" },
   { key: "COMPLETED", label: "Completed" },
-  { key: "SENT", label: "Sent" },
   { key: "PAUSED", label: "Paused" },
   { key: "FAILED", label: "Failed" },
 ];
@@ -211,7 +207,7 @@ function CampaignsPageInner() {
    */
   const toggleMutation = useMutation({
     mutationFn: async ({ id, current }: { id: string; current: CampaignStatus }) => {
-      const action = current === "RUNNING" || current === "PROCESSING" ? "pause"
+      const action = current === "RUNNING" ? "pause"
         : current === "PAUSED" ? "resume"
         : "launch";
       const res = await fetch(`/api/campaigns/${id}/${action}`, { method: "POST" });
@@ -270,16 +266,16 @@ function CampaignsPageInner() {
         variant="ghost"
         size="sm"
         aria-label={
-          c.status === "RUNNING" || c.status === "PROCESSING" ? "Pause campaign"
+          c.status === "RUNNING" ? "Pause campaign"
             : c.status === "PAUSED" ? "Resume campaign"
             : "Launch campaign"
         }
         onClick={() => toggleMutation.mutate({ id: c.id, current: c.status })}
-        disabled={toggling || c.status === "COMPLETED" || c.status === "SENT" || c.status === "FAILED" || c.status === "CANCELLED"}
+        disabled={toggling || c.status === "COMPLETED" || c.status === "FAILED" || c.status === "CANCELLED"}
       >
         {toggling ? (
           <Loader2 className="h-4 w-4 animate-spin" />
-        ) : c.status === "RUNNING" || c.status === "PROCESSING" ? (
+        ) : c.status === "RUNNING" ? (
           <Pause className="h-4 w-4" />
         ) : (
           <Play className="h-4 w-4" />

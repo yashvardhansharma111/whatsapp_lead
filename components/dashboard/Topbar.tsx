@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Bell, BellRing, ChevronDown, Megaphone, MessageSquare, PhoneMissed, Search,
-  Sparkles, UserCheck, UserRound,
+  Gem, Sparkles, UserCheck, UserRound,
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -204,7 +204,15 @@ function NotificationBell() {
   );
 }
 
-export function Topbar({ tenantName, reseller = false }: { tenantName?: string | null; reseller?: boolean }) {
+export function Topbar({
+  tenantName,
+  plan,
+  reseller = false,
+}: {
+  tenantName?: string | null;
+  plan?: string | null;
+  reseller?: boolean;
+}) {
   // Search and notifications read client data (contacts, leads, chats); a reseller
   // account has none and is refused by those APIs, so it gets a plain header.
   if (reseller) {
@@ -214,10 +222,10 @@ export function Topbar({ tenantName, reseller = false }: { tenantName?: string |
       </header>
     );
   }
-  return <ClientTopbar tenantName={tenantName} />;
+  return <ClientTopbar tenantName={tenantName} plan={plan} />;
 }
 
-function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
+function ClientTopbar({ tenantName, plan }: { tenantName?: string | null; plan?: string | null }) {
   const [status, setStatus] = useState<AgentStatus>("Online");
   const { numberId, setNumberId } = useNumberFilter();
   const [statusOpen, setStatusOpen] = useState(false);
@@ -329,6 +337,19 @@ function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
+        {/* The plan sat at the foot of the sidebar, below the fold on a short window,
+            which is the wrong place for the thing that decides what the account can do.
+            Next to the workspace it names, it reads as part of who you are signed in as. */}
+        {plan && (
+          <Link
+            href="/billing"
+            title="Billing & plan"
+            className="mr-1 hidden items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 md:inline-flex"
+          >
+            <Gem className="h-3.5 w-3.5" />
+            {plan}
+          </Link>
+        )}
         {tenantName && (
           <span className="mr-1 hidden text-sm text-slate-500 md:inline">{tenantName}</span>
         )}

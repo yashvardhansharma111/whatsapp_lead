@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, ChevronRight, CreditCard, FileBarChart2, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Send, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Smartphone, Package,} from "lucide-react";
+  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, CreditCard, FileBarChart2, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Send, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Smartphone, Package,} from "lucide-react";
 import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -228,20 +228,6 @@ export function Sidebar({ user, brand }: { user: SidebarUser; brand: SidebarBran
       </nav>
 
       <div className="shrink-0 border-t border-slate-100 p-3">
-        {/* Current plan chip — only for client accounts that have a plan loaded */}
-        {!isReseller && user.plan && (
-          <Link
-            href="/billing"
-            className="mb-2.5 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-200 transition hover:bg-emerald-50 hover:ring-emerald-200"
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Current plan</p>
-              <p className="truncate font-semibold text-slate-800">{user.plan}</p>
-            </div>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-          </Link>
-        )}
-
         <div className="flex items-center gap-2.5">
           <Avatar name={user.name} src={user.avatar} size="sm" />
           <div className="min-w-0 flex-1">
