@@ -315,6 +315,7 @@ export default function ContactsPage() {
         onSelectedChange={setSelected}
         page={page}
         pageSize={pageSize}
+        filteredTagId={tagId || undefined}
         onPageSizeChange={setPageSize}
         total={total}
         onPageChange={(next) => {

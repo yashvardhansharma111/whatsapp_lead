@@ -113,6 +113,14 @@ export interface ContactPermissions {
   manage: boolean;
 }
 
+/** Narrowed to the filtered label when there is one, because then it is the only one worth the space. */
+function visibleTags(raw: unknown, filteredTagId?: string) {
+  const all = contactTags(raw);
+  if (!filteredTagId) return all;
+  const match = all.filter((t) => t.id === filteredTagId);
+  return match.length ? match : all;
+}
+
 export function ContactTable({
   contacts,
   isLoading,
@@ -124,6 +132,7 @@ export function ContactTable({
   total,
   onPageChange,
   onPageSizeChange,
+  filteredTagId,
   onAddContact,
   onEditContact,
   onDeleteContact,
@@ -143,6 +152,13 @@ export function ContactTable({
   onPageChange: (page: number) => void;
   /** Omit and the size picker is hidden — the pager still works. */
   onPageSizeChange?: (size: number) => void;
+  /**
+   * The label the list is filtered to, if any.
+   *
+   * Every row then carries it, so showing each contact's whole set buries the one that
+   * is actually in question under the ones that are not.
+   */
+  filteredTagId?: string;
   onAddContact: () => void;
   /** Open the edit form for a row. The page owns the modal. */
   onEditContact: (contact: ContactRow) => void;
@@ -268,7 +284,7 @@ export function ContactTable({
         {/* Phones: one card per contact instead of a 900px table to swipe through. */}
         <ul className="divide-y divide-slate-100 md:hidden">
           {contacts.map((contact) => {
-            const tags = contactTags(contact.tags);
+            const tags = visibleTags(contact.tags, filteredTagId);
             const checked = selected.includes(contact.id);
             return (
               <li
@@ -355,7 +371,7 @@ export function ContactTable({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {contacts.map((contact) => {
-                const tags = contactTags(contact.tags);
+                const tags = visibleTags(contact.tags, filteredTagId);
                 const checked = selected.includes(contact.id);
                 return (
                   <tr

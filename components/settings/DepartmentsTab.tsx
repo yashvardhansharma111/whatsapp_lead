@@ -227,6 +227,12 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
           />
         </Field>
 
+        {/* Editing changes the name and nothing else. Everything that decides where a
+            transfer goes — who is in the department, whether it is the default, whether
+            it is on — is set when it is created, so an edit cannot quietly re-route live
+            conversations. */}
+        {!department && (
+          <>
         <Field label="What it covers" htmlFor="dept-description">
           <input
             id="dept-description"
@@ -318,6 +324,9 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
             {department ? "Save changes" : "Create department"}
           </Button>
         </div>
+          </>
+        )}
+
       </form>
     </Modal>
   );
