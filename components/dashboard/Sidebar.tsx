@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, CreditCard, FileBarChart2, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Send, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Smartphone, Package,} from "lucide-react";
+  Ban, BarChart2, IndianRupee, Wallet, BookOpen, Bot, Building2, CreditCard, FileBarChart2, FileText, Filter, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Menu, MessageSquare, Palette, Phone, Settings, Sparkles, Tag, Target, Ticket, UserCheck, UserCog, Users, X, Mic, Smartphone, Package,} from "lucide-react";
 import type { PlanFeatures } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui";
@@ -31,8 +31,6 @@ const NAV = [
     items: [
       { href: "/campaigns", label: "Campaigns", icon: Megaphone, permission: "campaigns.view" },
       { href: "/segments", label: "Segments", icon: Filter, permission: "contacts.view" },
-      { href: "/contact-lists", label: "Contact lists", icon: Users, permission: "contacts.view" },
-      { href: "/broadcast", label: "Bulk Broadcast", icon: Send, permission: "campaigns.send" },
       { href: "/templates", label: "Templates", icon: FileText, permission: "campaigns.view" },
       { href: "/catalogue", label: "Catalogue", icon: Package, permission: "conversations.view" },
       { href: "/chatbot", label: "Chatbot", icon: Bot, permission: "settings.manage" },

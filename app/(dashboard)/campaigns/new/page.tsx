@@ -1,7 +1,12 @@
 "use client";
 
 // ============================================================================
-// PAGE : Bulk Broadcast
+// PAGE : New campaign
+//
+// Was "Bulk Broadcast", a second screen doing the same job as the campaign modal with
+// a different audience picker — one of them could paste numbers, the other could not,
+// and neither could do what the other did. This is the one composer now, and the
+// audience is a choice inside it rather than a choice of which screen to open.
 //
 // Paste numbers (or import a sheet) → validate / de-duplicate → review and remove
 // recipients → pick an approved template, filling its variables from contact
@@ -15,7 +20,8 @@
 // {{name}} → Name, {{sub1}} → Subject1. Each row's values go only to that number.
 // ============================================================================
 
-import { useDeferredValue, useRef, useState } from "react";
+import { Suspense, useDeferredValue, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -38,7 +44,6 @@ import { Badge, Button, Card, Field, Modal, PageHeader, inputClass } from "@/com
 import { COUNTRIES } from "@/components/ui/PhoneInput";
 import { useToast } from "@/components/ui/toast";
 import { useSegments } from "@/hooks/useSegments";
-import { useContactLists } from "@/hooks/useContactLists";
 import { HeaderMediaInput, type MediaHeaderType } from "@/components/campaigns/HeaderMediaInput";
 import {
   ExcludedSummary,
@@ -96,7 +101,6 @@ interface BroadcastPayload {
   numbers?: string[];
   segmentId?: string;
   /** Hand-picked groups. The members are resolved at send time, not stored as a link. */
-  contactListIds?: string[];
   recipientFields?: Record<string, Record<string, string>>;
   defaultCountryCode: string;
   scheduledAt?: string;
@@ -221,7 +225,16 @@ async function postBroadcast<T>(payload: BroadcastPayload): Promise<T> {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function BroadcastPage() {
+export default function NewCampaignPage() {
+  // `useSearchParams` needs a boundary to suspend against while the page is prerendered.
+  return (
+    <Suspense>
+      <NewCampaign />
+    </Suspense>
+  );
+}
+
+function NewCampaign() {
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -235,13 +248,15 @@ export default function BroadcastPage() {
   // send — the numbers' contacts (if any) are untouched.
   const [removed, setRemoved] = useState<Set<string>>(new Set());
 
-  // Audience mode: paste numbers or use a saved segment
-  const [audienceMode, setAudienceMode] = useState<"numbers" | "segment" | "list">("numbers");
-  const [selectedListId, setSelectedListId] = useState("");
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string>("");
+  // Arriving from Segments → "Create campaign" (?segment=<id>) preselects it and opens
+  // on that tab, which is how that link used to open the old create-campaign modal.
+  const presetSegment = useSearchParams().get("segment");
+  const [audienceMode, setAudienceMode] = useState<"numbers" | "segment">(
+    presetSegment ? "segment" : "numbers",
+  );
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string>(presetSegment ?? "");
 
   const { data: segments } = useSegments();
-  const { data: contactLists } = useContactLists();
 
 
   // WhatsApp number selector — which number to send this broadcast from
@@ -471,8 +486,7 @@ export default function BroadcastPage() {
     };
     if (audienceMode === "segment") {
       review.mutate({ ...basePayload, segmentId: selectedSegmentId });
-    } else if (audienceMode === "list") {
-      review.mutate({ ...basePayload, contactListIds: [selectedListId] });
+
     } else {
       const recipientFields = recipientFieldsFor(finalNumbers);
       review.mutate({
@@ -626,50 +640,9 @@ export default function BroadcastPage() {
             >
               Use Segment
             </button>
-            <button
-              type="button"
-              onClick={() => setAudienceMode("list")}
-              className={cn(
-                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
-                audienceMode === "list"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700",
-              )}
-            >
-              Contact List
-            </button>
           </div>
 
-          {audienceMode === "list" ? (
-            <div className="space-y-2">
-              <select
-                value={selectedListId}
-                onChange={(e) => setSelectedListId(e.target.value)}
-                className={inputClass}
-                aria-label="Contact list"
-              >
-                <option value="">— Choose a contact list —</option>
-                {(contactLists ?? []).map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} ({l.contactCount})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">
-                Sends to the people in the list as it stands now. Anyone added later is not
-                part of this send.
-              </p>
-              {(contactLists ?? []).length === 0 && (
-                <p className="text-xs text-slate-500">
-                  No lists yet.{" "}
-                  <Link href="/contact-lists" className="font-medium text-emerald-700 hover:underline">
-                    Build one first
-                  </Link>
-                  .
-                </p>
-              )}
-            </div>
-          ) : audienceMode === "segment" ? (
+          {audienceMode === "segment" ? (
             <div className="space-y-2">
               <select
                 value={selectedSegmentId}
