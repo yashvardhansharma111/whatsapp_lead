@@ -75,10 +75,7 @@ export function MessageBubble({
           // them here: `MessageBody` and its media chips used to carry seventeen
           // `outbound ? white : slate` decisions, each of which had to be found and
           // changed by hand to move off white-on-emerald.
-          // `pb-4` keeps the last line clear of the timestamp, which is pinned to the
-          // bottom-right corner rather than sitting on a row of its own — WhatsApp puts
-          // the time in the bubble's gutter, not under the message.
-          "relative min-w-0 max-w-[85%] rounded-lg px-2 pb-4 pt-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
+          "relative min-w-0 max-w-[85%] rounded-lg px-2 py-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
           outbound ? "rounded-tr-none" : "rounded-tl-none",
         )}
       >
@@ -105,14 +102,27 @@ export function MessageBubble({
           </span>
         )}
 
-        <MessageBody message={message} tone={outbound ? "outbound" : "inbound"} />
-
-        <KnowledgeCitation message={message} />
-
-        <span className="pointer-events-none absolute bottom-[3px] right-[7px] flex items-center gap-1 text-[11px] leading-none text-[color:var(--wa-meta)]">
-          {formatTime(message.createdAt)}
-          {outbound && <StatusTick status={message.status} />}
-        </span>
+        {/*
+          * The time shares the last line when there is room for it, and drops to its own
+          * line when there is not — which is what WhatsApp does and what a one-word
+          * message needs. It was absolutely positioned, so it added nothing to the
+          * bubble's width: "hi" produced a bubble two characters wide with the timestamp
+          * wrapping inside it.
+          *
+          * A wrapping flex row does it without having to reach into every message type:
+          * the body is one item, the time another, and `ml-auto` keeps the time right no
+          * matter which line it lands on.
+          */}
+        <div className="flex flex-wrap items-end gap-x-2">
+          <div className="min-w-0 max-w-full">
+            <MessageBody message={message} tone={outbound ? "outbound" : "inbound"} />
+            <KnowledgeCitation message={message} />
+          </div>
+          <span className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap pt-0.5 text-[11px] leading-none text-[color:var(--wa-meta)]">
+            {formatTime(message.createdAt)}
+            {outbound && <StatusTick status={message.status} />}
+          </span>
+        </div>
       </div>
       {outbound && replyBtn}
     </div>
@@ -240,13 +250,13 @@ function SystemLine({ message }: { message: InboxMessage }) {
           // side of the conversation like everything else they said to each other. It
           // used to be a pill floating down the middle, which put an outgoing call and
           // an incoming one in the same place.
-          "relative min-w-0 max-w-[85%] rounded-lg px-2 pb-4 pt-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
+          "relative min-w-0 max-w-[85%] rounded-lg px-2 py-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
           outbound ? "rounded-tr-none" : "rounded-tl-none",
         )}
       >
         <BubbleTail outbound={outbound} />
 
-        <div className="flex items-center gap-2.5 pr-10">
+        <div className="flex items-center gap-2.5">
           <span
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
@@ -273,7 +283,7 @@ function SystemLine({ message }: { message: InboxMessage }) {
           </div>
         )}
 
-        <span className="pointer-events-none absolute bottom-[3px] right-[7px] text-[11px] leading-none text-[color:var(--wa-meta)]">
+        <span className="mt-0.5 block text-right text-[11px] leading-none text-[color:var(--wa-meta)]">
           {formatTime(message.createdAt)}
         </span>
       </div>
