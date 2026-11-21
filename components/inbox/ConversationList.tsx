@@ -100,14 +100,14 @@ export interface InboxConversation {
   whatsappIntegration?: { id: string; displayName: string | null; phoneNumber: string | null } | null;
 }
 
-export type InboxTab = "all" | "open" | "assigned" | "resolved" | "mine";
+export type InboxTab = "all" | "open" | "assigned" | "resolved" | "ai";
 
 export const INBOX_TABS: { id: InboxTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "open", label: "Open" },
   { id: "assigned", label: "Assigned" },
   { id: "resolved", label: "Resolved" },
-  { id: "mine", label: "Mine" },
+  { id: "ai", label: "AI" },
 ];
 
 /** Contact tags come back either flattened or as Prisma join rows — take both. */
@@ -177,7 +177,7 @@ export function ConversationList({
         </div>
 
         {/* Filter tabs. Five of these have to survive a 320px column, so the
-            padding is tight enough that "Mine" isn't clipped off the end. */}
+            padding is tight enough that the last one isn't clipped off the end. */}
         <div
           role="tablist"
           aria-label="Filter conversations"

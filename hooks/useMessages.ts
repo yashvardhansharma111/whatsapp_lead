@@ -77,8 +77,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 interface ConversationFilters {
   status?: string;
   assignedToId?: string;
+  /** Threads the AI has actually answered in, not merely those with the switch on. */
+  hasAiReply?: boolean;
   /** Narrow the inbox to threads that arrived on one connected number. */
   whatsappIntegrationId?: string;
+  limit?: number;
 }
 
 /**
@@ -106,6 +109,8 @@ export function useConversations(filters?: ConversationFilters) {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
       if (filters?.assignedToId) params.set("assignedToId", filters.assignedToId);
+      if (filters?.hasAiReply) params.set("hasAiReply", "true");
+      if (filters?.limit) params.set("limit", String(filters.limit));
       if (filters?.whatsappIntegrationId) params.set("whatsappIntegrationId", filters.whatsappIntegrationId);
       const res = await fetch(`/api/conversations?${params}`);
       if (!res.ok) throw new Error("Failed to fetch conversations");

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useConversation, useConversations } from "@/hooks/useMessages";
@@ -56,6 +56,13 @@ function InboxPageInner() {
   }
   const [tab, setTab] = useState<InboxTab>("all");
   const [search, setSearch] = useState("");
+  // Debounced because the term is part of the query key: typing eight characters
+  // unfiltered would mint eight cache entries and eight requests.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   /** Empty means every connected number. Only offered when more than one exists. */
   // Remembered per browser: picking a number and losing it on reload is worse than
   // never having offered the choice.
@@ -70,13 +77,16 @@ function InboxPageInner() {
     // they have actually replied. ChatWindow marks it read after a successful send.
   }, []);
 
-  const filters = useMemo(() => {
-    const status = STATUS_BY_TAB[tab];
-    const forNumber = numberId ? { whatsappIntegrationId: numberId } : {};
-    if (status) return { status, ...forNumber };
-    if (tab === "mine" && userId) return { assignedToId: userId, ...forNumber };
-    return numberId ? forNumber : undefined;
-  }, [tab, userId, numberId]);
+  // Every narrowing the server understands goes to the server. The list used to ask for
+  // a page and then filter it again here, so a tab or a search only ever looked at the
+  // rows already loaded — correct on a quiet workspace, quietly wrong on a busy one.
+  const filters = useMemo(() => ({
+    ...(STATUS_BY_TAB[tab] ? { status: STATUS_BY_TAB[tab] } : {}),
+    ...(tab === "ai" ? { hasAiReply: true } : {}),
+    ...(numberId ? { whatsappIntegrationId: numberId } : {}),
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    limit: 100,
+  }), [tab, numberId, debouncedSearch]);
 
   const {
     data: listData,
@@ -96,26 +106,10 @@ function InboxPageInner() {
 
   const all = useMemo(() => toArray<InboxConversation>(listData), [listData]);
 
-  // The API may or may not honour the filter params yet, so narrow again here —
-  // and search is client-side by design.
-  const conversations = useMemo(() => {
-    const status = STATUS_BY_TAB[tab];
-    const query = search.trim().toLowerCase();
-
-    return all
-      .filter((c) => {
-        if (status && c.status !== status) return false;
-        if (tab === "mine" && userId) {
-          const assignee = c.assignedTo?.id ?? c.assignedToId ?? null;
-          if (assignee !== userId) return false;
-        }
-        if (!query) return true;
-        return [c.contact?.name, c.contact?.phone, c.contact?.company, c.lastMessagePreview]
-          .filter(Boolean)
-          .some((field) => String(field).toLowerCase().includes(query));
-      })
-      .sort((a, b) => time(b.lastMessageAt) - time(a.lastMessageAt));
-  }, [all, tab, search, userId]);
+  const conversations = useMemo(
+    () => [...all].sort((a, b) => time(b.lastMessageAt) - time(a.lastMessageAt)),
+    [all],
+  );
 
   /** Prefer the detail payload; fall back to the list row so the header still renders. */
   const selected = useMemo<InboxConversation | null>(() => {
