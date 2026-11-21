@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, Loader2, UserCircle, Users } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Check, Copy, KeyRound, Loader2, UserCircle, Users } from "lucide-react";
+import { Card, inputClass } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { CardHead, SettingsIntro } from "@/components/settings/SettingsPrimitives";
 
 function useInviteCode() {
@@ -120,6 +121,113 @@ export function AccountTab() {
           </p>
         </div>
       </Card>
+
+      <ChangePasswordCard />
     </div>
+  );
+}
+
+/**
+ * Changing your own password.
+ *
+ * There was nowhere to do this: the only way to a new password was the forgotten-password
+ * email, which means signing out and waiting for a message to change something you
+ * already know the answer to.
+ *
+ * The current password is asked for because this page is reachable from an unlocked
+ * screen, and the one thing a stranger at someone's desk should not be able to do is
+ * lock them out of their own account.
+ */
+function ChangePasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const tooShort = next.length > 0 && next.length < 8;
+  const mismatch = confirm.length > 0 && next !== confirm;
+  const ready = current.length > 0 && next.length >= 8 && next === confirm && !busy;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Couldn't change your password");
+      setCurrent(""); setNext(""); setConfirm(""); setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change your password");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <CardHead icon={KeyRound} title="Password" description="Used to sign in to every workspace you belong to." />
+
+      <form onSubmit={submit} className="mt-4 max-w-sm space-y-3">
+        <Field label="Current password" value={current} onChange={setCurrent} autoComplete="current-password" />
+        <Field
+          label="New password"
+          value={next}
+          onChange={setNext}
+          autoComplete="new-password"
+          error={tooShort ? "At least 8 characters." : null}
+        />
+        <Field
+          label="Confirm new password"
+          value={confirm}
+          onChange={setConfirm}
+          autoComplete="new-password"
+          error={mismatch ? "These two do not match." : null}
+        />
+
+        {error && <p className="text-xs text-rose-600">{error}</p>}
+        {done && <p className="text-xs text-emerald-700">Password changed. It works everywhere you sign in.</p>}
+
+        <button
+          type="submit"
+          disabled={!ready}
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {busy ? "Changing…" : "Change password"}
+        </button>
+      </form>
+    </Card>
+  );
+}
+
+function Field({
+  label, value, onChange, autoComplete, error,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  error?: string | null;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>
+      <input
+        type="password"
+        value={value}
+        autoComplete={autoComplete}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(inputClass, error && "ring-rose-300 focus:border-rose-400")}
+      />
+      {error && <span className="mt-1 block text-xs text-rose-600">{error}</span>}
+    </label>
   );
 }

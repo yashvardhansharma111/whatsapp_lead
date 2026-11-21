@@ -154,7 +154,7 @@ function CallManager({ children }: { children: ReactNode }) {
     if (document.visibilityState !== "visible") {
       void showBrowserNotice({
         title:  `Incoming call${call.displayPhoneNumber ? ` on ${call.displayPhoneNumber}` : ""}`,
-        body:   call.contact.name ?? call.contact.phone ?? "Unknown caller",
+        body:   call.contact?.name ?? call.contact?.phone ?? "Unknown caller",
         href:   call.conversationId ? `/inbox?c=${call.conversationId}` : "/inbox",
         tag:    `call:${call.id}`,
         sticky: true,
@@ -298,14 +298,26 @@ function CallManager({ children }: { children: ReactNode }) {
       pc = built.pc;
 
       const placed = await callApi.initiate(contactId, built.sdp);
-      setActive({
-        call: {
-          id: placed.id,
-          contactName: displayName ?? null,
-          fromPhone: "", conversationId: null, expiresAt: new Date().toISOString(),
-        } as unknown as RtCallIncoming,
-        pc, mic, answeredAt: Date.now(), recorder,
-      });
+      // The real shape, not a cast past it. This used to assert `as unknown as
+      // RtCallIncoming` over an object with `contactName` and no `contact`, so the in-call
+      // panel — which reads `call.contact.name` — threw the moment a call was placed. The
+      // panel lives in the dashboard layout, above the page's error boundary, so the
+      // throw took the whole screen down to "Application error".
+      //
+      // It never surfaced because the button that calls this never rendered: the provider
+      // put its context beside the tree instead of around it. Fixing the button made this
+      // reachable, and the cast is what stopped the compiler from saying so.
+      const call: RtCallIncoming = {
+        id: placed.id,
+        waCallId: "",
+        contact: { id: contactId, name: displayName ?? null, phone: null },
+        conversationId: null,
+        integrationId: "",
+        displayPhoneNumber: null,
+        ringingSince: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+      };
+      setActive({ call, pc, mic, answeredAt: Date.now(), recorder });
     } catch (err) {
       mic?.getTracks().forEach((t) => t.stop());
       try { pc?.close(); } catch { /* ignore */ }
@@ -377,7 +389,7 @@ function IncomingCallBanner({
     return () => clearInterval(t);
   }, [call.expiresAt]);
 
-  const name = call.contact.name || call.contact.phone || "Unknown caller";
+  const name = call.contact?.name || call.contact?.phone || "Unknown caller";
   return (
     <div
       role="dialog"
@@ -395,7 +407,7 @@ function IncomingCallBanner({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{name}</p>
-          {call.contact.name && call.contact.phone && <p className="truncate text-xs text-white/60">{displayPhone(call.contact.phone)}</p>}
+          {call.contact?.name && call.contact?.phone && <p className="truncate text-xs text-white/60">{displayPhone(call.contact.phone)}</p>}
           <p className="mt-0.5 text-[11px] text-white/50">
             Incoming WhatsApp call{call.displayPhoneNumber ? ` · ${call.displayPhoneNumber}` : ""} · {left}s
           </p>
@@ -444,7 +456,7 @@ function InCallPanel({
     return () => clearInterval(t);
   }, [answeredAt]);
 
-  const name = call.contact.name || call.contact.phone || "Unknown caller";
+  const name = call.contact?.name || call.contact?.phone || "Unknown caller";
   return (
     <div
       role="status"
