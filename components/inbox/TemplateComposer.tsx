@@ -10,10 +10,16 @@
 //
 // So when the window is shut this replaces the text box rather than sitting beside it.
 // Offering both would be offering one that cannot work.
+//
+// The filling-in happens in a dialog, not in the footer. Inline, picking a template with
+// an image header grew the footer past the height of the chat: the conversation was
+// pushed off screen, the Send button sat below the fold, and there was nowhere to show
+// what was about to go out. The dialog has room for the form and the preview side by
+// side, and the chat stays where it was.
 
-import { useMemo, useState } from "react";
-import { Loader2, Send } from "lucide-react";
-import { Button, inputClass } from "@/components/ui";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, FileText, Film, ImageIcon, Loader2, Phone, Reply, Send } from "lucide-react";
+import { Button, Modal, formatWaText, inputClass } from "@/components/ui";
 import { useTemplates } from "@/hooks/useTemplates";
 import {
   detectBodyVarSlots,
@@ -35,6 +41,7 @@ interface TemplateOption {
   category?: string | null;
   language?: string | null;
   body?: string | null;
+  footer?: string | null;
   headerType?: string | null;
   headerContent?: string | null;
   buttons?: unknown;
@@ -47,6 +54,11 @@ const asShape = (t: TemplateOption): TemplateShape => ({
   headerContent: t.headerContent ?? null,
   buttons: t.buttons,
 });
+
+/** `{{1}}` slots in a heading, filled from the values typed for it. */
+function fillSlots(text: string, values: string[]): string {
+  return text.replace(/\{\{\s*(\d+)\s*\}\}/g, (whole, n: string) => values[Number(n) - 1]?.trim() || whole);
+}
 
 export function TemplateComposer({
   conversationId,
@@ -61,13 +73,18 @@ export function TemplateComposer({
   onSent: () => void;
 }) {
   const { data, isLoading } = useTemplates(whatsappIntegrationId ?? undefined);
+  const [open, setOpen] = useState(false);
   const [templateId, setTemplateId] = useState("");
   const [vars, setVars] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>([]);
   const [headerVars, setHeaderVars] = useState<string[]>([]);
   const [media, setMedia] = useState({ mediaId: "", mediaUrl: "" });
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // An object URL holds the file in memory until it is released.
+  useEffect(() => () => { if (localPreview) URL.revokeObjectURL(localPreview); }, [localPreview]);
 
   // Every approved template, not only the plain ones. Hiding anything with a header left
   // three of this number's eighteen on offer — and the fourteen with an image were the
@@ -94,6 +111,7 @@ export function TemplateComposer({
     ? (header as MediaHeaderType)
     : null;
   const headerSlots = header === "TEXT" ? detectBodyVarSlots(selected?.headerContent ?? "") : 0;
+  const buttons = selected ? templateButtons(asShape(selected)) : [];
 
   const missing =
     !selected ||
@@ -102,12 +120,23 @@ export function TemplateComposer({
     urlSlots.some((_, i) => !(urls[i] ?? "").trim()) ||
     Boolean(mediaHeader && !media.mediaId && !media.mediaUrl.trim());
 
+  function reset() {
+    setTemplateId("");
+    setVars([]);
+    setUrls([]);
+    setHeaderVars([]);
+    setMedia({ mediaId: "", mediaUrl: "" });
+    setLocalPreview(null);
+    setError(null);
+  }
+
   function pick(id: string) {
     setTemplateId(id);
     setVars([]);
     setUrls([]);
     setHeaderVars([]);
     setMedia({ mediaId: "", mediaUrl: "" });
+    setLocalPreview(null);
     setError(null);
   }
 
@@ -130,11 +159,8 @@ export function TemplateComposer({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Couldn't send this template");
-      setTemplateId("");
-      setVars([]);
-      setUrls([]);
-      setHeaderVars([]);
-      setMedia({ mediaId: "", mediaUrl: "" });
+      reset();
+      setOpen(false);
       onSent();
     } catch (e) {
       setError((e as Error).message);
@@ -143,67 +169,89 @@ export function TemplateComposer({
     }
   }
 
+  const previewImage = localPreview ?? (media.mediaUrl.trim() || null);
+
   return (
-    <div className="border-t border-slate-200 bg-amber-50/60 p-3">
-      <p className="mb-2.5 text-xs leading-relaxed text-amber-900">{reason}</p>
-
-      {isLoading ? (
-        <p className="flex items-center gap-2 py-2 text-sm text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading your templates…
-        </p>
-      ) : options.length === 0 ? (
-        <p className="py-2 text-sm text-slate-600">
-          No approved template is available on this number yet. Create one under Templates,
-          or wait for them to message you.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          <select
-            id={`tpl-${conversationId}`}
-            aria-label="Template"
-            className={inputClass}
-            value={templateId}
-            onChange={(e) => pick(e.target.value)}
+    <>
+      {/* The footer stays one line tall whatever the template needs. */}
+      <div className="shrink-0 border-t border-slate-200 bg-amber-50/60 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-[12rem] flex-1 text-xs leading-relaxed text-amber-900">{reason}</p>
+          <Button
+            size="sm"
+            disabled={isLoading || options.length === 0}
+            onClick={() => setOpen(true)}
           >
-            <option value="">Choose a template…</option>
-            {options.map((t) => (
-              <option key={t.id} value={t.id}>
-                [{t.category}] {t.name} ({t.language})
-              </option>
-            ))}
-          </select>
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Send a template
+          </Button>
+        </div>
+        {!isLoading && options.length === 0 && (
+          <p className="mt-1.5 text-xs text-slate-600">
+            No approved template is available on this number yet. Create one under Templates,
+            or wait for them to message you.
+          </p>
+        )}
+      </div>
 
-          {selected && (
-            <>
-              {mediaHeader && (
-                <HeaderMediaInput
-                  key={selected.id}
-                  templateId={selected.id}
-                  headerType={mediaHeader}
-                  value={media}
-                  onChange={setMedia}
-                  onError={setError}
-                />
-              )}
+      <Modal
+        open={open}
+        onClose={() => { if (!sending) { setOpen(false); reset(); } }}
+        title="Send a template"
+        description="Outside the 24-hour window only an approved template reaches them. This is what they will see."
+        className="sm:max-w-3xl"
+      >
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_17rem]">
+          {/* ── What to send ─────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">Template</span>
+              <select
+                id={`tpl-${conversationId}`}
+                className={inputClass}
+                value={templateId}
+                onChange={(e) => pick(e.target.value)}
+              >
+                <option value="">Choose a template…</option>
+                {options.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    [{t.category}] {t.name} ({t.language})
+                  </option>
+                ))}
+              </select>
+            </label>
 
-              {Array.from({ length: headerSlots }).map((_, i) => (
-                <input
-                  key={`h${i}`}
-                  id={`tpl-${conversationId}-h${i}`}
-                  aria-label={`Heading value for {{${i + 1}}}`}
-                  className={inputClass}
-                  placeholder={`Heading value for {{${i + 1}}}`}
-                  value={headerVars[i] ?? ""}
-                  onChange={(e) => {
-                    const next = [...headerVars];
-                    next[i] = e.target.value;
-                    setHeaderVars(next);
-                  }}
-                />
-              ))}
+            {selected && (
+              <>
+                {mediaHeader && (
+                  <HeaderMediaInput
+                    key={selected.id}
+                    templateId={selected.id}
+                    headerType={mediaHeader}
+                    value={media}
+                    onChange={setMedia}
+                    onError={setError}
+                    onLocalPreview={setLocalPreview}
+                  />
+                )}
 
-              {slots > 0 &&
-                Array.from({ length: slots }).map((_, i) => (
+                {Array.from({ length: headerSlots }).map((_, i) => (
+                  <input
+                    key={`h${i}`}
+                    id={`tpl-${conversationId}-h${i}`}
+                    aria-label={`Heading value for {{${i + 1}}}`}
+                    className={inputClass}
+                    placeholder={`Heading value for {{${i + 1}}}`}
+                    value={headerVars[i] ?? ""}
+                    onChange={(e) => {
+                      const next = [...headerVars];
+                      next[i] = e.target.value;
+                      setHeaderVars(next);
+                    }}
+                  />
+                ))}
+
+                {Array.from({ length: slots }).map((_, i) => (
                   <input
                     key={`v${i}`}
                     id={`tpl-${conversationId}-v${i}`}
@@ -219,44 +267,118 @@ export function TemplateComposer({
                   />
                 ))}
 
-              {urlSlots.map((b, i) => (
-                <input
-                  key={`u${i}`}
-                  id={`tpl-${conversationId}-u${i}`}
-                  aria-label={`Link for the ${b.text} button`}
-                  className={inputClass}
-                  placeholder={`Link for the “${b.text}” button`}
-                  value={urls[i] ?? ""}
-                  onChange={(e) => {
-                    const next = [...urls];
-                    next[i] = e.target.value;
-                    setUrls(next);
-                  }}
-                />
-              ))}
+                {urlSlots.map((b, i) => (
+                  <input
+                    key={`u${i}`}
+                    id={`tpl-${conversationId}-u${i}`}
+                    aria-label={`Link for the ${b.text} button`}
+                    className={inputClass}
+                    placeholder={`Link for the “${b.text}” button`}
+                    value={urls[i] ?? ""}
+                    onChange={(e) => {
+                      const next = [...urls];
+                      next[i] = e.target.value;
+                      setUrls(next);
+                    }}
+                  />
+                ))}
+              </>
+            )}
 
-              {/* What the customer will actually read, with the values filled in. */}
-              <p className="whitespace-pre-wrap wrap-anywhere rounded-lg bg-white p-2.5 text-xs leading-relaxed text-slate-700 ring-1 ring-inset ring-slate-200">
-                {renderTemplateBody(selected.body ?? "", Array.from({ length: slots }, (_, i) => vars[i] ?? ""))}
+            {error && <p className="text-xs text-rose-600">{error}</p>}
+          </div>
+
+          {/* ── What they will see ───────────────────────────────────────── */}
+          <div className="rounded-xl bg-[#e4ddd6] p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-black/40">
+              Preview
+            </p>
+            {selected ? (
+              <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+                {mediaHeader && (
+                  <div className="p-1.5 pb-0">
+                    {previewImage && mediaHeader === "IMAGE" ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- a blob or customer CDN URL, not a bundled asset
+                      <img src={previewImage} alt="" className="h-32 w-full rounded-lg object-cover" />
+                    ) : (
+                      <div className="flex h-32 w-full items-center justify-center rounded-lg bg-black/5">
+                        {mediaHeader === "VIDEO" ? (
+                          <Film className="h-7 w-7 text-black/20" />
+                        ) : mediaHeader === "DOCUMENT" ? (
+                          <FileText className="h-7 w-7 text-black/20" />
+                        ) : (
+                          <ImageIcon className="h-7 w-7 text-black/20" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="px-2.5 py-2">
+                  {header === "TEXT" && (selected.headerContent ?? "").trim() && (
+                    <p className="mb-1 text-[13px] font-semibold text-[#111b21]">
+                      {fillSlots(selected.headerContent ?? "", headerVars)}
+                    </p>
+                  )}
+                  <p
+                    className="whitespace-pre-wrap text-[13.5px] leading-snug text-[#111b21]"
+                    dangerouslySetInnerHTML={{
+                      __html: formatWaText(
+                        renderTemplateBody(
+                          selected.body ?? "",
+                          Array.from({ length: slots }, (_, i) => vars[i] ?? ""),
+                        ),
+                      ),
+                    }}
+                  />
+                  {selected.footer?.trim() && (
+                    <p className="mt-1.5 text-[11.5px] text-black/45">{selected.footer}</p>
+                  )}
+                </div>
+
+                {buttons.length > 0 && (
+                  <div className="divide-y divide-black/5 border-t border-black/5">
+                    {buttons.slice(0, 3).map((b, i) => (
+                      <p
+                        key={i}
+                        className="flex items-center justify-center gap-1.5 py-2 text-[13px] font-medium text-[#00a5f4]"
+                      >
+                        {b.type === "URL" && <ExternalLink className="h-3.5 w-3.5" />}
+                        {b.type === "PHONE_NUMBER" && <Phone className="h-3.5 w-3.5" />}
+                        {b.type === "QUICK_REPLY" && <Reply className="h-3.5 w-3.5" />}
+                        {b.text?.trim() || "Button"}
+                      </p>
+                    ))}
+                    {buttons.length > 3 && (
+                      <p className="py-2 text-center text-[13px] font-medium text-[#00a5f4]">
+                        See all options
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="py-8 text-center text-[13px] text-black/40">
+                Choose a template to see it here.
               </p>
-            </>
-          )}
-
-          {error && <p className="text-xs text-rose-600">{error}</p>}
-
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              disabled={missing || sending}
-              onClick={send}
-              className={cn(sending && "opacity-70")}
-            >
-              {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Send template
-            </Button>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="secondary"
+            disabled={sending}
+            onClick={() => { setOpen(false); reset(); }}
+          >
+            Cancel
+          </Button>
+          <Button disabled={missing || sending} onClick={send} className={cn(sending && "opacity-70")}>
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? "Sending…" : "Send template"}
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }

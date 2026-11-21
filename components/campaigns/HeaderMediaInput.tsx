@@ -34,6 +34,7 @@ export function HeaderMediaInput({
   value,
   onChange,
   onError,
+  onLocalPreview,
 }: {
   headerType: MediaHeaderType;
   /** Decides which WhatsApp number the media is uploaded to — a media id only works for that number. */
@@ -41,6 +42,12 @@ export function HeaderMediaInput({
   value: HeaderMediaValue;
   onChange: (value: HeaderMediaValue) => void;
   onError: (message: string) => void;
+  /**
+   * An object URL for the chosen file, so a preview can show the actual picture. An
+   * upload yields only a Meta media id, which no browser can render — without this the
+   * preview had nothing to draw and the person sent the file blind.
+   */
+  onLocalPreview?: (url: string | null) => void;
 }) {
   const [mode, setMode] = useState<"upload" | "url">("upload");
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">("idle");
@@ -58,6 +65,7 @@ export function HeaderMediaInput({
     }
     setUploadState("uploading");
     onChange({ mediaId: "", mediaUrl: "" });
+    onLocalPreview?.(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     const form = new FormData();
     form.append("file", file);
     if (templateId) form.append("templateId", templateId);
@@ -91,6 +99,7 @@ export function HeaderMediaInput({
               setUploadState("idle");
               setFileName("");
               onChange({ mediaId: "", mediaUrl: "" });
+              onLocalPreview?.(null);
             }}
             className={cn(
               "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition",

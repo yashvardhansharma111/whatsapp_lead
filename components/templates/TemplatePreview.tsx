@@ -7,6 +7,7 @@ import {
   namedParams, positionalCount,
   type TemplateButtonDraft, type TemplateCardDraft, type TemplateDraft,
 } from "@/lib/templates/spec";
+import { formatWaText as formatted } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 /** Placeholders swapped for their examples, so the preview reads like a real message. */
@@ -23,17 +24,6 @@ function fill(text: string, examples: string[], format: TemplateDraft["parameter
     const value = examples[Number(n) - 1];
     return value?.trim() ? value : match;
   });
-}
-
-/** WhatsApp's own markdown: *bold*, _italic_, ~strike~, ```mono```. */
-function formatted(text: string): string {
-  return text
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/```([^`]+)```/g, '<code class="rounded bg-black/5 px-1 font-mono text-[0.9em]">$1</code>')
-    .replace(/(^|\s)\*([^*\n]+)\*/g, "$1<strong>$2</strong>")
-    .replace(/(^|\s)_([^_\n]+)_/g, "$1<em>$2</em>")
-    .replace(/(^|\s)~([^~\n]+)~/g, "$1<s>$2</s>")
-    .replace(/\n/g, "<br />");
 }
 
 const BUTTON_ICON: Partial<Record<TemplateButtonDraft["type"], typeof Reply>> = {

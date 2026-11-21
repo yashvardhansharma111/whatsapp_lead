@@ -31,9 +31,9 @@ import {
   Trash2,
   ShoppingCart,
   UserRound,
-  X, Phone,} from "lucide-react";
+  X, Phone, ExternalLink,} from "lucide-react";
 type MessageStatus = "READ" | "DELIVERED" | "SENT" | "FAILED" | "PENDING";
-import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
+import { Avatar, Badge, Button, EmptyState, Skeleton, WaText, inputClass } from "@/components/ui";
 import { NumberBadge } from "@/components/NumberPicker";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel, formatTime } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT, formatBytes } from "@/lib/attachments";
@@ -1176,6 +1176,79 @@ function MessageBody({
       );
     }
 
+    case "TEMPLATE": {
+      // A template is a small document — picture, heading, body, footer, buttons — and
+      // the agent needs to see the same one the customer got. Showing only the body left
+      // them checking a reply against something the customer never saw.
+      const headerType = str(meta.headerType)?.toUpperCase() ?? null;
+      const headerText = str(meta.headerText);
+      const footer = str(meta.footer);
+      const buttons = Array.isArray(meta.buttons)
+        ? (meta.buttons as { type?: string; text?: string | null; url?: string | null }[])
+        : [];
+      const hasMedia = headerType === "IMAGE" || headerType === "VIDEO" || headerType === "DOCUMENT";
+
+      return (
+        <div className="space-y-1.5">
+          {hasMedia && (src
+            ? headerType === "IMAGE"
+              ? <ImageBubble src={src} alt={headerText || "Template image"} />
+              : headerType === "VIDEO"
+                ? <video src={src} controls className="max-h-64 w-full max-w-xs rounded-lg bg-black" />
+                : (
+                  <a href={`${src}${src.startsWith("/api/") ? "?download=1" : ""}`} target="_blank" rel="noreferrer">
+                    <MediaChip icon={FileText} label="Attached document" outbound={outbound} />
+                  </a>
+                )
+            : <MediaChip icon={ImageIcon} label="Header image unavailable" outbound={outbound} />
+          )}
+
+          {headerText && <p className="wrap-anywhere text-sm font-semibold">{headerText}</p>}
+
+          {caption && <WaText text={caption} className="block whitespace-pre-wrap wrap-anywhere text-sm" />}
+
+          {footer && (
+            <p className={cn("text-[11px]", outbound ? "text-white/65" : "text-slate-500")}>{footer}</p>
+          )}
+
+          {buttons.length > 0 && (
+            <div
+              className={cn(
+                "-mx-0.5 mt-1 divide-y border-t",
+                outbound ? "divide-white/15 border-white/20" : "divide-slate-200 border-slate-200",
+              )}
+            >
+              {buttons.map((b, i) => {
+                const label = b.text?.trim() || "Button";
+                const inner = (
+                  <span className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium">
+                    {b.type === "URL" && <ExternalLink className="h-3 w-3" />}
+                    {b.type === "PHONE_NUMBER" && <Phone className="h-3 w-3" />}
+                    {label}
+                  </span>
+                );
+                return b.type === "URL" && b.url ? (
+                  <a
+                    key={i}
+                    href={b.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn("block", outbound ? "text-sky-100 hover:underline" : "text-sky-600 hover:underline")}
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <span key={i} className={cn("block", outbound ? "text-sky-100" : "text-sky-600")}>
+                    {inner}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     case "LOCATION": {
       const loc = (meta.location as Record<string, unknown> | undefined) ?? meta;
       const lat = num(loc.latitude);
@@ -1348,7 +1421,7 @@ function MessageBody({
 
       return (
         <p className="whitespace-pre-wrap wrap-anywhere text-sm">
-          {caption || <span className="italic opacity-70">Unsupported message</span>}
+          {caption ? <WaText text={caption} /> : <span className="italic opacity-70">Unsupported message</span>}
         </p>
       );
     }
