@@ -100,6 +100,11 @@ export interface RealtimeEvents {
   "notification:count": { unread: number };
   "call:incoming": RtCallIncoming;
   "call:status": RtCallStatus;
+  /** The callee picked up: their SDP answer, for the agent who placed the call. */
+  "call:answer": { callId: string; sdp: string };
+  // These were emitted by the server and missing here, so nothing could subscribe.
+  "handover:new": { id: string; conversationId: string; reason?: string | null };
+  "handover:update": { id: string; status: string; assignedToId: string | null };
 }
 
 export type RealtimeEventName = keyof RealtimeEvents;

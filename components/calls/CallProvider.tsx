@@ -162,6 +162,25 @@ function CallManager({ children }: { children: ReactNode }) {
     }
   });
 
+  /**
+   * The person we rang has answered, and this is their half of the negotiation.
+   *
+   * An outgoing call sends Meta an offer; Meta replies with the answer over the webhook
+   * once the callee picks up. Until it is applied the peer connection has no remote
+   * description and sends nothing, which Meta reports as having heard no media from the
+   * business — the call rang, connected, and died in silence.
+   */
+  useRealtimeEvent("call:answer", ({ callId, sdp }) => {
+    const a = activeRef.current;
+    if (!a || a.call.id !== callId) return;
+    void a.pc
+      .setRemoteDescription({ type: "answer", sdp })
+      .catch((err: unknown) => {
+        console.error("[call] could not apply the answer", err);
+        showToast("The call connected but audio could not be set up", "error");
+      });
+  });
+
   useRealtimeEvent("call:status", (status: RtCallStatus) => {
     if (status.status !== "RINGING") setRinging((prev) => prev.filter((c) => c.id !== status.id));
 
