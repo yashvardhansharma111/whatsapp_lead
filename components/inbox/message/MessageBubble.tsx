@@ -205,30 +205,78 @@ function SystemLine({ message }: { message: InboxMessage }) {
   const call = (message.metadata?.call ?? null) as {
     status?: string; answeredBy?: string | null; callId?: string;
   } | null;
-  const status = call?.status ?? "";
+
+  // Anything that is not a call stays a centred notice — a flow or system message has no
+  // side of the conversation to belong to, and giving it one would be a lie about who
+  // said it.
+  if (!call) {
+    return (
+      <div className="my-2 flex justify-center">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-black/5 px-3 py-1 text-xs text-[#54656f]">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{message.content}</span>
+        </span>
+      </div>
+    );
+  }
+
+  const outbound = message.direction === "OUTBOUND";
+  const status = call.status ?? "";
+  const missed = status === "MISSED" || status === "FAILED" || status === "REJECTED";
   const Icon =
     status === "MISSED" ? PhoneMissed
     : status === "REJECTED" || status === "FAILED" ? PhoneOff
     : status === "RINGING" || status === "CONNECTING" || status === "IN_PROGRESS" ? PhoneIncoming
-    : call ? PhoneCall : Info;
-  const tone =
-    status === "MISSED" || status === "FAILED" ? "bg-rose-50 text-rose-700 ring-rose-600/20"
-    : status === "IN_PROGRESS" || status === "RINGING" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-    : "bg-slate-100 text-slate-600 ring-slate-500/20";
+    : PhoneCall;
   // Only a call that was actually answered can have audio to play.
-  const playable = Boolean(call?.callId) && status === "COMPLETED";
+  const playable = Boolean(call.callId) && status === "COMPLETED";
 
   return (
-    <div className="my-2 flex flex-col items-center gap-1">
-      <span className={cn("inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1 ring-inset", tone)}>
-        <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">
-          {message.content}
-          {call?.answeredBy ? ` · ${call.answeredBy}` : ""}
+    <div className={cn("flex items-end gap-1", outbound ? "justify-end" : "justify-start")}>
+      <div
+        style={outbound ? WA_OUT : WA_IN}
+        className={cn(
+          // A call is a thing that happened between two people, so it belongs on one
+          // side of the conversation like everything else they said to each other. It
+          // used to be a pill floating down the middle, which put an outgoing call and
+          // an incoming one in the same place.
+          "relative min-w-0 max-w-[85%] rounded-lg px-2 pb-4 pt-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
+          outbound ? "rounded-tr-none" : "rounded-tl-none",
+        )}
+      >
+        <BubbleTail outbound={outbound} />
+
+        <div className="flex items-center gap-2.5 pr-10">
+          <span
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              missed ? "bg-rose-100 text-rose-600" : "bg-black/5 text-[#54656f]",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0">
+            <span className={cn("block truncate text-sm", missed && "text-rose-600")}>
+              {message.content}
+            </span>
+            {call.answeredBy && (
+              <span className="block truncate text-xs text-[color:var(--wa-meta)]">
+                {call.answeredBy}
+              </span>
+            )}
+          </span>
+        </div>
+
+        {playable && (
+          <div className="mt-1.5 border-t border-[color:var(--wa-rule)] pt-1.5">
+            <CallRecordingPlayer callId={call.callId!} />
+          </div>
+        )}
+
+        <span className="pointer-events-none absolute bottom-[3px] right-[7px] text-[11px] leading-none text-[color:var(--wa-meta)]">
+          {formatTime(message.createdAt)}
         </span>
-        <span className="shrink-0 opacity-60">{formatTime(message.createdAt)}</span>
-      </span>
-      {playable && <CallRecordingPlayer callId={call!.callId!} />}
+      </div>
     </div>
   );
 }
