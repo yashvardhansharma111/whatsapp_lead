@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div>
       <PageHeader
         title="Analytics"
         description="Conversation volume, pipeline health and agent throughput across your workspace."
