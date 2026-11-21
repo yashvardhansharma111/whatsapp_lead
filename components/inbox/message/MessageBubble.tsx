@@ -68,24 +68,28 @@ export function MessageBubble({
     <div className={cn("group flex items-end gap-1", outbound ? "justify-end" : "justify-start")}>
       {!outbound && replyBtn}
       <div
+        style={outbound ? WA_OUT : WA_IN}
         className={cn(
-          "min-w-0 max-w-[85%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[70%]",
-          outbound
-            ? "rounded-br-sm bg-emerald-600 text-white"
-            : "rounded-bl-sm border border-slate-200 bg-white text-slate-800",
+          // Both sides are light now, so every colour inside can come from the same
+          // variables instead of a direction test. That is the whole point of setting
+          // them here: `MessageBody` and its media chips used to carry seventeen
+          // `outbound ? white : slate` decisions, each of which had to be found and
+          // changed by hand to move off white-on-emerald.
+          // `pb-4` keeps the last line clear of the timestamp, which is pinned to the
+          // bottom-right corner rather than sitting on a row of its own — WhatsApp puts
+          // the time in the bubble's gutter, not under the message.
+          "relative min-w-0 max-w-[85%] rounded-lg px-2 pb-4 pt-1.5 text-[color:var(--wa-fg)] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[65%]",
+          outbound ? "rounded-tr-none" : "rounded-tl-none",
         )}
       >
+        <BubbleTail outbound={outbound} />
+
         {quotedMessage && (
-          <div
-            className={cn(
-              "mb-2 rounded-lg border-l-[3px] px-2 py-1.5",
-              outbound ? "border-white/40 bg-white/10" : "border-emerald-500 bg-slate-50",
-            )}
-          >
-            <p className={cn("mb-0.5 text-[10px] font-semibold", outbound ? "text-white/70" : "text-emerald-700")}>
+          <div className="mb-1 overflow-hidden rounded border-l-4 border-[color:var(--wa-quote-bar)] bg-[color:var(--wa-quote-bg)] px-2 py-1">
+            <p className="mb-0.5 text-xs font-medium text-[color:var(--wa-quote-bar)]">
               {quotedMessage.direction === "OUTBOUND" ? "You" : "Customer"}
             </p>
-            <p className={cn("truncate text-xs", outbound ? "text-white/80" : "text-slate-600")}>
+            <p className="truncate text-xs text-[color:var(--wa-meta)]">
               {quotedMessage.content ||
                 (quotedMessage.type === "INTERACTIVE"
                   ? "Interactive message"
@@ -95,12 +99,7 @@ export function MessageBubble({
         )}
 
         {message.isAiGenerated && (
-          <span
-            className={cn(
-              "mb-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-              outbound ? "bg-white/20 text-white" : "bg-violet-50 text-violet-700",
-            )}
-          >
+          <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-[color:var(--wa-chip)] px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--wa-meta)]">
             <Sparkles className="h-3 w-3" />
             AI
           </span>
@@ -108,20 +107,60 @@ export function MessageBubble({
 
         <MessageBody message={message} tone={outbound ? "outbound" : "inbound"} />
 
-        <KnowledgeCitation message={message} outbound={outbound} />
+        <KnowledgeCitation message={message} />
 
-        <div
-          className={cn(
-            "mt-1 flex items-center justify-end gap-1",
-            outbound ? "text-emerald-50/80" : "text-slate-400",
-          )}
-        >
-          <span className="text-[10px]">{formatTime(message.createdAt)}</span>
+        <span className="pointer-events-none absolute bottom-[3px] right-[7px] flex items-center gap-1 text-[11px] leading-none text-[color:var(--wa-meta)]">
+          {formatTime(message.createdAt)}
           {outbound && <StatusTick status={message.status} />}
-        </div>
+        </span>
       </div>
       {outbound && replyBtn}
     </div>
+  );
+}
+
+/**
+ * WhatsApp's own two bubble colours, as variables the whole subtree reads.
+ *
+ * Outbound used to be solid emerald with white text, which meant every nested chip,
+ * divider and caption carried its own `outbound ? … : …`. On WhatsApp both bubbles are
+ * light, so the muted greys, rules and link blue are now simply the same on each side
+ * and the tests disappear.
+ */
+const WA_IN = {
+  "--wa-bg": "#ffffff",
+  "--wa-fg": "#111b21",
+  "--wa-meta": "rgba(17,27,33,0.45)",
+  "--wa-chip": "rgba(11,20,26,0.06)",
+  "--wa-rule": "rgba(11,20,26,0.09)",
+  "--wa-link": "#027eb5",
+  "--wa-quote-bar": "#06cf9c",
+  "--wa-quote-bg": "rgba(11,20,26,0.04)",
+  background: "#ffffff",
+} as React.CSSProperties;
+
+const WA_OUT = {
+  ...WA_IN,
+  "--wa-bg": "#d9fdd3",
+  "--wa-quote-bar": "#53bdeb",
+  "--wa-quote-bg": "rgba(11,20,26,0.05)",
+  background: "#d9fdd3",
+} as React.CSSProperties;
+
+/** The little hook at the top corner. An SVG, because a squared-off corner is not it. */
+function BubbleTail({ outbound }: { outbound: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("absolute top-0 block h-[13px] w-[8px]", outbound ? "right-[-8px]" : "left-[-8px]")}
+    >
+      <svg viewBox="0 0 8 13" width="8" height="13" className="block">
+        <path
+          d={outbound ? "M0 0 L8 0 L0 13 Z" : "M8 0 L0 0 L8 13 Z"}
+          fill="var(--wa-bg)"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -137,13 +176,7 @@ export function MessageBubble({
  * wrong, the useful question is which of the workspace's documents told it that —
  * and without this line the answer is unavailable to anyone.
  */
-function KnowledgeCitation({
-  message,
-  outbound,
-}: {
-  message: InboxMessage;
-  outbound: boolean;
-}) {
+function KnowledgeCitation({ message }: { message: InboxMessage }) {
   const raw = (message.metadata as { knowledgeSources?: unknown } | null | undefined)
     ?.knowledgeSources;
   if (!Array.isArray(raw) || raw.length === 0) return null;
@@ -157,7 +190,7 @@ function KnowledgeCitation({
     <p
       className={cn(
         "mt-1.5 border-t pt-1.5 text-[10px] leading-relaxed wrap-anywhere",
-        outbound ? "border-white/20 text-white/70" : "border-slate-100 text-slate-400",
+        "border-[color:var(--wa-rule)] text-[color:var(--wa-meta)]",
       )}
       title={names.join(", ")}
     >
@@ -269,11 +302,11 @@ function MessageBody({
       return (
         <div className="space-y-1.5">
           {imgSrc ? (
-            <ImageBubble src={imgSrc} alt={caption || "Attached image"} />
+            <Flush><ImageBubble src={imgSrc} alt={caption || "Attached image"} /></Flush>
           ) : (
-            <MediaChip icon={ImageIcon} label="Image unavailable" outbound={outbound} />
+            <MediaChip icon={ImageIcon} label="Image unavailable" />
           )}
-          {caption && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{caption}</p>}
+          {caption && <p className="mt-1 whitespace-pre-wrap wrap-anywhere text-sm">{caption}</p>}
         </div>
       );
     }
@@ -289,7 +322,7 @@ function MessageBody({
               className="max-h-64 w-full max-w-xs rounded-lg bg-black"
             />
           ) : (
-            <MediaChip icon={ImageIcon} label="Video unavailable" outbound={outbound} />
+            <MediaChip icon={ImageIcon} label="Video unavailable" />
           )}
           {caption && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{caption}</p>}
         </div>
@@ -300,7 +333,7 @@ function MessageBody({
       return src ? (
         <audio src={src} controls preload="metadata" className="h-9 w-56 max-w-full" />
       ) : (
-        <MediaChip icon={FileText} label="Voice message" outbound={outbound} />
+        <MediaChip icon={FileText} label="Voice message" />
       );
     }
 
@@ -312,14 +345,14 @@ function MessageBody({
         <span
           className={cn(
             "inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-2 ring-1 ring-inset",
-            outbound ? "bg-white/10 ring-white/25" : "bg-slate-50 ring-slate-200",
+            "bg-[color:var(--wa-chip)] ring-[color:var(--wa-rule)]",
           )}
         >
           <FileText className="h-5 w-5 shrink-0" />
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium">{filename}</span>
             {size && (
-              <span className={cn("block text-[11px]", outbound ? "text-white/70" : "text-slate-500")}>
+              <span className={cn("block text-[11px]", "text-[color:var(--wa-meta)]")}>
                 {size}
               </span>
             )}
@@ -356,15 +389,15 @@ function MessageBody({
         <div className="space-y-1.5">
           {hasMedia && (src
             ? headerType === "IMAGE"
-              ? <ImageBubble src={src} alt={headerText || "Template image"} />
+              ? <Flush><ImageBubble src={src} alt={headerText || "Template image"} /></Flush>
               : headerType === "VIDEO"
                 ? <video src={src} controls className="max-h-64 w-full max-w-xs rounded-lg bg-black" />
                 : (
                   <a href={`${src}${src.startsWith("/api/") ? "?download=1" : ""}`} target="_blank" rel="noreferrer">
-                    <MediaChip icon={FileText} label="Attached document" outbound={outbound} />
+                    <MediaChip icon={FileText} label="Attached document" />
                   </a>
                 )
-            : <MediaChip icon={ImageIcon} label="Header image unavailable" outbound={outbound} />
+            : <MediaChip icon={ImageIcon} label="Header image unavailable" />
           )}
 
           {headerText && <p className="wrap-anywhere text-sm font-semibold">{headerText}</p>}
@@ -372,14 +405,14 @@ function MessageBody({
           {caption && <WaText text={caption} className="block whitespace-pre-wrap wrap-anywhere text-sm" />}
 
           {footer && (
-            <p className={cn("text-[11px]", outbound ? "text-white/65" : "text-slate-500")}>{footer}</p>
+            <p className={cn("text-[11px]", "text-[color:var(--wa-meta)]")}>{footer}</p>
           )}
 
           {buttons.length > 0 && (
             <div
               className={cn(
                 "-mx-0.5 mt-1 divide-y border-t",
-                outbound ? "divide-white/15 border-white/20" : "divide-slate-200 border-slate-200",
+                "divide-[color:var(--wa-rule)] border-[color:var(--wa-rule)]",
               )}
             >
               {buttons.map((b, i) => {
@@ -397,12 +430,12 @@ function MessageBody({
                     href={b.url}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn("block", outbound ? "text-sky-100 hover:underline" : "text-sky-600 hover:underline")}
+                    className={cn("block", "text-[color:var(--wa-link)] hover:underline")}
                   >
                     {inner}
                   </a>
                 ) : (
-                  <span key={i} className={cn("block", outbound ? "text-sky-100" : "text-sky-600")}>
+                  <span key={i} className={cn("block", "text-[color:var(--wa-link)]")}>
                     {inner}
                   </span>
                 );
@@ -420,7 +453,7 @@ function MessageBody({
       const place = [str(loc.name), str(loc.address)].filter(Boolean).join(" · ");
       const label =
         place || (lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : "Shared a location");
-      const chip = <MediaChip icon={MapPin} label={label} outbound={outbound} />;
+      const chip = <MediaChip icon={MapPin} label={label} />;
       return lat != null && lng != null ? (
         <a
           href={`https://maps.google.com/?q=${lat},${lng}`}
@@ -517,7 +550,7 @@ function MessageBody({
               const who = c.name?.formatted_name?.trim() || c.name?.first_name?.trim() || "Contact";
               return (
                 <div key={i} className={cn("rounded-lg px-2.5 py-2 ring-1 ring-inset",
-                  outbound ? "bg-white/10 ring-white/20" : "bg-slate-50 ring-slate-200")}>
+                  "bg-[color:var(--wa-chip)] ring-[color:var(--wa-rule)]")}>
                   <p className="flex items-center gap-1.5 text-sm font-medium">
                     <UserRound className="h-3.5 w-3.5 shrink-0" />
                     {who}
@@ -574,7 +607,7 @@ function MessageBody({
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               WhatsApp couldn&apos;t deliver this message
             </p>
-            <p className={cn("text-xs leading-relaxed", outbound ? "text-white/70" : "text-slate-600")}>
+            <p className={cn("text-xs leading-relaxed", "text-[color:var(--wa-meta)]")}>
               They sent a type WhatsApp does not pass on to business accounts — usually a
               poll, a view-once photo or a disappearing message. Ask them to send it again
               as text, a photo or a file.
@@ -595,17 +628,15 @@ function MessageBody({
 function MediaChip({
   icon: Icon,
   label,
-  outbound,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  outbound: boolean;
 }) {
   return (
     <span
       className={cn(
         "inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm ring-1 ring-inset",
-        outbound ? "bg-white/10 ring-white/25" : "bg-slate-50 ring-slate-200",
+        "bg-[color:var(--wa-chip)] ring-[color:var(--wa-rule)]",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -615,6 +646,17 @@ function MediaChip({
 }
 
 /** An image bubble that opens a full-screen lightbox on click (Enter/Space) and ESC to close. */
+/**
+ * Cancels the bubble's padding so media reaches its edges.
+ *
+ * WhatsApp gives a photo the full width of the bubble and puts the caption underneath,
+ * inside the same bubble. Ours sat inset with a gap all round, which read as a picture
+ * pasted into a message rather than a picture that *is* the message.
+ */
+function Flush({ children }: { children: React.ReactNode }) {
+  return <div className="-mx-1 -mt-0.5 overflow-hidden rounded-[7px]">{children}</div>;
+}
+
 function ImageBubble({ src, alt }: { src: string; alt: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -623,14 +665,14 @@ function ImageBubble({ src, alt }: { src: string; alt: string }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Open image: ${alt}`}
-        className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+        className="block w-full rounded-[7px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
           loading="lazy"
-          className="max-h-64 w-full max-w-xs cursor-zoom-in rounded-lg object-cover"
+          className="max-h-80 w-full cursor-zoom-in rounded-[7px] object-cover"
         />
       </button>
       {open && <Lightbox src={src} alt={alt} onClose={() => setOpen(false)} />}

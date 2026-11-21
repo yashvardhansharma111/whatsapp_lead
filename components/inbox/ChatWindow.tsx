@@ -463,10 +463,9 @@ export function ChatWindow({
       {/* Messages */}
       <div
         className="scrollbar-slim min-h-0 flex-1 overflow-y-auto px-3 py-4 lg:px-6"
-        style={{
-          backgroundImage: "radial-gradient(#e2e8f0 1px, transparent 1px)",
-          backgroundSize: "18px 18px",
-        }}
+        // WhatsApp's own paper. The dotted grid read as a design canvas, which is the
+        // wrong association for a page where the thing being read is a conversation.
+        style={{ background: "#efeae2" }}
       >
         {isLoading ? (
           <MessageSkeleton />
