@@ -267,7 +267,7 @@ function ClientTopbar({ tenantName }: { tenantName?: string | null }) {
           the answer is the same everywhere: inbox, templates and reports were each
           asking separately and could disagree. Self-hides when there is one number. */}
       <div className="hidden shrink-0 md:block">
-        <NumberPicker id="global-number" anyLabel="All numbers" value={numberId} onChange={setNumberId} />
+        <NumberPicker id="global-number" value={numberId} onChange={setNumberId} />
       </div>
 
       {/* Global search */}

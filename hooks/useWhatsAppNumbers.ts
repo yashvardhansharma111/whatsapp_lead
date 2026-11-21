@@ -87,7 +87,17 @@ export function useNumberFilter() {
   const query = useWhatsAppNumbers();
   const [stored, setNumberId] = useStickyState("wa.number");
 
-  const known = !stored || query.isLoading || query.numbers.some((n) => n.id === stored);
+  const known = stored ? query.numbers.some((n) => n.id === stored) : false;
 
-  return { ...query, numberId: known ? stored : "", setNumberId };
+  // Always a particular number, never "all of them". Working two numbers' inboxes as one
+  // list reads as a single conversation history that it is not: two customers, two
+  // threads, two different senders, interleaved by time with nothing distinguishing them.
+  // A remembered id that no longer resolves — the number was removed, or belongs to a
+  // workspace since switched away from — falls back to the default rather than leaving
+  // the chooser blank.
+  return {
+    ...query,
+    numberId: known ? stored : query.defaultNumber?.id ?? "",
+    setNumberId,
+  };
 }
