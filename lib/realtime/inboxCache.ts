@@ -102,9 +102,32 @@ export function applyMessageNew(cache: unknown, message: RtMessage, summary: RtC
       lastMessageAt: summary.lastMessageAt,
       lastMessagePreview: summary.lastMessagePreview,
       messages: upsertMessage(messages, message as unknown as Row),
+      ...openedWindow(message),
     });
   }
   return cache;
+}
+
+/**
+ * A customer writing re-opens WhatsApp's 24-hour window, right now.
+ *
+ * The window is computed on the server when the thread is fetched, and nothing here
+ * touched it afterwards — so a reply landed in the thread while the composer underneath
+ * still said "they have never messaged you" and offered only a template, until the page
+ * was reloaded. The arriving message is itself the proof, so it is applied directly
+ * rather than waiting for a refetch to confirm what we already know.
+ */
+function openedWindow(message: RtMessage): Record<string, unknown> {
+  if (message.direction !== "INBOUND") return {};
+  const at = message.createdAt ?? new Date().toISOString();
+  return {
+    serviceWindow: {
+      open: true,
+      lastInboundAt: at,
+      expiresAt: new Date(new Date(at).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      everReplied: true,
+    },
+  };
 }
 
 export function applyMessageUpdated(cache: unknown, messageId: string, conversationId: string, patch: Partial<RtMessage>): unknown {
