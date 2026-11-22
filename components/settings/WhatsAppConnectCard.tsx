@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   RefreshCw,
+  Trash2,
   Star,
   PlugZap,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { Badge, Button, Card, Field, inputClass, Modal, Skeleton } from "@/compo
 import { useBusinesses, type BusinessDTO } from "@/hooks/useBusinesses";
 import {
   useConnectWhatsApp,
+  useDeleteWhatsAppIntegration,
   useDisconnectWhatsApp,
   useManualConnectWhatsApp,
   useTestWhatsAppConnection,
@@ -238,6 +240,7 @@ function IntegrationCard({
   onRename,
   onMakeDefault,
   onDisconnect,
+  onRemove,
 }: {
   integration: WhatsAppIntegrationDTO;
   health: WhatsAppHealthDTO | undefined;
@@ -250,6 +253,7 @@ function IntegrationCard({
   onRename: () => void;
   onMakeDefault: () => void;
   onDisconnect: () => void;
+  onRemove: () => void;
 }) {
   const label = integration.phoneNumber || integration.displayName || "this number";
   const panelId = `wa-number-${integration.id}`;
@@ -442,10 +446,19 @@ function IntegrationCard({
             <DetailRow label="Connected" value={new Date(integration.createdAt).toLocaleDateString()} />
           </dl>
 
+          {/* A disconnected number keeps its place so its conversations stay readable,
+              but until now nothing could take it off the list — one tried and abandoned
+              sat here for good. */}
           {!integration.isActive && (
-            <p className="mt-3 text-xs text-slate-500">
-              Conversations on this number can&apos;t be answered until it is reconnected.
-            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3">
+              <p className="text-xs text-slate-500">
+                Conversations on this number can&apos;t be answered until it is reconnected.
+              </p>
+              <Button size="sm" variant="secondary" onClick={onRemove} aria-label={`Remove ${label} from the list`}>
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                Remove
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -472,6 +485,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const connect = useConnectWhatsApp();
   const manualConnect = useManualConnectWhatsApp();
   const disconnect = useDisconnectWhatsApp();
+  const removeIntegration = useDeleteWhatsAppIntegration();
   const test = useTestWhatsAppConnection();
   const updateIntegration = useUpdateWhatsAppIntegration();
 
@@ -480,6 +494,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [testOutcomes, setTestOutcomes] = useState<Record<string, TestOutcome>>({});
   const [confirmDisconnect, setConfirmDisconnect] = useState<WhatsAppIntegrationDTO | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<WhatsAppIntegrationDTO | null>(null);
   // Which number's panel is open. One at a time, so the page stays the length of the list.
   // `null` means "not chosen yet" and `""` means "chosen: none" — the difference matters
   // because a business with a single number should find it already open.
@@ -806,6 +821,26 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
     });
   };
 
+  const runRemove = () => {
+    const integration = confirmRemove;
+    if (!integration) return;
+    setError(null);
+    setNotice(null);
+    removeIntegration.mutate(integration.id, {
+      onSuccess: () => {
+        setConfirmRemove(null);
+        setTestOutcomes((prev) => withoutKey(prev, integration.id));
+        setNotice(
+          `${integration.phoneNumber ?? integration.displayName ?? "That number"} has been removed from the list.`,
+        );
+      },
+      onError: (err) => {
+        setConfirmRemove(null);
+        setError(err instanceof Error ? err.message : "Could not remove this number");
+      },
+    });
+  };
+
   if (configLoading || businessesLoading || integrationsLoading) {
     return (
       <Card className="p-5">
@@ -897,6 +932,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
                   onRename={() => openRename(integration)}
                   onMakeDefault={() => makeDefault(integration)}
                   onDisconnect={() => setConfirmDisconnect(integration)}
+                  onRemove={() => setConfirmRemove(integration)}
                 />
               ))}
             </div>
@@ -1227,6 +1263,36 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
           </Button>
           <Button variant="danger" onClick={runDisconnect} disabled={disconnect.isPending}>
             {disconnect.isPending ? "Disconnecting…" : "Disconnect"}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Removing is not disconnecting, and the difference is worth spelling out: the
+          call records really do go, because a Call row cannot exist without the number
+          it was made on. Conversations and campaigns keep their history and simply stop
+          naming a number. */}
+      <Modal
+        open={!!confirmRemove}
+        onClose={() => {
+          if (!removeIntegration.isPending) setConfirmRemove(null);
+        }}
+        title="Remove this number from the list?"
+        description={
+          confirmRemove
+            ? `${confirmRemove.phoneNumber ?? confirmRemove.displayName ?? "This number"} is already disconnected. Removing it takes it off this screen for good. Its conversations, contacts and campaigns are kept and stay readable — they just stop showing which number they were on. Its call records and recordings are deleted. You can connect the same number again later.`
+            : ""
+        }
+      >
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end max-sm:[&>button]:h-10 max-sm:[&>button]:w-full">
+          <Button
+            variant="secondary"
+            onClick={() => setConfirmRemove(null)}
+            disabled={removeIntegration.isPending}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={runRemove} disabled={removeIntegration.isPending}>
+            {removeIntegration.isPending ? "Removing…" : "Remove"}
           </Button>
         </div>
       </Modal>

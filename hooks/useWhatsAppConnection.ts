@@ -248,6 +248,31 @@ export function useDisconnectWhatsApp() {
 }
 
 /**
+ * Remove a disconnected number from the list for good.
+ *
+ * Disconnecting only clears the token and marks the row inactive, which is right — the
+ * conversations on that number still have to be readable. But nothing then took the row
+ * away, so a number tried once and abandoned sat in Settings forever with no way to be
+ * rid of it. The endpoint existed; only this call was missing.
+ */
+export function useDeleteWhatsAppIntegration() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (integrationId: string) => {
+      const res = await fetch(`/api/integrations/whatsapp/${encodeURIComponent(integrationId)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.error ?? "Could not remove this number");
+      }
+      return json as { deleted: boolean };
+    },
+    onSuccess: () => invalidateConnectionState(queryClient),
+  });
+}
+
+/**
  * Edit what belongs to us on a connected number: its label, and whether it is the
  * business's default sender.
  *
