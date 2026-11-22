@@ -121,6 +121,26 @@ function InboxPageInner() {
     return row;
   }, [selectedId, detailData, all]);
 
+  /**
+   * A thread on another number is not shown here.
+   *
+   * A thread belongs to the number the customer wrote to, which need not be the one
+   * picked in the navbar. Switching numbers filtered the list but left whatever was
+   * open still open, so the screen showed a conversation that was no longer in the list
+   * beside it — and the composer then refused to send, correctly, naming a number
+   * nobody had chosen.
+   *
+   * Derived rather than cleared on a change: the selection itself is still valid, it
+   * simply belongs to a view you are not looking at, and switching back should bring it
+   * straight back. Judged on the detail payload, because the list may still be loading
+   * and "not in the list yet" is not "belongs elsewhere".
+   */
+  const onAnotherNumber = Boolean(
+    numberId && selected?.whatsappIntegrationId && selected.whatsappIntegrationId !== numberId,
+  );
+  const openId = onAnotherNumber ? null : selectedId;
+  const openConversation = onAnotherNumber ? null : selected;
+
   const messages = useMemo<InboxMessage[]>(() => {
     const detail = unwrap<InboxConversation>(detailData);
     return toArray<InboxMessage>(detail?.messages ?? unwrap<unknown>(detailData));
@@ -160,7 +180,7 @@ function InboxPageInner() {
     <div className="-m-4 flex h-[calc(100dvh-4rem)] overflow-hidden bg-white lg:-m-6">
       <ConversationList
         conversations={conversations}
-        selectedId={selectedId}
+        selectedId={openId}
         onSelect={handleSelect}
         isLoading={listBusy}
         isError={listError && !listData}
@@ -169,13 +189,13 @@ function InboxPageInner() {
         tab={tab}
         onTabChange={setTab}
         onStartChat={handleSelect}
-        className={cn("w-full shrink-0 md:w-80", selectedId && "hidden md:flex")}
+        className={cn("w-full shrink-0 md:w-80", openId && "hidden md:flex")}
       />
 
       {/* Keyed so composer/tab state resets cleanly when a different thread opens. */}
       <ChatWindow
-        key={selectedId ?? "empty"}
-        conversation={selected}
+        key={openId ?? "empty"}
+        conversation={openConversation}
         messages={messages}
         isLoading={detailBusy}
         isError={detailError && !detailData}
@@ -185,7 +205,7 @@ function InboxPageInner() {
         }}
         onShowContact={() => setPanelOpen(true)}
         agents={agents}
-        className={cn("min-w-0 flex-1", selectedId ? "flex" : "hidden md:flex")}
+        className={cn("min-w-0 flex-1", openId ? "flex" : "hidden md:flex")}
       />
 
       {panelOpen && (
@@ -197,8 +217,8 @@ function InboxPageInner() {
       )}
       {/* One instance for both modes: a fixed drawer below xl, the static third column at xl+. */}
       <ContactPanel
-        key={`panel-${selectedId ?? "empty"}`}
-        conversation={selected}
+        key={`panel-${openId ?? "empty"}`}
+        conversation={openConversation}
         agents={agents}
         isLoading={detailBusy}
         onClose={() => setPanelOpen(false)}
