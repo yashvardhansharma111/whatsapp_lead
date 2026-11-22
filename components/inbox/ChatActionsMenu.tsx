@@ -11,6 +11,8 @@
 // So they sit behind a "+" next to the AI switch, where the chat is.
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useBusinesses } from "@/hooks/useBusinesses";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -62,6 +64,19 @@ export function ChatActionsMenu({
   onShowContact?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  /**
+   * Whether the workspace's AI is on at all.
+   *
+   * Three switches have to agree before a bot answers: the business's AI, its auto-reply,
+   * and this chat's own toggle. Only the last one lives here, and it happily said
+   * "Answering this chat" while the other two were off — so the chat claimed a reply was
+   * coming, none came, and nothing on the screen explained why.
+   */
+  const { data: businessesData } = useBusinesses();
+  const business = (businessesData?.data ?? []).find((b) => b.id === businessesData?.currentBusinessId);
+  const workspaceAiOn = Boolean(business?.aiEnabled && business?.autoReply);
+  const aiAnswering = Boolean(aiActive) && workspaceAiOn;
+
   const [view, setView] = useState<View>("menu");
   const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -132,7 +147,7 @@ export function ChatActionsMenu({
         <Menu className="h-4 w-4" />
         {/* The AI switch decides whether a bot answers your customer. Hidden behind a
             menu it could be on for days unnoticed, so its state stays on the trigger. */}
-        {aiActive && (
+        {aiAnswering && (
           <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
         )}
       </button>
@@ -166,8 +181,19 @@ export function ChatActionsMenu({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-slate-800">AI auto-reply</span>
-                    <span className="block truncate text-xs text-slate-500">
-                      {aiActive ? "Answering this chat" : "Off for this chat"}
+                    <span className="block text-xs text-slate-500">
+                      {!workspaceAiOn ? (
+                        <>
+                          AI is off for this workspace, so nothing will reply.{" "}
+                          <Link href="/ai-settings" className="font-medium text-emerald-700 underline underline-offset-2">
+                            Turn it on
+                          </Link>
+                        </>
+                      ) : aiActive ? (
+                        "Answering this chat"
+                      ) : (
+                        "Off for this chat"
+                      )}
                     </span>
                   </span>
                   <input
