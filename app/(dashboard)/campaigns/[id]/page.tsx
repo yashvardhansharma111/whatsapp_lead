@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Download, Megaphone, Users } from "lucide-react";
+import { ArrowLeft, Download, Megaphone, MousePointerClick, Users } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
 import { useCampaignsRealtime } from "@/hooks/useCampaignsRealtime";
@@ -22,6 +22,17 @@ interface Recipient {
   deliveredAt: string | null;
   readAt: string | null;
   repliedAt: string | null;
+  /** First time they followed the tracked link. Null if they never did. */
+  clickedAt: string | null;
+  /** Every time after the first, too — a second visit is a different signal from none. */
+  clickCount: number;
+  /**
+   * Where this recipient's tracked link points, set when the campaign was built.
+   * Null for a campaign whose template has no URL button, or one sent before link
+   * tracking was configured — in which case there are no clicks to be had, rather
+   * than nobody clicking.
+   */
+  clickUrl: string | null;
   failedReason: string | null;
   contact: { id: string; name: string | null; phone: string } | null;
 }
@@ -77,13 +88,17 @@ function pctLabel(value: number, total: number) {
 }
 
 function exportCsv(recipients: Recipient[], campaignName: string) {
-  const headers = ["Name", "Phone", "Sent At", "Delivered At", "Read At", "Status", "Fail Reason"];
+  const headers = [
+    "Name", "Phone", "Sent At", "Delivered At", "Read At", "Clicked At", "Clicks", "Status", "Fail Reason",
+  ];
   const rows = recipients.map((r) => [
     r.contact?.name?.trim() ?? "",
     r.phone,
     r.sentAt ? formatDate(r.sentAt) : "",
     r.deliveredAt ? formatDate(r.deliveredAt) : "",
     r.readAt ? formatDate(r.readAt) : "",
+    r.clickedAt ? formatDate(r.clickedAt) : "",
+    r.clickCount || 0,
     r.status,
     r.failedReason ?? "",
   ]);
@@ -99,6 +114,31 @@ function exportCsv(recipients: Recipient[], campaignName: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * One recipient's clicks.
+ *
+ * Three states, not two: they clicked, they didn't, or there was never a link to click.
+ * The last one is why this isn't a plain date — "—" in a Clicked column reads as a
+ * verdict on the campaign, and for a template with no URL button it would be a false one.
+ */
+function ClickCell({ recipient, tracked }: { recipient: Recipient; tracked: boolean }) {
+  if (!tracked) {
+    return <span className="text-slate-300" title="This campaign had no tracked link">n/a</span>;
+  }
+  if (!recipient.clickedAt) return <span className="text-slate-400">—</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5" title={recipient.clickUrl ?? undefined}>
+      <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+      <span className="text-slate-700">{formatDate(recipient.clickedAt)}</span>
+      {recipient.clickCount > 1 && (
+        <span className="rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700">
+          ×{recipient.clickCount}
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
 function StatCard({
@@ -106,19 +146,24 @@ function StatCard({
   value,
   total,
   barColor,
+  unavailable,
 }: {
   label: string;
   value: number;
   total: number;
   barColor: string;
+  /** Replaces the percentage when the figure could never have been anything but zero. */
+  unavailable?: string;
 }) {
-  const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+  const percentage = total > 0 && !unavailable ? Math.round((value / total) * 100) : 0;
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{value.toLocaleString()}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", unavailable ? "text-slate-300" : "text-slate-900")}>
+        {unavailable ? "—" : value.toLocaleString()}
+      </p>
       <p className="mt-0.5 text-xs tabular-nums text-slate-400">
-        {pctLabel(value, total)}
+        {unavailable ?? pctLabel(value, total)}
       </p>
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-100">
         <div
@@ -149,7 +194,17 @@ export default function CampaignReportPage() {
   });
 
   const campaign = data?.campaign;
-  const recipients = data?.recipients ?? [];
+  // Memoised because a fresh [] each render makes every downstream useMemo recompute.
+  const recipients = useMemo(() => data?.recipients ?? [], [data]);
+  /**
+   * Whether a click was ever possible here.
+   *
+   * A tracked link is only built when the template has a URL button and the deployment
+   * has a tracking base, so plenty of campaigns can have no clicks because there was
+   * nothing to click. A column of dashes reads as "nobody opened it", which is a
+   * different and much worse thing to tell someone about their campaign.
+   */
+  const tracksClicks = recipients.some((r) => r.clickUrl);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -240,7 +295,13 @@ export default function CampaignReportPage() {
         <StatCard label="Sent"      value={campaign.sentCount}       total={total} barColor="bg-blue-500" />
         <StatCard label="Delivered" value={campaign.deliveredCount}  total={total} barColor="bg-emerald-500" />
         <StatCard label="Read"      value={campaign.readCount}       total={total} barColor="bg-violet-500" />
-        <StatCard label="Clicked"   value={campaign.clickedCount}    total={total} barColor="bg-amber-500" />
+        <StatCard
+          label="Clicked"
+          value={campaign.clickedCount}
+          total={total}
+          barColor="bg-amber-500"
+          unavailable={tracksClicks ? undefined : "no tracked link"}
+        />
         <StatCard label="Failed"    value={campaign.failedCount}     total={total} barColor="bg-rose-500" />
         {campaign.skippedCount > 0 && (
           <StatCard label="Skipped" value={campaign.skippedCount}    total={total} barColor="bg-slate-300" />
@@ -335,7 +396,7 @@ export default function CampaignReportPage() {
                       {r.status}
                     </Badge>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-500">
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500 sm:grid-cols-4">
                     <div>
                       <p className="font-medium text-slate-600">Sent</p>
                       <p>{r.sentAt ? formatDate(r.sentAt) : "—"}</p>
@@ -347,6 +408,10 @@ export default function CampaignReportPage() {
                     <div>
                       <p className="font-medium text-slate-600">Read</p>
                       <p>{r.readAt ? formatDate(r.readAt) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-600">Clicked</p>
+                      <ClickCell recipient={r} tracked={tracksClicks} />
                     </div>
                   </div>
                   {r.failedReason && (
@@ -366,6 +431,7 @@ export default function CampaignReportPage() {
                     <th className="px-4 py-3 font-medium">Sent</th>
                     <th className="px-4 py-3 font-medium">Delivered</th>
                     <th className="px-4 py-3 font-medium">Read</th>
+                    <th className="px-4 py-3 font-medium">Clicked</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
@@ -386,6 +452,9 @@ export default function CampaignReportPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                         {r.readAt ? formatDate(r.readAt) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                        <ClickCell recipient={r} tracked={tracksClicks} />
                       </td>
                       <td className="px-4 py-3">
                         <Badge

@@ -8,7 +8,8 @@
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('stripe:', p.dependencies['stripe']\\)\")",
       "Bash(ls app/api/billing/)",
       "Bash(ls lib/billing/)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(ssh -i ~/.ssh/waboxa_vps -o StrictHostKeyChecking=no root@189.72.157.204 'bash -s')"
     ]
   }
 }
