@@ -100,22 +100,74 @@ function useCampaigns(status: "ALL" | CampaignStatus) {
   });
 }
 
-function RateBar({ value, total }: { value: number; total: number }) {
+/**
+ * One campaign's delivery, in one column.
+ *
+ * Sent, Delivered, Read and Clicked each had their own column with a number, a percentage
+ * and a bar — four columns of three things, next to Recipients, Replied and Failed. The
+ * table ran to eleven columns and scrolled sideways, and every one of those figures is on
+ * the campaign's own page, broken down per recipient.
+ *
+ * So the list keeps the question a list answers — how far did this get — as a single bar
+ * with the furthest stage reached named beside it. The full breakdown is still here, on
+ * hover, for anyone who wants it without opening the campaign.
+ */
+function DeliveryBar({ campaign }: { campaign: Campaign }) {
+  const total = campaign.totalCount || 0;
+  const read = campaign.readCount ?? 0;
+  const delivered = campaign.deliveredCount ?? 0;
+  const sent = campaign.sentCount ?? 0;
+  const failed = campaign.failedCount ?? 0;
+
+  // Each stage is a subset of the one before it, so the bar draws the differences —
+  // otherwise the segments would add up to well over the audience.
+  const segments = [
+    { width: read,                          className: "bg-emerald-600" },
+    { width: Math.max(0, delivered - read), className: "bg-emerald-400" },
+    { width: Math.max(0, sent - delivered), className: "bg-sky-400" },
+    { width: failed,                        className: "bg-rose-400" },
+  ];
+
+  // The furthest stage anything actually reached is the honest headline: a campaign
+  // nobody opened should not read as "2 read".
+  const [label, value] = read > 0
+    ? ["read", read] as const
+    : delivered > 0
+      ? ["delivered", delivered] as const
+      : sent > 0
+        ? ["sent", sent] as const
+        : failed > 0
+          ? ["failed", failed] as const
+          : ["pending", total] as const;
+
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const breakdown = [
+    `Sent ${sent}`,
+    `Delivered ${delivered}`,
+    `Read ${read}`,
+    `Clicked ${campaign.clickedCount ?? 0}`,
+    `Replied ${campaign.repliedCount ?? 0}`,
+    `Failed ${failed}`,
+  ].join(" · ");
+
   return (
-    <div className="min-w-24">
-      <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
-        <span className="tabular-nums">{formatCompact(value)}</span>
+    <div className="min-w-32" title={breakdown}>
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className={cn("tabular-nums", label === "failed" ? "text-rose-600" : "text-slate-600")}>
+          {formatCompact(value)} {label}
+        </span>
         <span className="tabular-nums text-slate-400">{pct}%</span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-        <div
-          className={cn(
-            "h-full rounded-full",
-            pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-rose-500",
-          )}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="mt-1 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        {segments.map((s, i) =>
+          s.width > 0 ? (
+            <div
+              key={i}
+              className={s.className}
+              style={{ width: `${total > 0 ? (s.width / total) * 100 : 0}%` }}
+            />
+          ) : null,
+        )}
       </div>
     </div>
   );
@@ -344,26 +396,18 @@ function CampaignsPageInner() {
                   </div>
                   <Badge className={STATUS_STYLE[c.status]}>{c.status}</Badge>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-                  {(
-                    [
-                      ["Sent", c.sentCount],
-                      ["Delivered", c.deliveredCount ?? 0],
-                      ["Read", c.readCount ?? 0],
-                      ["Clicked", c.clickedCount ?? 0],
-                    ] as [string, number][]
-                  ).map(([label, value]) => (
-                    <div key={label}>
-                      <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-                      <RateBar value={value} total={c.totalCount} />
-                    </div>
-                  ))}
+                <div className="mt-3">
+                  <DeliveryBar campaign={c} />
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <p className="text-xs text-slate-500">
-                    <span className="tabular-nums text-slate-700">{formatCompact(c.totalCount)}</span> recipients ·{" "}
-                    <span className="tabular-nums">{formatCompact(c.repliedCount ?? 0)}</span> replied ·{" "}
-                    <span className="tabular-nums text-rose-600">{formatCompact(c.failedCount)}</span> failed
+                    <span className="tabular-nums text-slate-700">{formatCompact(c.totalCount)}</span> recipients
+                    {c.failedCount > 0 && (
+                      <>
+                        {" · "}
+                        <span className="tabular-nums text-rose-600">{formatCompact(c.failedCount)}</span> failed
+                      </>
+                    )}
                   </p>
                   <div className="flex shrink-0 items-center gap-1 [&>button]:h-10 [&>button]:w-10">
                     {renderActions(c)}
@@ -379,11 +423,7 @@ function CampaignsPageInner() {
                   <th className="px-4 py-3 font-medium">Campaign</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Recipients</th>
-                  <th className="px-4 py-3 font-medium">Sent</th>
-                  <th className="px-4 py-3 font-medium">Delivered</th>
-                  <th className="px-4 py-3 font-medium">Read</th>
-                  <th className="px-4 py-3 font-medium">Clicked</th>
-                  <th className="px-4 py-3 font-medium">Replied</th>
+                  <th className="px-4 py-3 font-medium">Delivery</th>
                   <th className="px-4 py-3 font-medium">Failed</th>
                   <th className="px-4 py-3 font-medium">Created</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -411,21 +451,9 @@ function CampaignsPageInner() {
                         {formatCompact(c.totalCount)}
                       </td>
                       <td className="px-4 py-3">
-                        <RateBar value={c.sentCount} total={c.totalCount} />
+                        <DeliveryBar campaign={c} />
                       </td>
-                      <td className="px-4 py-3">
-                        <RateBar value={c.deliveredCount ?? 0} total={c.totalCount} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <RateBar value={c.readCount ?? 0} total={c.totalCount} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <RateBar value={c.clickedCount ?? 0} total={c.totalCount} />
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-slate-700">
-                        {formatCompact(c.repliedCount ?? 0)}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-rose-600">
+                      <td className={cn("px-4 py-3 tabular-nums", c.failedCount > 0 ? "text-rose-600" : "text-slate-300")}>
                         {formatCompact(c.failedCount)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-slate-500">
