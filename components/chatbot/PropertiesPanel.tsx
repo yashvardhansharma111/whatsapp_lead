@@ -56,8 +56,17 @@ export function PropertiesPanel({
 }) {
   if (!node) {
     return (
-      <aside className="hidden w-72 shrink-0 items-center justify-center border-l border-slate-200 bg-white p-6 text-center md:flex">
-        <p className="text-sm text-slate-400">Select a node to edit its properties.</p>
+      <aside className="hidden w-72 shrink-0 flex-col justify-center gap-4 border-l border-slate-200 bg-white p-6 md:flex">
+        <p className="text-center text-sm text-slate-400">Click a step to edit it.</p>
+        {/* The panel sat empty until something was selected, and the one thing a new
+            author needs to be told — that answers are kept and where they come out —
+            was written down nowhere in the builder. */}
+        <div className="rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
+          <p className="mb-1 font-medium text-slate-700">Collecting answers</p>
+          Give a <b>Question</b> or <b>Menu</b> step a name for its answer, and every
+          customer&apos;s reply is kept against their run. Download the lot from{" "}
+          <b>Chatbot → Export responses</b>.
+        </div>
       </aside>
     );
   }
@@ -98,17 +107,17 @@ export function PropertiesPanel({
         )}
         {node.type === "message" && <MessageFields data={data as MessageNodeData} set={set} variables={variables} />}
         {node.type === "template" && <TemplateFields data={data as TemplateNodeData} set={set} />}
-        {node.type === "question" && <QuestionFields data={data as QuestionNodeData} set={set} />}
-        {node.type === "menu" && <MenuFields data={data as MenuNodeData} set={set} />}
+        {node.type === "question" && <QuestionFields data={data as QuestionNodeData} set={set} variables={variables} />}
+        {node.type === "menu" && <MenuFields data={data as MenuNodeData} set={set} variables={variables} />}
         {node.type === "condition" && <ConditionFields data={data as ConditionNodeData} set={set} />}
         {node.type === "api" && <ApiFields data={data as ApiNodeData} set={set} />}
         {node.type === "delay" && <DelayFields data={data as DelayNodeData} set={set} />}
-        {node.type === "set_variable" && <SetVariableFields data={data as SetVariableNodeData} set={set} />}
+        {node.type === "set_variable" && <SetVariableFields data={data as SetVariableNodeData} set={set} variables={variables} />}
         {node.type === "handoff" && <HandoffFields data={data as HandoffNodeData} set={set} />}
         {node.type === "qualify_lead" && <QualifyLeadFields data={data as QualifyLeadNodeData} set={set} />}
         {node.type === "tag" && <TagFields data={data as TagNodeData} set={set} />}
         {node.type === "lead_stage" && <LeadStageFields data={data as LeadStageNodeData} set={set} />}
-        {node.type === "notify" && <NotifyFields data={data as NotifyNodeData} set={set} />}
+        {node.type === "notify" && <NotifyFields data={data as NotifyNodeData} set={set} variables={variables} />}
         {node.type === "ai" && <AiFields data={data as AiNodeData} set={set} />}
         {node.type === "end" && (
           <p className="text-xs text-slate-400">This node has no extra configuration.</p>
@@ -271,24 +280,62 @@ function WebhookFields({ flowId }: { flowId: string }) {
  * the rest are invented by whichever node stores an answer. Clicking one appends it, so
  * the name is never mistyped.
  */
+/**
+ * What each built-in is, in words rather than in camelCase.
+ *
+ * These two are seeded on every run by the inbound pipeline. Everything else in the
+ * list was named by whoever added the node that stores it, so it is already in their
+ * own words and is shown as they typed it.
+ */
+const BUILT_IN_LABEL: Record<string, string> = {
+  contactName:  "Their name",
+  contactPhone: "Their phone number",
+};
+
+/** Internal plumbing the engine seeds but nobody should put in a message. */
+const HIDDEN_VARIABLES = new Set(["contactId"]);
+
 function VariableChips({ variables, onInsert }: { variables: string[]; onInsert: (token: string) => void }) {
-  if (!variables.length) return null;
+  const shown = variables.filter((v) => !HIDDEN_VARIABLES.has(v));
+  if (!shown.length) return null;
   return (
     <div className="mt-1.5">
-      <p className="text-[11px] text-slate-400">Click to insert — these are the ones this flow knows:</p>
+      <p className="text-[11px] text-slate-400">
+        Click to drop a detail into the text — it is replaced with the real value when the
+        message is sent.
+      </p>
       <div className="mt-1 flex flex-wrap gap-1">
-        {variables.map((v) => (
+        {shown.map((v) => (
           <button
             key={v}
             type="button"
             onClick={() => onInsert(`{{${v}}}`)}
-            className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+            title={`Inserts {{${v}}}`}
+            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
           >
-            {`{{${v}}}`}
+            {BUILT_IN_LABEL[v] ?? v}
           </button>
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * What naming an answer actually buys you.
+ *
+ * Every answer a flow collects is kept on the run and comes out of Chatbot →
+ * Export responses, which is the lead report people are looking for. Nothing said so,
+ * so "Store answer as" read like a programming detail to skip — and skipping it is
+ * exactly what throws the answer away.
+ */
+function AnswerIsReported({ name }: { name?: string }) {
+  return (
+    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+      {name?.trim()
+        ? <>Saved with every reply and shown as <span className="font-mono text-slate-600">{name.trim()}</span> in <b>Chatbot → Export responses</b>.</>
+        : <>Give it a name and the answer is kept for every customer, ready to download from <b>Chatbot → Export responses</b>. Leave it blank and the answer is used once and forgotten.</>}
+    </p>
   );
 }
 
@@ -327,14 +374,16 @@ function MessageFields({ data, set, variables = [] }: { data: MessageNodeData; s
   );
 }
 
-function QuestionFields({ data, set }: { data: QuestionNodeData; set: Setter }) {
+function QuestionFields({ data, set, variables = [] }: { data: QuestionNodeData; set: Setter; variables?: string[] }) {
   return (
     <>
-      <Field label="Question" htmlFor="np-question">
+      <Field label="What to ask the customer" htmlFor="np-question">
         <textarea id="np-question" rows={3} className={cn(inputClass, "resize-y")} value={data.question ?? ""} onChange={(e) => set({ question: e.target.value })} placeholder="What's your budget?" />
+        <VariableChips variables={variables} onInsert={(t) => set({ question: `${data.question ?? ""}${t}` })} />
       </Field>
-      <Field label="Store answer as" htmlFor="np-var">
+      <Field label="Name for their answer" htmlFor="np-var">
         <input id="np-var" className={inputClass} value={data.variable ?? ""} onChange={(e) => set({ variable: e.target.value.replace(/[^\w]/g, "") })} placeholder="budget" />
+        <AnswerIsReported name={data.variable} />
       </Field>
       <div>
         <span className={labelCls}>Validation</span>
@@ -357,7 +406,7 @@ function QuestionFields({ data, set }: { data: QuestionNodeData; set: Setter }) 
  * they reply with something nobody expected. That last group is the one every
  * IVR gets wrong by leaving it at "repeat forever".
  */
-function MenuFields({ data, set }: { data: MenuNodeData; set: Setter }) {
+function MenuFields({ data, set, variables = [] }: { data: MenuNodeData; set: Setter; variables?: string[] }) {
   const options = data.options ?? [];
 
   const update = (i: number, patch: Partial<MenuOption>) =>
@@ -390,28 +439,29 @@ function MenuFields({ data, set }: { data: MenuNodeData; set: Setter }) {
 
   return (
     <div className="space-y-4">
-      <label className="block">
-        <span className={labelCls}>Prompt</span>
+      {/* "Prompt" is the word the engine uses, not a word anyone writing a chatbot
+          would reach for — it names the field after the code rather than after what
+          lands in the customer's chat. */}
+      <div>
+        <span className={labelCls}>Message above the options</span>
         <textarea
           className={cn(inputClass, "min-h-20 text-sm")}
           value={data.prompt ?? ""}
           onChange={(e) => set({ prompt: e.target.value })}
           placeholder="What would you like help with?"
         />
-        <span className="mt-1 block text-xs text-slate-500">
-          Supports {"{{variable}}"} from earlier in the flow.
-        </span>
-      </label>
+        <VariableChips variables={variables} onInsert={(t) => set({ prompt: `${data.prompt ?? ""}${t}` })} />
+      </div>
 
-      <label className="block">
-        <span className={labelCls}>Footer (optional)</span>
+      <div>
+        <span className={labelCls}>Small print under the options (optional)</span>
         <input
           className={cn(inputClass, "h-9 text-sm")}
           value={data.footer ?? ""}
           onChange={(e) => set({ footer: e.target.value })}
           placeholder="Reply with a number if the buttons do not show"
         />
-      </label>
+      </div>
 
       {/* ── Options ─────────────────────────────────────────────────────── */}
       <div className="space-y-2">
@@ -538,7 +588,7 @@ function MenuFields({ data, set }: { data: MenuNodeData; set: Setter }) {
           </select>
         </label>
         <label className="block">
-          <span className={labelCls}>Save choice as</span>
+          <span className={labelCls}>Name for their choice</span>
           <input
             className={cn(inputClass, "h-9 text-sm")}
             value={data.saveAs ?? ""}
@@ -547,6 +597,7 @@ function MenuFields({ data, set }: { data: MenuNodeData; set: Setter }) {
           />
         </label>
       </div>
+      <AnswerIsReported name={data.saveAs} />
 
       {mode === "list" && (
         <div className="grid grid-cols-2 gap-2">
@@ -886,7 +937,7 @@ function TemplateFields({ data, set }: { data: TemplateNodeData; set: Setter }) 
   );
 }
 
-function SetVariableFields({ data, set }: { data: SetVariableNodeData; set: Setter }) {
+function SetVariableFields({ data, set, variables = [] }: { data: SetVariableNodeData; set: Setter; variables?: string[] }) {
   return (
     <>
       <Field label="Variable name" htmlFor="np-setvar-name">
@@ -906,7 +957,7 @@ function SetVariableFields({ data, set }: { data: SetVariableNodeData; set: Sett
           onChange={(e) => set({ value: e.target.value })}
           placeholder="literal text or {{otherVar}}"
         />
-        <p className="mt-1 text-[11px] text-slate-400">Use {"{{variable}}"} to reference collected answers.</p>
+        <VariableChips variables={variables} onInsert={(t) => set({ value: `${data.value ?? ""}${t}` })} />
       </Field>
     </>
   );
@@ -1070,7 +1121,7 @@ function LeadStageFields({ data, set }: { data: LeadStageNodeData; set: Setter }
   );
 }
 
-function NotifyFields({ data, set }: { data: NotifyNodeData; set: Setter }) {
+function NotifyFields({ data, set, variables = [] }: { data: NotifyNodeData; set: Setter; variables?: string[] }) {
   const target = data.target ?? "assignee";
   return (
     <>
@@ -1115,7 +1166,7 @@ function NotifyFields({ data, set }: { data: NotifyNodeData; set: Setter }) {
           onChange={(e) => set({ body: e.target.value })}
           placeholder="{{name}} asked about pricing"
         />
-        <p className="mt-1 text-[11px] text-slate-400">Use {"{{variable}}"} to include stored answers.</p>
+        <VariableChips variables={variables} onInsert={(t) => set({ body: `${data.body ?? ""}${t}` })} />
       </Field>
     </>
   );
