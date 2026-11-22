@@ -283,7 +283,7 @@ LeadStageNode.displayName = "LeadStageNode";
 const NotifyNode = memo(({ data, selected, width, height }: NodeProps) => {
   const d = data as NotifyNodeData;
   const who = d.target === "managers" ? "Managers"
-    : d.target === "department" ? (d.departmentName || "A department")
+    : d.target === "department" ? (d.departmentName || "A transfer team")
     : "Whoever is assigned";
   return (
     <NodeShell kind="notify" title={d.label || "Notify the team"} selected={selected} width={width} height={height}>

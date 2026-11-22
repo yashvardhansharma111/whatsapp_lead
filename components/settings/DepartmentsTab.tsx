@@ -20,10 +20,15 @@ const SWATCH: Record<string, string> = {
 };
 
 /**
- * Departments: Sales, Support, Billing.
+ * Transfer teams: Sales, Support, Billing.
  *
- * A department is where a handover goes, not a permission boundary. Being in Support does
- * not change what somebody can see — their permissions decide that — it decides which
+ * Called teams rather than departments because a Business is already shown as a
+ * "department" everywhere else in the app — the thing in the workspace switcher that
+ * people move between. Two unrelated things under one word, and this is the one with no
+ * rows in it anywhere, so it is the one that gives the word up.
+ *
+ * A team is where a handover goes, not a permission boundary. Being in Support does not
+ * change what somebody can see — their permissions decide that — it decides which
  * conversations reach them.
  */
 export function DepartmentsTab() {
@@ -40,7 +45,7 @@ export function DepartmentsTab() {
   return (
     <div className="space-y-4">
       <SettingsIntro icon={Users} title="Who picks up a transfer" storageKey="departments">
-        When the AI steps aside, the conversation has to land with someone. A department is that
+        When the AI steps aside, the conversation has to land with someone. A team is that
         destination — a flow can name one, and transfer settings can send everything to one.
       </SettingsIntro>
 
@@ -50,14 +55,14 @@ export function DepartmentsTab() {
             <CardHead
               icon={Users}
               bordered={false}
-              title="Departments"
-              description="Where a transferred conversation goes. A flow can name one, and transfer settings can route everything to one."
+              title="Transfer teams"
+              description="Groups of people a transferred conversation can go to. A flow can name one, and transfer settings can route everything to one."
             />
           </div>
           {canManage && (
             <Button size="sm" onClick={() => setCreating(true)} className="shrink-0">
               <Plus className="h-3.5 w-3.5" />
-              New department
+              New team
             </Button>
           )}
         </div>
@@ -69,18 +74,18 @@ export function DepartmentsTab() {
         ) : isError ? (
           <EmptyState
             icon={AlertCircle}
-            title="Couldn't load departments"
+            title="Couldn't load teams"
             description={(error as Error)?.message ?? "Something went wrong. Try again in a moment."}
           />
         ) : departments.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No departments yet"
+            title="No transfer teams yet"
             description="Without one, a transfer goes to whoever in the workspace is least busy. Add Sales and Support to route them separately."
             action={canManage ? (
               <Button onClick={() => setCreating(true)}>
                 <Plus className="h-4 w-4" />
-                New department
+                New team
               </Button>
             ) : undefined}
           />
@@ -157,7 +162,7 @@ export function DepartmentsTab() {
       <Modal
         open={Boolean(confirmDelete)}
         onClose={() => { if (!remove.isPending) setConfirmDelete(null); }}
-        title="Delete this department?"
+        title="Delete this team?"
         description={confirmDelete
           ? `"${confirmDelete.name}" will be removed. Conversations already handed over keep their history.`
           : ""}
@@ -172,7 +177,7 @@ export function DepartmentsTab() {
             onClick={() => {
               if (!confirmDelete) return;
               remove.mutateAsync(confirmDelete.id)
-                .then(() => { showToast("Department deleted.", "success"); setConfirmDelete(null); })
+                .then(() => { showToast("Team deleted.", "success"); setConfirmDelete(null); })
                 .catch((e: Error) => showToast(e.message, "error"));
             }}
           >
@@ -197,14 +202,14 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
   const [memberIds, setMemberIds] = useState<string[]>(department?.members.map((m) => m.id) ?? []);
 
   function submit() {
-    if (!name.trim()) { showToast("Give the department a name.", "error"); return; }
+    if (!name.trim()) { showToast("Give the team a name.", "error"); return; }
     save.mutateAsync({
       id: department?.id,
       name: name.trim(),
       description: description.trim() || null,
       color, isDefault, enabled, memberIds,
     })
-      .then(() => { showToast(department ? "Department saved." : "Department created.", "success"); onClose(); })
+      .then(() => { showToast(department ? "Team saved." : "Team created.", "success"); onClose(); })
       .catch((e: Error) => showToast(e.message, "error"));
   }
 
@@ -212,7 +217,7 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
     <Modal
       open
       onClose={onClose}
-      title={department ? "Edit department" : "New department"}
+      title={department ? "Edit team" : "New team"}
       description="Who should pick up a conversation handed to this group."
     >
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -228,7 +233,7 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
         </Field>
 
         {/* Editing changes the name and nothing else. Everything that decides where a
-            transfer goes — who is in the department, whether it is the default, whether
+            transfer goes — who is in the team, whether it is the default, whether
             it is on — is set when it is created, so an edit cannot quietly re-route live
             conversations. */}
         {!department && (
@@ -300,7 +305,7 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
             </div>
           )}
           <p className="mt-1 text-xs text-slate-500">
-            An empty department falls back to the whole workspace rather than leaving a customer waiting.
+            An empty team falls back to the whole workspace rather than leaving a customer waiting.
           </p>
         </div>
 
@@ -321,7 +326,7 @@ function DepartmentModal({ department, onClose }: { department: Department | nul
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {department ? "Save changes" : "Create department"}
+            {department ? "Save changes" : "Create team"}
           </Button>
         </div>
           </>

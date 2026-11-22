@@ -973,7 +973,7 @@ function HandoffFields({ data, set }: { data: HandoffNodeData; set: Setter }) {
   return (
     <>
       <div>
-        <span className={labelCls}>Department / Team</span>
+        <span className={labelCls}>Transfer team</span>
         <select
           className={inputClass}
           value={selectValue}
@@ -1134,11 +1134,11 @@ function NotifyFields({ data, set, variables = [] }: { data: NotifyNodeData; set
         >
           <option value="assignee">Whoever is assigned to the chat</option>
           <option value="managers">Managers and owners</option>
-          <option value="department">A department</option>
+          <option value="department">A transfer team</option>
         </select>
       </div>
       {target === "department" && (
-        <Field label="Department" htmlFor="np-notify-dept">
+        <Field label="Transfer team" htmlFor="np-notify-dept">
           <input
             id="np-notify-dept"
             className={inputClass}

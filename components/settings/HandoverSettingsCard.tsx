@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const STRATEGY_LABELS: Record<HandoverConfig["strategy"], { label: string; hint: string }> = {
   LEAST_BUSY:    { label: "Whoever is least busy", hint: "The person with the fewest conversations open." },
   ROUND_ROBIN:   { label: "Take turns",            hint: "Each transfer goes to the next person in the list." },
-  DEPARTMENT:    { label: "A department",          hint: "The least busy member of the department you pick." },
+  DEPARTMENT:    { label: "A transfer team",       hint: "The least busy member of the team you pick." },
   SPECIFIC_USER: { label: "One person",            hint: "Always the same colleague." },
 };
 
@@ -172,12 +172,12 @@ export function HandoverSettingsCard() {
             {config.strategy === "DEPARTMENT" && (
               <div className="rounded-lg border border-slate-200 px-3 py-2.5">
                 <label htmlFor="handover-department" className="block text-sm font-medium text-slate-800">
-                  Which department
+                  Which team
                 </label>
                 {noDepartments ? (
                   <p className="mt-1.5 flex items-start gap-1.5 rounded-md bg-amber-50 px-2.5 py-2 text-xs text-amber-800">
                     <Info className="mt-0.5 h-3 w-3 shrink-0" />
-                    There are no departments yet.{" "}
+                    No transfer teams yet.{" "}
                     <Link href="/settings?tab=departments" className="font-medium underline">Add one first.</Link>
                   </p>
                 ) : (

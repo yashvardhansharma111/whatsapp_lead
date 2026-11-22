@@ -165,12 +165,12 @@ export default function HandoversPage() {
 
         {departments.length > 0 && (
           <select
-            aria-label="Department"
+            aria-label="Transfer team"
             value={departmentId}
             onChange={(e) => { setDepartmentId(e.target.value); setPage(1); }}
             className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700"
           >
-            <option value="ALL">Every department</option>
+            <option value="ALL">Every team</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}

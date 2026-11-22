@@ -56,7 +56,7 @@ const TAB_GROUPS: { section: string | null; tabs: TabDef[] }[] = [
     tabs: [
       { key: "general",     label: "Business profile", icon: Building2,    permission: "settings.manage" },
       { key: "pipeline",    label: "Lead stages",      icon: KanbanSquare, permission: "settings.manage" },
-      { key: "departments", label: "Departments",      icon: Users,        permission: "settings.manage" },
+      { key: "departments", label: "Transfer teams",   icon: Users,        permission: "settings.manage" },
       { key: "labels",      label: "Labels",           icon: Tag,          permission: "contacts.view" },
     ],
   },
