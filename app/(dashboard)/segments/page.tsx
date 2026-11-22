@@ -13,8 +13,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Filter, Loader2, Megaphone, Plus, Save, Trash2, Users, X } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Field, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
+import { Loader2, Megaphone, Plus, Save, Trash2, Users, X } from "lucide-react";
+import { Badge, Button, Card, Field, PageHeader, SkeletonRows, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -257,51 +257,81 @@ function SegmentsPageInner() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        {/* Saved segments */}
-        <Card className="h-fit p-3 lg:sticky lg:top-6">
-          <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Saved segments</p>
-          {!editingId && (
-            <div className="mb-1 rounded-lg bg-amber-50 px-3 py-2.5 ring-1 ring-inset ring-amber-200">
-              <p className="truncate text-sm font-medium text-amber-900">{name.trim() || "Untitled segment"}</p>
-              <p className="mt-0.5 text-xs text-amber-700">Draft · not saved yet</p>
-            </div>
-          )}
-          {isLoading ? (
-            <SkeletonRows rows={3} />
-          ) : !segments?.length ? (
-            <p className="px-2 py-3 text-sm leading-relaxed text-slate-500">No saved segments yet. Give the draft a name and click <b>Save segment</b>.</p>
-          ) : (
-            <ul className="space-y-1">
-              {segments.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onClick={() => load(s)}
-                    className={cn(
-                      "flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition",
-                      s.id === editingId ? "bg-emerald-50 text-emerald-900 ring-1 ring-inset ring-emerald-200" : "text-slate-700 hover:bg-slate-50",
-                    )}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{s.name}</span>
-                      <span className="mt-0.5 block truncate text-xs text-slate-500">
-                        {s.rules.length ? s.rules.map((r) => FIELD_LABEL[r.field]).join(" · ") : "All contacts"}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        {/* Saved segments, and the matching contacts underneath them.
+            The rail used to hold the list alone, so it ended a third of the way down a
+            tall empty column while the preview sat below the builder, off the bottom of
+            the screen. The one place with room to spare now holds the one thing nobody
+            could see. */}
+        <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <Card className="p-2">
+            {/* The way back, and always the first row. There was no way out of a saved
+                segment except the New segment button up in the header, and the draft
+                card it returns to vanished the moment anything was selected — so opening
+                "dehli" looked like the draft had been lost. */}
+            <button
+              type="button"
+              onClick={reset}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition",
+                editingId
+                  ? "text-slate-600 hover:bg-slate-50"
+                  : "bg-amber-50 text-amber-900 ring-1 ring-inset ring-amber-200",
+              )}
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">
+                  {editingId ? "New segment" : name.trim() || "Untitled segment"}
+                </span>
+                {!editingId && <span className="block text-xs text-amber-700">Draft · not saved yet</span>}
+              </span>
+            </button>
+
+            <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Saved</p>
+            {isLoading ? (
+              <SkeletonRows rows={3} />
+            ) : !segments?.length ? (
+              <p className="px-3 pb-2 text-sm leading-relaxed text-slate-500">Nothing saved yet. Name the draft and click <b>Save segment</b>.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {segments.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => load(s)}
+                      aria-current={s.id === editingId}
+                      className={cn(
+                        "flex w-full items-start gap-2 rounded-lg py-2.5 pr-3 text-left text-sm transition",
+                        s.id === editingId
+                          ? "bg-emerald-50 pl-2 font-medium text-emerald-900 ring-1 ring-inset ring-emerald-200"
+                          : "pl-3 text-slate-700 hover:bg-slate-50",
+                      )}
+                    >
+                      {/* A bar on the open one. The tint alone was missed entirely. */}
+                      {s.id === editingId && <span className="mt-0.5 h-5 w-1 shrink-0 rounded-full bg-emerald-600" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{s.name}</span>
+                        <span className="mt-0.5 block truncate text-xs text-slate-500">
+                          {s.rules.length ? s.rules.map((r) => FIELD_LABEL[r.field]).join(" · ") : "All contacts"}
+                        </span>
                       </span>
-                    </span>
-                    <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium tabular-nums text-slate-600 ring-1 ring-inset ring-slate-200">
-                      {s.count.toLocaleString()}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+                      <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium tabular-nums text-slate-600 ring-1 ring-inset ring-slate-200">
+                        {s.count.toLocaleString()}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <PreviewPanel preview={preview} previewing={previewing} />
+        </div>
 
         {/* Builder */}
-        <div className="min-w-0 space-y-6">
-          <Card className="space-y-6 p-4 sm:p-6">
+        <div className="min-w-0">
+          <Card className="space-y-5 p-4 sm:p-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Segment name" htmlFor="seg-name" required>
                 <input id="seg-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="e.g. Delhi students" className={inputClass} />
@@ -339,7 +369,7 @@ function SegmentsPageInner() {
               {rules.length === 0 && <p className="text-xs text-slate-500">No filters — every active, unblocked contact matches.</p>}
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="flex items-center gap-2 text-sm text-slate-600">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
@@ -397,52 +427,62 @@ function SegmentsPageInner() {
             )}
           </Card>
 
-          {/* Sample */}
-          <Card className="overflow-hidden">
-            <p className="border-b border-slate-100 px-4 py-3.5 text-sm font-medium text-slate-700 sm:px-6">
-              Preview {preview && preview.count > preview.sample.length && <span className="font-normal text-slate-500">· first {preview.sample.length}</span>}
-            </p>
-            {!preview ? (
-              <SkeletonRows rows={4} className="p-4" />
-            ) : preview.sample.length === 0 ? (
-              <EmptyState icon={Filter} title="No contacts match" description="Loosen a filter or add contacts with these details." />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium sm:px-6">Name</th>
-                      <th className="px-3 py-2 font-medium">Phone</th>
-                      <th className="px-3 py-2 font-medium">City</th>
-                      <th className="px-3 py-2 font-medium">Labels</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {preview.sample.map((c) => (
-                      <tr key={c.id}>
-                        <td className="px-4 py-2.5 text-slate-800 sm:px-6">
-                          {c.name || "—"}
-                          {c.optedOut && <Badge className="ml-2 bg-amber-50 text-amber-700 ring-amber-600/20">opted out</Badge>}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-600">{c.phone}</td>
-                        <td className="px-3 py-2 text-slate-600">{c.location || "—"}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-wrap gap-1">
-                            {c.tags.map((t) => (
-                              <Badge key={t.tag.name}>{t.tag.name}</Badge>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Who matches, in the rail beside the filters.
+ *
+ * It was a four-column table under the builder — name, phone, city, labels — which only
+ * fits a wide column and put it below the fold, so the one control that tells you
+ * whether the filter is right was the one thing you had to scroll to find. Stacked, each
+ * contact is two lines and it sits next to the filters you are editing.
+ */
+function PreviewPanel({ preview, previewing }: { preview?: Preview; previewing: boolean }) {
+  return (
+    <Card className="overflow-hidden">
+      <p className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Matching contacts
+        {previewing && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-300" />}
+      </p>
+      {!preview ? (
+        <SkeletonRows rows={3} className="p-3" />
+      ) : preview.sample.length === 0 ? (
+        <p className="px-3 py-4 text-xs leading-relaxed text-slate-500">
+          Nobody matches these filters yet. Loosen one, or add contacts with these details.
+        </p>
+      ) : (
+        <>
+          {/* Bounded so the sticky rail cannot grow past the viewport and start the
+              page scrolling again — which is the thing this layout exists to avoid. */}
+          <ul className="scrollbar-slim max-h-[42vh] divide-y divide-slate-100 overflow-y-auto">
+            {preview.sample.map((c) => (
+              <li key={c.id} className="px-3 py-2">
+                <p className="flex items-center gap-1.5 truncate text-sm text-slate-800">
+                  <span className="truncate">{c.name || "—"}</span>
+                  {c.optedOut && (
+                    <Badge className="shrink-0 bg-amber-50 text-amber-700 ring-amber-600/20">opted out</Badge>
+                  )}
+                </p>
+                <p className="truncate text-xs tabular-nums text-slate-500">
+                  {c.phone}
+                  {c.location ? ` · ${c.location}` : ""}
+                  {c.tags.length ? ` · ${c.tags.map((t) => t.tag.name).join(", ")}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+          {preview.count > preview.sample.length && (
+            <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
+              First {preview.sample.length} of {preview.count.toLocaleString()}.
+            </p>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 
