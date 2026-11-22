@@ -226,14 +226,21 @@ export function useConnectWhatsApp() {
   });
 }
 
-/** Disconnect ONE WhatsApp number. The business's other numbers are untouched. */
+/**
+ * Disconnect ONE WhatsApp number. The business's other numbers are untouched.
+ *
+ * The id goes in the path. This sent it in the body to `/whatsapp/disconnect`, which is
+ * not a route — the gateway has `POST /whatsapp/:id/disconnect` — so Disconnect answered
+ * "Cannot POST /integrations/whatsapp/disconnect" and there was no way to remove a
+ * number from the screen that offers it.
+ */
 export function useDisconnectWhatsApp() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (integrationId: string) =>
       postJson<{ warnings: string[] }>(
-        "/api/integrations/whatsapp/disconnect",
-        { integrationId },
+        `/api/integrations/whatsapp/${encodeURIComponent(integrationId)}/disconnect`,
+        {},
         "Could not disconnect WhatsApp",
       ),
     onSuccess: () => invalidateConnectionState(queryClient),
