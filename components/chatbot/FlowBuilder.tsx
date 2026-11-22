@@ -62,6 +62,7 @@ import { validateFlow, type ValidationResult } from "@/lib/chatbot/validation";
 import { useAutosaveFlow, useDraftFlow, useFlow, usePublishFlow, useValidateFlow } from "@/hooks/useFlows";
 import { nodeTypes } from "./FlowNodes";
 import { NodePalette, DND_MIME } from "./NodePalette";
+import { CollectedPanel } from "./CollectedPanel";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import { useFlowEditor } from "./useFlowEditor";
@@ -639,10 +640,17 @@ function FlowCanvas({
 
       {/* Body */}
       <div className="relative flex min-h-0 flex-1 pb-[env(safe-area-inset-bottom)] md:pb-0">
-        <NodePalette
-          className="hidden md:flex"
-          onAdd={(kind) => addNode(kind, { x: 260 + Math.random() * 80, y: 140 + Math.random() * 80 })}
-        />
+        {/* The palette, and under it what the flow records. "Where does a customer's
+            answer end up?" is the first question anyone has here, and the variable
+            chips under a text box only answer it for someone who already knows what a
+            variable is. */}
+        <div className="hidden w-56 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
+          <NodePalette
+            className="min-h-0 w-full flex-1 border-r-0"
+            onAdd={(kind) => addNode(kind, { x: 260 + Math.random() * 80, y: 140 + Math.random() * 80 })}
+          />
+          <CollectedPanel nodes={nodes as never} />
+        </div>
 
         {/* Phone palette drawer */}
         {paletteOpen && (
