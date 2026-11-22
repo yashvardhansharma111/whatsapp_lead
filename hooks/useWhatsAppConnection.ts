@@ -174,8 +174,10 @@ export interface WhatsAppHealthDTO {
   integrationId: string;
   phoneNumber: string | null;
   qualityRating: string | null;
-  /** Meta's `code_verification_status`, or `ERROR` when Meta refused the credentials. */
-  status: string;
+  /** Meta's `code_verification_status`. Null when Meta did not answer. */
+  status: string | null;
+  /** Why Meta did not answer, in a sentence. Null when it did. */
+  error: string | null;
 }
 
 /**

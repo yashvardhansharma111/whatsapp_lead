@@ -207,8 +207,6 @@ function verificationLabel(status: string | null): string {
       return "Not verified";
     case "EXPIRED":
       return "Expired — verify the number again in WhatsApp Manager";
-    case "ERROR":
-      return "Meta refused the credentials";
     case "UNKNOWN":
       return "Not reported";
     default:
@@ -258,7 +256,7 @@ function IntegrationCard({
   // Meta's current answer wins over the copy stored when the number was connected.
   const quality = health?.qualityRating ?? integration.qualityRating;
   const verification = health?.status ?? integration.codeVerificationStatus;
-  const refused = health?.status === "ERROR";
+  const healthError = health?.error ?? null;
 
   return (
     <div
@@ -308,16 +306,14 @@ function IntegrationCard({
             {integration.isActive ? (
               <>
                 <span aria-hidden>·</span>
-                <span className={cn("flex shrink-0 items-center gap-1", refused && "text-rose-600")}>
+                <span className={cn("flex min-w-0 items-center gap-1", healthError && "text-rose-600")}>
                   <span
-                    className={cn("h-1.5 w-1.5 rounded-full", refused ? "bg-rose-500" : qualityDot(quality))}
+                    className={cn("h-1.5 w-1.5 shrink-0 rounded-full", healthError ? "bg-rose-500" : qualityDot(quality))}
                     aria-hidden
                   />
-                  {refused
-                    ? "Meta refused the credentials"
-                    : quality
-                      ? quality.toLowerCase()
-                      : "no rating yet"}
+                  <span className="truncate">
+                    {healthError ?? (quality ? quality.toLowerCase() : "no rating yet")}
+                  </span>
                 </span>
               </>
             ) : (
@@ -421,6 +417,14 @@ function IntegrationCard({
                   : `Test failed: ${outcome.error}`}
               </p>
             </div>
+          )}
+
+          {/* The summary line truncates; the whole sentence belongs where there is room. */}
+          {healthError && (
+            <p className="mt-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+              <span className="min-w-0">{healthError}</span>
+            </p>
           )}
 
           {integration.isActive && <CallingToggle integrationId={integration.id} />}
