@@ -14,9 +14,11 @@ import { useState } from "react";
 import { Loader2, MessageSquarePlus, X } from "lucide-react";
 import { Button, inputClass } from "@/components/ui";
 import { normalizePhone, displayPhone } from "@/lib/phone";
+import { useNumberFilter } from "@/hooks/useWhatsAppNumbers";
 
 export function NewChatButton({ onOpened }: { onOpened: (conversationId: string) => void }) {
   const [open, setOpen] = useState(false);
+  const { numberId } = useNumberFilter();
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,15 @@ export function NewChatButton({ onOpened }: { onOpened: (conversationId: string)
       const res = await fetch("/api/conversations/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: digits, name: name.trim() || undefined }),
+        // The number chosen in the navbar, not whichever happens to be the default:
+        // a chat started from one number must open on that number, or the reply goes
+        // out from the wrong account and the thread never shows up in the list you
+        // are looking at.
+        body: JSON.stringify({
+          phone: digits,
+          name: name.trim() || undefined,
+          ...(numberId ? { whatsappIntegrationId: numberId } : {}),
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Couldn't open this chat");
