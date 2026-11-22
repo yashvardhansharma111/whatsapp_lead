@@ -35,6 +35,7 @@ import { INTENT_CHOICES, INTENT_POINTS } from "@/lib/intent";
 const labelCls = "mb-1.5 block text-sm font-medium text-slate-700";
 
 export function PropertiesPanel({
+  variables = [],
   node,
   flowId,
   localOnly,
@@ -43,6 +44,8 @@ export function PropertiesPanel({
   onDuplicate,
   onClose,
 }: {
+  /** Every {{name}} this flow can fill in — built-ins plus whatever its nodes store. */
+  variables?: string[];
   node: FlowNode | null;
   flowId: string;
   localOnly: boolean;
@@ -93,7 +96,7 @@ export function PropertiesPanel({
         {node.type === "start" && (data as StartNodeData).triggerType === "WEBHOOK" && !localOnly && (
           <WebhookFields flowId={flowId} />
         )}
-        {node.type === "message" && <MessageFields data={data as MessageNodeData} set={set} />}
+        {node.type === "message" && <MessageFields data={data as MessageNodeData} set={set} variables={variables} />}
         {node.type === "template" && <TemplateFields data={data as TemplateNodeData} set={set} />}
         {node.type === "question" && <QuestionFields data={data as QuestionNodeData} set={set} />}
         {node.type === "menu" && <MenuFields data={data as MenuNodeData} set={set} />}
@@ -260,7 +263,36 @@ function WebhookFields({ flowId }: { flowId: string }) {
   );
 }
 
-function MessageFields({ data, set }: { data: MessageNodeData; set: Setter }) {
+/**
+ * The variables this flow can actually fill in, as something to click.
+ *
+ * The hint under these boxes said to "use {{variable}}" and left the reader to guess
+ * which ones exist — they are not written down anywhere: two come with every run and
+ * the rest are invented by whichever node stores an answer. Clicking one appends it, so
+ * the name is never mistyped.
+ */
+function VariableChips({ variables, onInsert }: { variables: string[]; onInsert: (token: string) => void }) {
+  if (!variables.length) return null;
+  return (
+    <div className="mt-1.5">
+      <p className="text-[11px] text-slate-400">Click to insert — these are the ones this flow knows:</p>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {variables.map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onInsert(`{{${v}}}`)}
+            className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            {`{{${v}}}`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageFields({ data, set, variables = [] }: { data: MessageNodeData; set: Setter; variables?: string[] }) {
   return (
     <>
       <Field label="Message text" htmlFor="np-text">
@@ -270,9 +302,12 @@ function MessageFields({ data, set }: { data: MessageNodeData; set: Setter }) {
           className={cn(inputClass, "resize-y")}
           value={data.text ?? ""}
           onChange={(e) => set({ text: e.target.value })}
-          placeholder="Hi {{name}}! How can we help?"
+          placeholder="Hi {{contactName}}! How can we help?"
         />
-        <p className="mt-1 text-[11px] text-slate-400">Use {"{{variable}}"} to insert stored answers.</p>
+        <VariableChips
+          variables={variables}
+          onInsert={(token) => set({ text: `${data.text ?? ""}${token}` })}
+        />
       </Field>
       <Field label="Media URL (optional)" htmlFor="np-media">
         <input id="np-media" className={inputClass} value={data.mediaUrl ?? ""} onChange={(e) => set({ mediaUrl: e.target.value })} placeholder="https://…" />

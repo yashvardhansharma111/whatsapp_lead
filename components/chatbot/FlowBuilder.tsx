@@ -351,9 +351,31 @@ function FlowCanvas({
     [setEdges, takeSnapshot],
   );
 
+  /**
+   * Every {{name}} this flow can actually fill in.
+   *
+   * Two come with every run — the contact's name and number. The rest are created by the
+   * flow itself: a question stores its answer, a "set" node writes one, an API or AI
+   * node saves its result. Nothing told the person building the flow any of this, so
+   * the only way to know what to type between the braces was to read the engine.
+   */
+  const availableVariables = useMemo(() => {
+    const names = new Set<string>(["contactName", "contactPhone"]);
+    for (const n of nodes) {
+      const d = (n.data ?? {}) as { variable?: unknown; saveAs?: unknown };
+      if (typeof d.variable === "string" && d.variable.trim()) names.add(d.variable.trim());
+      if (typeof d.saveAs === "string" && d.saveAs.trim()) names.add(d.saveAs.trim());
+    }
+    return [...names];
+  }, [nodes]);
+
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      // The canvas sits inside a wrapper that also listened for drops, so one drop ran
+      // this twice and two nodes appeared where one was dragged. The duplicate listener
+      // is gone; this stops a future one doing the same.
+      e.stopPropagation();
       const kind = e.dataTransfer.getData(DND_MIME) as NodeKind;
       if (!kind) return;
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -642,7 +664,7 @@ function FlowCanvas({
           </div>
         )}
 
-        <div className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={onDragOver}>
+        <div className="relative min-w-0 flex-1">
           {(isLoading && !flow) || !ready ? (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading flow…
@@ -681,6 +703,7 @@ function FlowCanvas({
         </div>
 
         <PropertiesPanel
+          variables={availableVariables}
           node={selectedNode as never}
           flowId={flowId}
           localOnly={localOnly}
