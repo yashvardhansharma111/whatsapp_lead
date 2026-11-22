@@ -176,6 +176,19 @@ function qualityClass(rating: string | null): string {
   }
 }
 
+/**
+ * Meta's rating, or nothing.
+ *
+ * Meta answers "UNKNOWN" for a number it has not rated yet — every test number, and every
+ * real one until it has sent enough to be judged. Printed as it arrives, that put the
+ * word "unknown" directly after the phone number on the summary line, where it reads as
+ * the number being unknown rather than its rating being unset.
+ */
+function ratingOrNone(rating: string | null): string | null {
+  const v = rating?.trim();
+  return !v || v.toUpperCase() === "UNKNOWN" ? null : v;
+}
+
 /** The same rating as a dot, for the one-line summary where there is no room for a word. */
 function qualityDot(rating: string | null): string {
   switch (rating?.toUpperCase()) {
@@ -258,7 +271,7 @@ function IntegrationCard({
   const label = integration.phoneNumber || integration.displayName || "this number";
   const panelId = `wa-number-${integration.id}`;
   // Meta's current answer wins over the copy stored when the number was connected.
-  const quality = health?.qualityRating ?? integration.qualityRating;
+  const quality = ratingOrNone(health?.qualityRating ?? integration.qualityRating);
   const verification = health?.status ?? integration.codeVerificationStatus;
   const healthError = health?.error ?? null;
 
