@@ -67,7 +67,10 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
       open={open}
       onClose={close}
       title="Upload Document"
-      description="PDF, DOCX, images or TXT up to 10 MB — tables and scanned files supported. Or index a public web page."
+      // It used to promise OCR for images and scanned files. Nothing in the product has
+      // ever read an image, so those uploads became documents with no text in them that
+      // the AI silently ignored.
+      description="PDF, DOCX, TXT or Markdown up to 10 MB. The text is read out of the file as it uploads. Or index a public web page."
     >
       <form
         className="space-y-4"
@@ -78,7 +81,15 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
             if (files.length > 0) {
               const fd = new FormData();
               for (const file of files) fd.append("files", file);
-              await upload.mutateAsync(fd);
+              const result = await upload.mutateAsync(fd);
+              // A file we couldn't read is stored, but the AI can't use it. Saying so here
+              // is the only moment the uploader is still looking at the file they picked.
+              const warning = (result as { data?: { warning?: string } })?.data?.warning;
+              if (warning) {
+                setError(warning);
+                queryClient.invalidateQueries({ queryKey: ["knowledge"] });
+                return;
+              }
             }
             const allUrls = [...urls, ...(url.trim() ? [url.trim()] : [])];
             for (const u of allUrls) {
@@ -117,12 +128,12 @@ export function UploadModal({ open, onClose }: { open: boolean; onClose: () => v
           <p className="mt-2 text-sm font-medium text-slate-800">
             Drag files here or click to browse
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">Accepts PDF, DOCX, images (PNG/JPG), TXT or a URL</p>
+          <p className="mt-0.5 text-xs text-slate-500">Accepts PDF, DOCX, TXT, Markdown, CSV or a URL</p>
           <input
             ref={inputRef}
             type="file"
             multiple
-            accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.tiff,.bmp"
+            accept=".pdf,.docx,.txt,.md,.csv"
             className="hidden"
             onChange={(e) => addFiles(e.target.files)}
           />

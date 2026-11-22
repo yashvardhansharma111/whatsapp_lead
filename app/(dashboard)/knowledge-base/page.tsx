@@ -32,7 +32,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-type KnowledgeDoc = { id: string; tenantId: string; businessId: string; name: string; type: string; url?: string | null; content?: string | null; vectorIds: string[]; chunkCount: number; isIndexed: boolean; metadata?: unknown; createdAt: string; updatedAt: string; };
+type KnowledgeDoc = { id: string; tenantId: string; businessId: string; name: string; type: string; url?: string | null; textLength: number; vectorIds: string[]; chunkCount: number; isIndexed: boolean; metadata?: unknown; createdAt: string; updatedAt: string; };
 import { Badge, Button, Card, EmptyState, Field, inputClass, Modal, PageHeader, Skeleton } from "@/components/ui";
 import { readFaqState } from "@/lib/knowledgeFaq";
 import { UploadModal } from "@/components/knowledge/UploadModal";
@@ -42,25 +42,30 @@ import { useToast } from "@/components/ui/toast";
 import { fetchAllPages } from "@/lib/fetchAll";
 
 /**
- * Indexing status, as the upload route and the worker record it on `metadata`.
+ * Whether the AI can read this document.
  *
- * Kept in the existing Json column rather than added to the schema. A document is PROCESSING from
- * the moment it is stored until the worker finishes, so the list has something true to show while
- * the queue works instead of implying the upload is still running.
+ * Text is extracted when the file is uploaded and there is no queue behind it, so there is
+ * no waiting state to show: either there is text or there is not. The old PROCESSING state
+ * was a spinner that never stopped, because the worker it claimed to be waiting for was
+ * never built — and the four PDFs in the live database that say "Indexed" have no text in
+ * them at all. A document the AI cannot read now says so, with the reason.
  */
-type DocStatus = "PROCESSING" | "INDEXED" | "FAILED";
+type DocStatus = "READABLE" | "EMPTY";
 
 function readStatus(doc: KnowledgeDoc): { status: DocStatus; error?: string } {
+  if (doc.textLength > 0) return { status: "READABLE" };
   const meta = doc.metadata;
-  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
-    const raw = (meta as Record<string, unknown>).status;
-    if (raw === "PROCESSING" || raw === "INDEXED" || raw === "FAILED") {
-      const error = (meta as Record<string, unknown>).error;
-      return { status: raw, error: typeof error === "string" ? error : undefined };
-    }
-  }
-  // Documents uploaded before status tracking existed carry no marker; fall back to the flag.
-  return { status: doc.isIndexed ? "INDEXED" : "PROCESSING" };
+  const problem =
+    meta && typeof meta === "object" && !Array.isArray(meta)
+      ? (meta as Record<string, unknown>).problem
+      : undefined;
+  return {
+    status: "EMPTY",
+    error:
+      typeof problem === "string"
+        ? problem
+        : "No text was stored for this document. Upload it again.",
+  };
 }
 
 function useKnowledgeDocs() {
@@ -71,11 +76,10 @@ function useKnowledgeDocs() {
       return fetchAllPages<KnowledgeDoc>("/api/knowledge");
     },
     retry: false,
-    // Indexing happens in a worker, so the row changes without the user doing anything. Polled
-    // only while something is actually in flight — once every document has settled the interval
-    // stops, so an idle knowledge base costs no requests.
-    refetchInterval: (query) =>
-      (query.state.data ?? []).some((d) => readStatus(d).status === "PROCESSING") ? 3000 : false,
+    // Text is extracted while the upload request is still open, so a document never changes
+    // state on its own and there is nothing to poll for. This used to refetch every three
+    // seconds for as long as any document sat in PROCESSING — which, with no worker to move
+    // it out of that state, was forever.
   });
 }
 
@@ -100,15 +104,15 @@ export default function KnowledgeBasePage() {
   const { data, isLoading, isError, error } = useKnowledgeDocs();
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<KnowledgeDoc | null>(null);
-  // Renaming changes the label this page and the FAQ picker show. The file's
-  // content, chunks and vectors are products of the ingest pipeline and are not
-  // editable — replacing a document means uploading it again.
+  // Renaming changes the label this page and the FAQ picker show. The text itself is read
+  // out of the file on upload and is not editable — replacing a document means uploading
+  // it again.
   const [renameDoc, setRenameDoc] = useState<KnowledgeDoc | null>(null);
   const [draftName, setDraftName] = useState("");
   const docs = data ?? [];
 
-  const indexed = docs.filter((d) => d.isIndexed).length;
-  const chunks = docs.reduce((sum, d) => sum + (d.chunkCount ?? 0), 0);
+  const readable = docs.filter((d) => d.textLength > 0).length;
+  const unreadable = docs.length - readable;
   const faqs = docs.reduce((sum, d) => sum + readFaqState(d.metadata).faqs.length, 0);
 
   const renameMutation = useMutation({
@@ -181,9 +185,13 @@ export default function KnowledgeBasePage() {
         <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-inset ring-emerald-600/20">
           <span className="inline-flex items-center gap-2 font-medium">
             <Sparkles className="h-4 w-4 shrink-0" />
-            The AI is trained on <strong>{indexed}</strong> document{indexed === 1 ? "" : "s"}
+            The AI is reading <strong>{readable}</strong> document{readable === 1 ? "" : "s"}
           </span>
-          <span className="text-emerald-800/80">{chunks} searchable chunks</span>
+          {unreadable > 0 && (
+            <span className="font-medium text-rose-700">
+              {unreadable} with no text — upload {unreadable === 1 ? "it" : "them"} again
+            </span>
+          )}
           {/* Third number on the same line because it belongs to the same
               question — how much does the AI actually know — and because it is
               the only pointer from here to the FAQ screen. */}
@@ -358,8 +366,12 @@ function DocumentCard({
           </button>
           <button
             aria-label={`Re-index ${doc.name}`}
-            disabled={reindexing || status === "PROCESSING"}
-            title="Re-index — fixes documents that aren't being retrieved by the AI"
+            disabled={reindexing || doc.type !== "URL"}
+            title={
+              doc.type === "URL"
+                ? "Fetch this page again"
+                : "Only a web page can be read again — the uploaded file isn't kept, so upload it again instead"
+            }
             className="rounded-lg p-1.5 text-slate-300 transition hover:bg-sky-50 hover:text-sky-600 group-hover:text-slate-400 disabled:opacity-50"
             onClick={onReindex}
           >
@@ -385,33 +397,33 @@ function DocumentCard({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <Badge className="uppercase">{doc.type}</Badge>
-        <Badge className="bg-slate-50 text-slate-600">
-          <Layers className="mr-1 h-3 w-3" />
-          {doc.chunkCount} chunks
-        </Badge>
+        {/* Chunks were a count from a vector pipeline that does not exist, so every new
+            upload read "0 chunks". How much text came out of the file is the real
+            measure of whether the upload worked. */}
+        {doc.textLength > 0 && (
+          <Badge className="bg-slate-50 text-slate-600">
+            <Layers className="mr-1 h-3 w-3" />
+            {doc.textLength.toLocaleString()} characters
+          </Badge>
+        )}
       </div>
 
       {/* mt-auto pins the status block to the bottom, so every card in a row
           lines its footer up regardless of how long the filename wrapped. */}
       <div className="mt-auto pt-5">
         <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
-          {status === "INDEXED" ? (
+          {status === "READABLE" ? (
             <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Indexed
-            </span>
-          ) : status === "FAILED" ? (
-            <span
-              className="inline-flex items-center gap-1 font-medium text-rose-700"
-              title={error ?? "Indexing failed"}
-            >
-              <AlertCircle className="h-3.5 w-3.5" />
-              Failed
+              The AI can read this
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 font-medium text-amber-700">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Indexing…
+            <span
+              className="inline-flex min-w-0 items-center gap-1 font-medium text-rose-700"
+              title={error}
+            >
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">No text</span>
             </span>
           )}
           <span className="text-slate-400">{readSize(doc)}</span>
@@ -421,7 +433,7 @@ function DocumentCard({
 
         {/* A link, not an expander. The editor needs the full width of a page;
             see the note at the top of this file. */}
-        {status === "INDEXED" && (
+        {status === "READABLE" && (
           <Link
             href={`/knowledge-base/faqs?doc=${doc.id}`}
             className={cn(
