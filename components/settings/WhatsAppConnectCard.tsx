@@ -10,6 +10,7 @@ import {
   Link2Off,
   Loader2,
   Pencil,
+  RefreshCw,
   Star,
   PlugZap,
   ShieldCheck,
@@ -22,8 +23,10 @@ import {
   useManualConnectWhatsApp,
   useTestWhatsAppConnection,
   useUpdateWhatsAppIntegration,
+  useWhatsAppHealth,
   useWhatsAppIntegrations,
   useWhatsAppSignupConfig,
+  type WhatsAppHealthDTO,
   type WhatsAppIntegrationDTO,
   type WhatsAppTestDTO,
 } from "@/hooks/useWhatsAppConnection";
@@ -127,6 +130,15 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
   );
 }
 
+/** WhatsApp's glyph, for the avatar on each connected number. */
+function WhatsAppGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={cn("fill-current", className)}>
+      <path d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.9-.92 1.08-.15.18-.3.2-.57.07-.27-.15-1.02-.38-1.95-1.2-.72-.64-1.2-1.43-1.35-1.7-.15-.3-.02-.45.12-.6.13-.14.3-.35.45-.52.14-.17.19-.3.29-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.03 1.01-1.03 2.46 0 1.45 1.05 2.85 1.2 3.05.15.2 2.07 3.16 5.01 4.32 2.45.96 2.95.77 3.48.72.53-.05 1.72-.7 1.96-1.38.24-.67.24-1.25.17-1.37-.07-.12-.27-.2-.57-.35ZM12.04 21.5h-.01a9.4 9.4 0 0 1-4.78-1.31l-.34-.2-3.55.93.95-3.47-.22-.36a9.38 9.38 0 0 1-1.44-5.01c0-5.18 4.22-9.4 9.4-9.4a9.34 9.34 0 0 1 6.64 2.76 9.33 9.33 0 0 1 2.75 6.65c0 5.18-4.22 9.4-9.4 9.4ZM20.5 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.35.1 11.93c0 2.1.55 4.16 1.6 5.97L0 24l6.26-1.64a11.9 11.9 0 0 0 5.78 1.47h.01c6.57 0 11.93-5.35 11.93-11.93 0-3.19-1.24-6.19-3.49-8.44Z" />
+    </svg>
+  );
+}
+
 /** Meta's brand glyph for the official login button. */
 function FacebookGlyph() {
   return (
@@ -162,161 +174,277 @@ function qualityClass(rating: string | null): string {
   }
 }
 
-/** One connected number, with its own Test and Disconnect actions. */
+/** The same rating as a dot, for the one-line summary where there is no room for a word. */
+function qualityDot(rating: string | null): string {
+  switch (rating?.toUpperCase()) {
+    case "GREEN":
+      return "bg-emerald-500";
+    case "YELLOW":
+      return "bg-amber-500";
+    case "RED":
+      return "bg-rose-500";
+    default:
+      return "bg-slate-300";
+  }
+}
+
+/**
+ * Meta's enum values are not sentences. `NOT_VERIFIED`, `CODE_VERIFICATION_PENDING` and the
+ * rest were printed into the panel exactly as the Graph API spells them.
+ */
+function titleCase(value: string): string {
+  const words = value.replace(/_/g, " ").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** Meta's `code_verification_status`, in words. */
+function verificationLabel(status: string | null): string {
+  if (!status) return "—";
+  switch (status.toUpperCase()) {
+    case "VERIFIED":
+      return "Verified";
+    case "NOT_VERIFIED":
+      return "Not verified";
+    case "EXPIRED":
+      return "Expired — verify the number again in WhatsApp Manager";
+    case "ERROR":
+      return "Meta refused the credentials";
+    case "UNKNOWN":
+      return "Not reported";
+    default:
+      return titleCase(status);
+  }
+}
+
+/**
+ * One connected number: a single summary line that opens to reveal its settings.
+ *
+ * Every number used to render all of its identifiers, its calling switch and four buttons
+ * at once, so a business with three numbers was several screens of scrolling before the
+ * form below it came into view. The identifiers are reference material — looked at once
+ * during setup and never again — so they wait behind the chevron, and what stays on screen
+ * is the line that answers "is this number working": name, number, quality and state.
+ *
+ * Closing the panel also unmounts `CallingToggle`, which is one request to Meta per number;
+ * only the number being looked at asks.
+ */
 function IntegrationCard({
   integration,
+  health,
   outcome,
   testing,
   promoting,
+  expanded,
+  onToggle,
   onTest,
   onRename,
   onMakeDefault,
   onDisconnect,
 }: {
   integration: WhatsAppIntegrationDTO;
+  health: WhatsAppHealthDTO | undefined;
   outcome: TestOutcome | undefined;
   testing: boolean;
   promoting: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onTest: () => void;
   onRename: () => void;
   onMakeDefault: () => void;
   onDisconnect: () => void;
 }) {
   const label = integration.phoneNumber || integration.displayName || "this number";
+  const panelId = `wa-number-${integration.id}`;
+  // Meta's current answer wins over the copy stored when the number was connected.
+  const quality = health?.qualityRating ?? integration.qualityRating;
+  const verification = health?.status ?? integration.codeVerificationStatus;
+  const refused = health?.status === "ERROR";
 
   return (
     <div
       className={cn(
-        "rounded-xl border p-4",
-        integration.isActive ? "border-slate-200 bg-slate-50/70" : "border-dashed border-slate-200 bg-white",
+        "overflow-hidden rounded-xl border bg-white transition",
+        expanded ? "border-slate-300 shadow-sm" : "border-slate-200 hover:border-slate-300",
+        !integration.isActive && "border-dashed",
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-semibold text-slate-900">
-              {integration.displayName || "WhatsApp Business"}
-            </h4>
-            {integration.isDefault && (
-              <Badge className="bg-emerald-50 text-emerald-700 ring-emerald-600/20">Default</Badge>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="flex w-full items-center gap-3 px-3 py-3 text-left sm:px-4"
+      >
+        <span
+          className={cn(
+            "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+            integration.isActive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400",
+          )}
+        >
+          <WhatsAppGlyph className="h-5 w-5" />
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white",
+              integration.isActive ? "bg-emerald-500" : "bg-slate-300",
             )}
-            <Badge
-              className={
-                integration.isActive
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                  : "bg-slate-100 text-slate-500 ring-slate-500/15"
-              }
-            >
-              {integration.isActive ? "Active" : "Disconnected"}
-            </Badge>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">
-            {integration.phoneNumber || "WhatsApp number unavailable"}
-          </p>
-        </div>
+            aria-hidden
+          />
+        </span>
 
-        {integration.isActive && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={onTest}
-              disabled={testing}
-              aria-label={`Test connection for ${label}`}
-            >
-              {testing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-              ) : (
-                <PlugZap className="h-3.5 w-3.5" aria-hidden />
-              )}
-              {testing ? "Testing…" : "Test"}
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={onRename}
-              aria-label={`Rename ${label}`}
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-              Rename
-            </Button>
-            {!integration.isDefault && (
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-semibold text-slate-900">
+              {integration.displayName || "WhatsApp Business"}
+            </span>
+            {/* The star carries "default" where the badge below has no room: phone width. */}
+            {integration.isDefault && (
+              <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400 sm:hidden" aria-label="Default number" />
+            )}
+          </span>
+          <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+            <span className="truncate font-mono tabular-nums">
+              {integration.phoneNumber || "Number unavailable"}
+            </span>
+            {integration.isActive ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className={cn("flex shrink-0 items-center gap-1", refused && "text-rose-600")}>
+                  <span
+                    className={cn("h-1.5 w-1.5 rounded-full", refused ? "bg-rose-500" : qualityDot(quality))}
+                    aria-hidden
+                  />
+                  {refused
+                    ? "Meta refused the credentials"
+                    : quality
+                      ? quality.toLowerCase()
+                      : "no rating yet"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span aria-hidden>·</span>
+                <span className="shrink-0 text-slate-400">disconnected</span>
+              </>
+            )}
+          </span>
+        </span>
+
+        {integration.isDefault && (
+          <Badge className="hidden shrink-0 bg-emerald-50 text-emerald-700 ring-emerald-600/20 sm:inline-flex">
+            Default
+          </Badge>
+        )}
+        {outcome && !expanded && (
+          outcome.ok ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Last test passed" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" aria-label="Last test failed" />
+          )
+        )}
+        <ChevronDown
+          className={cn("h-4 w-4 shrink-0 text-slate-400 transition-transform", expanded && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+
+      {expanded && (
+        <div id={panelId} className="border-t border-slate-200 bg-slate-50/60 px-3 pb-4 pt-3 sm:px-4">
+          {integration.isActive && (
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={onMakeDefault}
-                disabled={promoting}
-                aria-label={`Make ${label} the default number`}
+                onClick={onTest}
+                disabled={testing}
+                aria-label={`Test connection for ${label}`}
               >
-                {promoting ? (
+                {testing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 ) : (
-                  <Star className="h-3.5 w-3.5" aria-hidden />
+                  <PlugZap className="h-3.5 w-3.5" aria-hidden />
                 )}
-                {promoting ? "Setting…" : "Make default"}
+                {testing ? "Testing…" : "Test"}
               </Button>
-            )}
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={onDisconnect}
-              aria-label={`Disconnect ${label}`}
+              <Button size="sm" variant="secondary" onClick={onRename} aria-label={`Rename ${label}`}>
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Rename
+              </Button>
+              {!integration.isDefault && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onMakeDefault}
+                  disabled={promoting}
+                  aria-label={`Make ${label} the default number`}
+                >
+                  {promoting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Star className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {promoting ? "Setting…" : "Make default"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onDisconnect}
+                aria-label={`Disconnect ${label}`}
+                className="sm:ml-auto"
+              >
+                <Link2Off className="h-3.5 w-3.5" aria-hidden />
+                Disconnect
+              </Button>
+            </div>
+          )}
+
+          {outcome && (
+            <div
+              role={outcome.ok ? "status" : "alert"}
+              className={cn(
+                "mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
+                outcome.ok
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-rose-200 bg-rose-50 text-rose-800",
+              )}
             >
-              <Link2Off className="h-3.5 w-3.5" aria-hidden />
-              Disconnect
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {integration.isActive && <CallingToggle integrationId={integration.id} />}
-
-      <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <DetailRow label="Display Name" value={integration.displayName ?? "—"} />
-        <DetailRow label="WhatsApp Number" value={integration.phoneNumber ?? "—"} />
-        <DetailRow label="WABA ID" value={maskId(integration.whatsappBusinessId)} mono />
-        <DetailRow label="Phone Number ID" value={maskId(integration.phoneNumberId)} mono />
-        <div className="min-w-0">
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Quality Rating</dt>
-          <dd className={cn("mt-0.5 truncate text-sm text-slate-900", qualityClass(integration.qualityRating))}>
-            {integration.qualityRating ?? "—"}
-          </dd>
-        </div>
-        <DetailRow label="Verification Status" value={integration.codeVerificationStatus ?? "—"} />
-      </dl>
-
-      {outcome && (
-        <div
-          role={outcome.ok ? "status" : "alert"}
-          className={cn(
-            "mt-4 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
-            outcome.ok
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-rose-200 bg-rose-50 text-rose-800",
+              {outcome.ok ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+              ) : (
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+              )}
+              <p className="min-w-0">
+                {outcome.ok
+                  ? `Connection successful — Meta answered for ${outcome.data.displayPhoneNumber ?? label}${
+                      outcome.data.qualityRating ? ` (quality ${outcome.data.qualityRating})` : ""
+                    }.`
+                  : `Test failed: ${outcome.error}`}
+              </p>
+            </div>
           )}
-        >
-          {outcome.ok ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-          ) : (
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+
+          {integration.isActive && <CallingToggle integrationId={integration.id} />}
+
+          <dl className="mt-3 grid gap-x-4 gap-y-3 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailRow label="WABA ID" value={maskId(integration.whatsappBusinessId)} mono />
+            <DetailRow label="Phone number ID" value={maskId(integration.phoneNumberId)} mono />
+            <div className="min-w-0">
+              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Quality rating</dt>
+              <dd className={cn("mt-0.5 truncate text-sm text-slate-900", qualityClass(quality))}>
+                {quality ? titleCase(quality) : "—"}
+              </dd>
+            </div>
+            <DetailRow label="Verification" value={verificationLabel(verification)} />
+            <DetailRow label="Connected" value={new Date(integration.createdAt).toLocaleDateString()} />
+          </dl>
+
+          {!integration.isActive && (
+            <p className="mt-3 text-xs text-slate-500">
+              Conversations on this number can&apos;t be answered until it is reconnected.
+            </p>
           )}
-          <p className="min-w-0">
-            {outcome.ok
-              ? `Connection successful — Meta answered for ${outcome.data.displayPhoneNumber ?? label}${
-                  outcome.data.qualityRating ? ` (quality ${outcome.data.qualityRating})` : ""
-                }.`
-              : `Test failed: ${outcome.error}`}
-          </p>
         </div>
       )}
-
-      <div className="mt-4 border-t border-slate-200 pt-3">
-        <p className="text-xs text-slate-500">
-          Connected {new Date(integration.createdAt).toLocaleDateString()}
-          {!integration.isActive &&
-            " · Conversations on this number can't be answered until it is reconnected."}
-        </p>
-      </div>
     </div>
   );
 }
@@ -348,6 +476,10 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [testOutcomes, setTestOutcomes] = useState<Record<string, TestOutcome>>({});
   const [confirmDisconnect, setConfirmDisconnect] = useState<WhatsAppIntegrationDTO | null>(null);
+  // Which number's panel is open. One at a time, so the page stays the length of the list.
+  // `null` means "not chosen yet" and `""` means "chosen: none" — the difference matters
+  // because a business with a single number should find it already open.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Manual credential entry form
   const [manualOpen, setManualOpen] = useState(false);
@@ -366,7 +498,10 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
   const [fbReady, setFbReady] = useState(false);
 
   const integrations: WhatsAppIntegrationDTO[] = integrationsData?.integrations ?? [];
+  const openId = expandedId === null && integrations.length === 1 ? integrations[0].id : expandedId;
   const activeCount = integrations.filter((i) => i.isActive).length;
+  const health = useWhatsAppHealth(activeCount > 0);
+  const healthById = new Map((health.data ?? []).map((h) => [h.integrationId, h]));
   const hasLegacyCredentials = integrationsData?.hasLegacyCredentials ?? false;
   const isConnected = activeCount > 0 || hasLegacyCredentials;
 
@@ -704,6 +839,78 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
           )}
         </div>
 
+        {integrationsError && (
+          <p className="mt-4 text-sm text-rose-600">
+            {integrationsError instanceof Error
+              ? integrationsError.message
+              : "Could not load the connected numbers."}
+          </p>
+        )}
+
+        {/* The numbers come before the ways to add one: on a business that is already
+            connected, this list is what the screen is for, and the setup form was pushing
+            it below the fold. */}
+        {target && integrations.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-slate-900">Connected numbers</h3>
+              <div className="flex items-center gap-2">
+                <p className="hidden text-xs text-slate-500 sm:block">
+                  {activeCount} active · default number sends campaigns
+                </p>
+                {activeCount > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void health.refetch()}
+                    disabled={health.isFetching}
+                    className="h-7 px-2 text-xs"
+                    aria-label="Refresh status from Meta"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", health.isFetching && "animate-spin")} aria-hidden />
+                    Refresh
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-2.5 space-y-2">
+              {integrations.map((integration) => (
+                <IntegrationCard
+                  key={integration.id}
+                  integration={integration}
+                  health={healthById.get(integration.id)}
+                  outcome={testOutcomes[integration.id]}
+                  testing={test.isPending && test.variables === integration.id}
+                  promoting={
+                    updateIntegration.isPending &&
+                    updateIntegration.variables?.integrationId === integration.id &&
+                    updateIntegration.variables?.isDefault === true
+                  }
+                  expanded={openId === integration.id}
+                  onToggle={() => setExpandedId(openId === integration.id ? "" : integration.id)}
+                  onTest={() => runTest(integration)}
+                  onRename={() => openRename(integration)}
+                  onMakeDefault={() => makeDefault(integration)}
+                  onDisconnect={() => setConfirmDisconnect(integration)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasLegacyCredentials && (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+            <p>
+              This business still sends through credentials that were entered by hand before
+              Meta onboarding existed. They keep working, but the number is not listed here
+              with its own Test and Disconnect. Connect it through Meta below to move it
+              across, or ask an administrator to run the WhatsApp backfill.
+            </p>
+          </div>
+        )}
+
         {/* Deployment has not finished Meta app setup — say so plainly and leave the
             manual form below as the way through. */}
         {!config?.enabled && (
@@ -723,8 +930,14 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
           </div>
         )}
 
+        {isConnected && (
+          <h3 className="mt-5 border-t border-slate-200 pt-4 text-sm font-semibold text-slate-900">
+            Add another number
+          </h3>
+        )}
+
         {config?.enabled && (
-          <div className="mt-5">
+          <div className={isConnected ? "mt-3" : "mt-5"}>
             {!target ? (
               <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
@@ -911,59 +1124,6 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
             </form>
           )}
         </div>
-
-        {integrationsError && (
-          <p className="mt-4 text-sm text-rose-600">
-            {integrationsError instanceof Error
-              ? integrationsError.message
-              : "Could not load the connected numbers."}
-          </p>
-        )}
-
-        {hasLegacyCredentials && (
-          <div className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
-            <p>
-              This business still sends through credentials that were entered by hand before
-              Meta onboarding existed. They keep working, but the number is not listed here
-              with its own Test and Disconnect. Connect it through Meta above to move it
-              across, or ask an administrator to run the WhatsApp backfill.
-            </p>
-          </div>
-        )}
-
-        {target && integrations.length > 0 && (
-          <div className="mt-5 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900">Connected WhatsApp Numbers</h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {activeCount} active number{activeCount === 1 ? "" : "s"} on this business.
-                  Campaigns and templates use the default number.
-                </p>
-              </div>
-              <Badge className="bg-slate-50 text-slate-600 ring-slate-500/15">{activeCount}</Badge>
-            </div>
-
-            {integrations.map((integration) => (
-              <IntegrationCard
-                key={integration.id}
-                integration={integration}
-                outcome={testOutcomes[integration.id]}
-                testing={test.isPending && test.variables === integration.id}
-                promoting={
-                  updateIntegration.isPending &&
-                  updateIntegration.variables?.integrationId === integration.id &&
-                  updateIntegration.variables?.isDefault === true
-                }
-                onTest={() => runTest(integration)}
-                onRename={() => openRename(integration)}
-                onMakeDefault={() => makeDefault(integration)}
-                onDisconnect={() => setConfirmDisconnect(integration)}
-              />
-            ))}
-          </div>
-        )}
 
         {/* One live region for every non-error outcome, so a screen reader hears the
             result of a button press without the focus moving. */}

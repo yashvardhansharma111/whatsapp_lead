@@ -169,6 +169,39 @@ export function useWhatsAppIntegrations(businessId?: string) {
   });
 }
 
+/** One number's live state at Meta, as `GET /settings/whatsapp-health` returns it. */
+export interface WhatsAppHealthDTO {
+  integrationId: string;
+  phoneNumber: string | null;
+  qualityRating: string | null;
+  /** Meta's `code_verification_status`, or `ERROR` when Meta refused the credentials. */
+  status: string;
+}
+
+/**
+ * Quality and verification as Meta reports them right now, per number.
+ *
+ * The integration row carries whatever Meta said when the number was connected, which can be
+ * months old; this asks. It is one Graph call per active number server-side, so it is left to
+ * go stale for a minute and refetched on demand rather than on every mount.
+ */
+export function useWhatsAppHealth(enabled: boolean) {
+  return useQuery<WhatsAppHealthDTO[]>({
+    queryKey: ["whatsapp-health"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings/whatsapp-health");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.error ?? "Could not read the numbers' status at Meta");
+      }
+      return (Array.isArray(json.data) ? json.data : []) as WhatsAppHealthDTO[];
+    },
+    enabled,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
 /** Everything that shows connection state: the number list, businesses, settings, onboarding. */
 function invalidateConnectionState(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INTEGRATIONS_KEY });
