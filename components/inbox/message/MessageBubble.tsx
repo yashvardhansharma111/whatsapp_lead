@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertCircle, BookOpen, Check, CheckCheck, Clock, ExternalLink, FileText,
   Image as ImageIcon, Info, LayoutList, MapPin, Phone, PhoneCall, PhoneIncoming,
@@ -46,7 +46,7 @@ export function MessageBubble({
             {formatTime(message.createdAt)}
           </span>
         </div>
-        <MessageBody message={message} tone="note" />
+        <MessageBody message={message} />
       </div>
     );
   }
@@ -115,7 +115,7 @@ export function MessageBubble({
           */}
         <div className="flex flex-wrap items-end gap-x-2">
           <div className="min-w-0 max-w-full">
-            <MessageBody message={message} tone={outbound ? "outbound" : "inbound"} />
+            <MessageBody message={message} />
             <KnowledgeCitation message={message} />
           </div>
           <span className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap pt-0.5 text-[11px] leading-none text-[color:var(--wa-meta)]">
@@ -343,12 +343,9 @@ function CallRecordingPlayer({ callId }: { callId: string }) {
 
 function MessageBody({
   message,
-  tone,
 }: {
   message: InboxMessage;
-  tone: "inbound" | "outbound" | "note";
 }) {
-  const outbound = tone === "outbound";
   const caption = message.content?.trim();
   const meta = message.metadata ?? {};
   const src = mediaSrc(message);
@@ -529,50 +526,93 @@ function MessageBody({
     case "INTERACTIVE": {
       const interactive = meta.interactive as Record<string, unknown> | undefined;
       const bodyText = caption || (interactive?.body as { text?: string } | undefined)?.text;
+      const headerText = (interactive?.header as { type?: string; text?: string } | undefined);
+      const footerText = (interactive?.footer as { text?: string } | undefined)?.text;
+      const action = interactive?.action as Record<string, unknown> | undefined;
+
+      /*
+       * The chips used to be white-on-translucent for an outbound message, which was
+       * right when outbound bubbles were emerald. They are WhatsApp's pale green now,
+       * so white text on them was invisible — the buttons were there and unreadable.
+       * Taking the colours from the bubble's own variables means this cannot drift
+       * again.
+       */
+      const chip =
+        "inline-flex items-center gap-1.5 rounded-full bg-[color:var(--wa-chip)] px-3 py-1 text-xs font-medium text-[color:var(--wa-fg)] ring-1 ring-inset ring-[color:var(--wa-rule)]";
+
+      const frame = (children: ReactNode) => (
+        <div className="space-y-2">
+          {headerText?.type === "text" && headerText.text && (
+            <p className="text-sm font-semibold">{headerText.text}</p>
+          )}
+          {bodyText && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{bodyText}</p>}
+          {children}
+          {footerText && <p className="text-xs text-[color:var(--wa-meta)]">{footerText}</p>}
+        </div>
+      );
 
       if (interactive?.type === "button") {
-        const buttons =
-          (interactive.action as { buttons?: Array<{ reply?: { title?: string } }> } | undefined)?.buttons ?? [];
-        return (
-          <div className="space-y-2">
-            {bodyText && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{bodyText}</p>}
-            <div className="flex flex-wrap gap-1.5">
-              {buttons.map((btn, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset",
-                    outbound
-                      ? "bg-white/15 text-white ring-white/30"
-                      : "bg-emerald-50 text-emerald-800 ring-emerald-200",
-                  )}
-                >
-                  {btn.reply?.title ?? `Button ${i + 1}`}
-                </span>
-              ))}
-            </div>
-          </div>
+        const buttons = (action as { buttons?: Array<{ reply?: { title?: string } }> } | undefined)?.buttons ?? [];
+        return frame(
+          <div className="flex flex-wrap gap-1.5">
+            {buttons.map((btn, i) => (
+              <span key={i} className={chip}>{btn.reply?.title ?? `Button ${i + 1}`}</span>
+            ))}
+          </div>,
         );
       }
 
       if (interactive?.type === "list") {
-        const menuLabel =
-          (interactive.action as { button?: string } | undefined)?.button ?? "View options";
-        return (
-          <div className="space-y-2">
-            {bodyText && <p className="whitespace-pre-wrap wrap-anywhere text-sm">{bodyText}</p>}
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset",
-                outbound
-                  ? "bg-white/15 text-white ring-white/30"
-                  : "bg-emerald-50 text-emerald-800 ring-emerald-200",
-              )}
-            >
-              <LayoutList className="h-3 w-3" />
-              {menuLabel}
-            </span>
-          </div>
+        const menuLabel = (action as { button?: string } | undefined)?.button ?? "View options";
+        return frame(
+          <span className={chip}>
+            <LayoutList className="h-3 w-3" />
+            {menuLabel}
+          </span>,
+        );
+      }
+
+      if (interactive?.type === "cta_url") {
+        const params = (action as { parameters?: { display_text?: string; url?: string } } | undefined)?.parameters;
+        return frame(
+          <a
+            href={params?.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={cn(chip, "underline-offset-2 hover:underline")}
+            title={params?.url}
+          >
+            <ExternalLink className="h-3 w-3" />
+            {params?.display_text ?? "Open link"}
+          </a>,
+        );
+      }
+
+      if (interactive?.type === "location_request_message") {
+        return frame(
+          <span className={chip}>
+            <MapPin className="h-3 w-3" />
+            Send location
+          </span>,
+        );
+      }
+
+      if (interactive?.type === "address_message") {
+        const country = (action as { parameters?: { country?: string } } | undefined)?.parameters?.country;
+        return frame(
+          <span className={chip}>
+            <MapPin className="h-3 w-3" />
+            Address form{country ? ` · ${country}` : ""}
+          </span>,
+        );
+      }
+
+      if (interactive?.type === "catalog_message") {
+        return frame(
+          <span className={chip}>
+            <ShoppingCart className="h-3 w-3" />
+            View catalogue
+          </span>,
         );
       }
 

@@ -18,10 +18,9 @@ import {
   Smile,
   Sparkles,
   StickyNote,
-  Trash2,
   X,
 } from "lucide-react";
-import { Avatar, Badge, Button, EmptyState, Skeleton, inputClass } from "@/components/ui";
+import { Avatar, Badge, Button, EmptyState, Skeleton } from "@/components/ui";
 import { CONVERSATION_STATUS_STYLE, cn, dayLabel } from "@/lib/utils";
 import { ATTACHMENT_ACCEPT } from "@/lib/attachments";
 import { useMarkConversationRead, useSendMessage, useSetConversationAiActive } from "@/hooks/useMessages";
@@ -33,6 +32,7 @@ import { MenuItem } from "./MenuItem";
 import { AttachmentDropOverlay } from "./AttachmentDropOverlay";
 import { AttachmentPreviewModal } from "./AttachmentPreviewModal";
 import { TemplateComposer } from "./TemplateComposer";
+import { InteractiveComposer } from "./InteractiveComposer";
 import { MessageBubble } from "./message/MessageBubble";
 import { CallButton } from "./CallButton";
 import { useAttachmentComposer } from "./useAttachmentComposer";
@@ -87,11 +87,6 @@ export function ChatWindow({
   const [sendError, setSendError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<InboxMessage | null>(null);
   const [showInteractive, setShowInteractive] = useState(false);
-  const [interactiveType, setInteractiveType] = useState<"button" | "list">("button");
-  const [interactiveBody, setInteractiveBody] = useState("");
-  const [interactiveButtons, setInteractiveButtons] = useState<string[]>(["", ""]);
-  const [interactiveListBtn, setInteractiveListBtn] = useState("Select an option");
-  const [interactiveRows, setInteractiveRows] = useState<{title: string; description: string}[]>([{title: "", description: ""}]);
 
   // Quick replies expand from a "/shortcode" typed at the start of the composer. `qrDismissed`
   // exists so Escape can close the picker without also clearing what the agent has typed —
@@ -270,55 +265,26 @@ export function ChatWindow({
     }
   }
 
-  async function handleSendInteractive() {
-    if (!conversationId || sendMessage.isPending) return;
+  /**
+   * The composer owns the form and its validation; this owns the send.
+   *
+   * It throws rather than swallowing, so a refusal from Meta lands next to the fields
+   * that caused it instead of in the thread's error bar below a form that has already
+   * closed. The panel only closes once the message has actually gone.
+   */
+  async function handleSendInteractive(interactive: InteractivePayload, bodyText: string) {
+    if (!conversationId) return;
     setSendError(null);
-
-    const body = interactiveBody.trim();
-    if (!body) { setSendError("Body text is required"); return; }
-
-    let interactive: InteractivePayload;
-    if (interactiveType === "button") {
-      const validBtns = interactiveButtons.map((b, i) => b.trim()).filter(Boolean);
-      if (validBtns.length === 0) { setSendError("Add at least one button"); return; }
-      interactive = {
-        type: "button",
-        body: { text: body },
-        action: {
-          buttons: validBtns.map((title, i) => ({ type: "reply" as const, reply: { id: `btn_${i}`, title } })),
-        },
-      };
-    } else {
-      const validRows = interactiveRows.filter((r) => r.title.trim());
-      if (validRows.length === 0) { setSendError("Add at least one list option"); return; }
-      interactive = {
-        type: "list",
-        body: { text: body },
-        action: {
-          button: interactiveListBtn.trim() || "Select an option",
-          sections: [{ rows: validRows.map((r, i) => ({ id: `row_${i}`, title: r.title.trim(), ...(r.description.trim() ? { description: r.description.trim() } : {}) })) }],
-        },
-      };
-    }
-
+    await sendMessage.mutateAsync({
+      conversationId,
+      type: "INTERACTIVE",
+      content: bodyText,
+      interactive,
+      replyToId: replyTo?.id,
+    });
     setShowInteractive(false);
-    setInteractiveBody("");
-
-    try {
-      await sendMessage.mutateAsync({
-        conversationId,
-        type: "INTERACTIVE",
-        content: body,
-        interactive,
-        replyToId: replyTo?.id,
-      });
-      markRead.mutate(conversationId);
-    } catch (error) {
-      setSendError(error instanceof Error ? error.message : "Failed to send interactive message");
-    }
-    setInteractiveButtons(["", ""]);
-    setInteractiveRows([{ title: "", description: "" }]);
     setReplyTo(null);
+    markRead.mutate(conversationId);
   }
 
   function insertEmoji(emoji: string) {
@@ -569,93 +535,12 @@ export function ChatWindow({
           </div>
         )}
 
-        {/* Interactive message composer */}
         {showInteractive && (
-          // Capped on phones so a long button/list form can't push the input off a short viewport.
-          <div className="scrollbar-slim mb-3 max-h-[45dvh] space-y-3 overflow-y-auto rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 sm:max-h-none sm:overflow-visible">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-emerald-800">Interactive Message</p>
-              <button type="button" onClick={() => setShowInteractive(false)} aria-label="Close interactive message" className="-my-1 rounded p-2 text-slate-400 hover:text-slate-600 sm:my-0 sm:p-0.5">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex gap-2">
-              {(["button", "list"] as const).map((t) => (
-                <button key={t} type="button" onClick={() => setInteractiveType(t)}
-                  className={cn("rounded-md px-2.5 py-1 text-xs font-medium transition capitalize",
-                    interactiveType === t ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-                  )}>{t}</button>
-              ))}
-            </div>
-            <textarea
-              rows={2}
-              value={interactiveBody}
-              onChange={(e) => setInteractiveBody(e.target.value)}
-              placeholder="Body text sent to the customer…"
-              className={cn(inputClass, "resize-none text-base sm:text-sm")}
-            />
-            {interactiveType === "button" ? (
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-medium text-slate-500">Buttons (max 3, max 20 chars each)</p>
-                {interactiveButtons.map((btn, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <input
-                      value={btn}
-                      maxLength={20}
-                      onChange={(e) => setInteractiveButtons((prev) => prev.map((b, j) => j === i ? e.target.value : b))}
-                      placeholder={`Button ${i + 1}`}
-                      className={cn(inputClass, "flex-1 py-1.5 text-base sm:text-sm")}
-                    />
-                    {interactiveButtons.length > 1 && (
-                      <button type="button" onClick={() => setInteractiveButtons((prev) => prev.filter((_, j) => j !== i))}
-                        className="rounded p-1 text-slate-400 hover:text-rose-500">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {interactiveButtons.length < 3 && (
-                  <button type="button" onClick={() => setInteractiveButtons((prev) => [...prev, ""])}
-                    className="flex items-center gap-1 text-xs text-emerald-700 hover:underline">
-                    <Plus className="h-3 w-3" /> Add button
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-medium text-slate-500">Menu button label</p>
-                <input value={interactiveListBtn} maxLength={20} onChange={(e) => setInteractiveListBtn(e.target.value)}
-                  placeholder="Select an option" className={cn(inputClass, "py-1.5 text-base sm:text-sm")} />
-                <p className="text-[11px] font-medium text-slate-500">List options</p>
-                {interactiveRows.map((row, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <div className="flex-1 space-y-1">
-                      <input value={row.title} maxLength={24} onChange={(e) => setInteractiveRows((prev) => prev.map((r, j) => j === i ? {...r, title: e.target.value} : r))}
-                        placeholder={`Option ${i + 1} title`} className={cn(inputClass, "py-1.5 text-base sm:text-sm")} />
-                      <input value={row.description} maxLength={72} onChange={(e) => setInteractiveRows((prev) => prev.map((r, j) => j === i ? {...r, description: e.target.value} : r))}
-                        placeholder="Description (optional)" className={cn(inputClass, "py-1.5 text-base sm:text-sm")} />
-                    </div>
-                    {interactiveRows.length > 1 && (
-                      <button type="button" onClick={() => setInteractiveRows((prev) => prev.filter((_, j) => j !== i))}
-                        className="mt-1 rounded p-1 text-slate-400 hover:text-rose-500">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {interactiveRows.length < 10 && (
-                  <button type="button" onClick={() => setInteractiveRows((prev) => [...prev, {title: "", description: ""}])}
-                    className="flex items-center gap-1 text-xs text-emerald-700 hover:underline">
-                    <Plus className="h-3 w-3" /> Add option
-                  </button>
-                )}
-              </div>
-            )}
-            <Button size="sm" onClick={handleSendInteractive} disabled={sendMessage.isPending || !interactiveBody.trim()}>
-              {sendMessage.isPending ? <Clock className="h-3.5 w-3.5 animate-pulse" /> : <Send className="h-3.5 w-3.5" />}
-              Send interactive
-            </Button>
-          </div>
+          <InteractiveComposer
+            onSend={handleSendInteractive}
+            onClose={() => setShowInteractive(false)}
+            pending={sendMessage.isPending}
+          />
         )}
 
         {/* Shown only while writing a note. The toggle itself moved into the "+" menu, but
