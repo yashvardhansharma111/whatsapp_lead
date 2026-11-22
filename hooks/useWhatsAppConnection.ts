@@ -211,6 +211,28 @@ export function useWhatsAppHealth(enabled: boolean) {
   });
 }
 
+/**
+ * Pull in whatever templates this account already has at Meta.
+ *
+ * Run straight after a number is connected. A business that has been on WhatsApp for a
+ * while arrives with its templates already approved, and until now they only appeared if
+ * somebody found "Import from Meta" on the Templates screen and pressed it — so a fresh
+ * connection looked like a workspace with no templates at all, and the inbox refused to
+ * send one.
+ *
+ * Deliberately not awaited by the caller and deliberately silent: the number is connected
+ * either way, and a failed import is a Templates-screen problem, not a reason to tell
+ * somebody their connection did not work.
+ */
+async function importTemplatesQuietly(queryClient: ReturnType<typeof useQueryClient>) {
+  try {
+    const res = await fetch("/api/templates/import", { method: "POST" });
+    if (res.ok) queryClient.invalidateQueries({ queryKey: ["templates"] });
+  } catch {
+    /* the Templates screen still has its own Import button */
+  }
+}
+
 /** Everything that shows connection state: the number list, businesses, settings, onboarding. */
 function invalidateConnectionState(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: INTEGRATIONS_KEY });
@@ -229,7 +251,10 @@ export function useConnectWhatsApp() {
         input,
         "Could not complete the WhatsApp connection",
       ),
-    onSuccess: () => invalidateConnectionState(queryClient),
+    onSuccess: () => {
+      invalidateConnectionState(queryClient);
+      void importTemplatesQuietly(queryClient);
+    },
   });
 }
 
@@ -328,7 +353,10 @@ export function useManualConnectWhatsApp() {
         input,
         "Could not complete the WhatsApp connection",
       ),
-    onSuccess: () => invalidateConnectionState(queryClient),
+    onSuccess: () => {
+      invalidateConnectionState(queryClient);
+      void importTemplatesQuietly(queryClient);
+    },
   });
 }
 

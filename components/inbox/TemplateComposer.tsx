@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, FileText, Film, ImageIcon, Loader2, Phone, Reply, Send } from "lucide-react";
 import { Button, Modal, formatWaText, inputClass } from "@/components/ui";
 import { useTemplates } from "@/hooks/useTemplates";
+import { numberLabel, useWhatsAppNumbers } from "@/hooks/useWhatsAppNumbers";
 import {
   detectBodyVarSlots,
   dynamicUrlButtons,
@@ -84,6 +85,13 @@ export function TemplateComposer({
   onOpenChange?: (open: boolean) => void;
 }) {
   const { data, isLoading } = useTemplates(whatsappIntegrationId ?? undefined);
+  // Which number this thread is on, which is not always the one picked in the navbar:
+  // a thread belongs to the number the customer wrote to. Templates belong to a WhatsApp
+  // account, so a chat on one number cannot send another's — and saying only "on this
+  // number" left no way to work out which number was meant, or why the Templates screen
+  // was visibly full of approved ones.
+  const { numbers } = useWhatsAppNumbers();
+  const threadNumber = numbers.find((n) => n.id === whatsappIntegrationId);
   const [openSelf, setOpenSelf] = useState(false);
   const open = openProp ?? openSelf;
   const setOpen = onOpenChange ?? setOpenSelf;
@@ -203,8 +211,10 @@ export function TemplateComposer({
         </div>
         {!isLoading && options.length === 0 && (
           <p className="mt-1.5 text-xs text-slate-600">
-            No approved template is available on this number yet. Create one under Templates,
-            or wait for them to message you.
+            {threadNumber
+              ? `No approved template on ${numberLabel(threadNumber)} — the number this chat is on. `
+              : "No approved template is available on this number yet. "}
+            Create one under Templates, or wait for them to message you.
           </p>
         )}
       </div>
