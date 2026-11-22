@@ -253,77 +253,83 @@ export function GeneralTab() {
         </div>
       </Card>
 
-      <Card className="p-5 transition-shadow hover:shadow-md">
-        <CardHead
-          icon={Mail}
-          tone="blue"
-          title="Email delivery"
-          description="The mail server used for messages this workspace sends, such as adding someone to the team."
-        />
-        <div className="mt-4 space-y-4">
-          <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600 ring-1 ring-inset ring-slate-200">
-            Leave this empty to use the platform&apos;s own mail server. A reseller that sets its
-            own is used for its customers too, so the message arrives in that brand&apos;s name
-            rather than the platform&apos;s.
-          </p>
+      {/* A workspace's own mail server only changes anything for a reseller, whose
+          customers then receive mail in that brand's name. On an ordinary account the
+          platform sends it either way, so this asked an ordinary workspace for SMTP
+          credentials that would be stored and never used. */}
+      {isReseller && (
+        <Card className="p-5 transition-shadow hover:shadow-md">
+          <CardHead
+            icon={Mail}
+            tone="blue"
+            title="Email delivery"
+            description="The mail server used for messages this workspace sends, such as adding someone to the team."
+          />
+          <div className="mt-4 space-y-4">
+            <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600 ring-1 ring-inset ring-slate-200">
+              Leave this empty to use the platform&apos;s own mail server. A reseller that sets its
+              own is used for its customers too, so the message arrives in that brand&apos;s name
+              rather than the platform&apos;s.
+            </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Server" htmlFor="smtp-host">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Server" htmlFor="smtp-host">
+                <input
+                  id="smtp-host"
+                  value={smtpHost}
+                  onChange={(e) => setSmtpHost(e.target.value)}
+                  className={inputClass}
+                  placeholder="smtp.yourprovider.com"
+                />
+              </Field>
+              <Field label="Port" htmlFor="smtp-port">
+                <input
+                  id="smtp-port"
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value.replace(/[^0-9]/g, ""))}
+                  className={inputClass}
+                  placeholder="587"
+                  inputMode="numeric"
+                />
+                <p className="mt-1 text-xs text-slate-500">587 for most providers, 465 for implicit TLS.</p>
+              </Field>
+              <Field label="Username" htmlFor="smtp-user">
+                <input
+                  id="smtp-user"
+                  value={smtpUser}
+                  onChange={(e) => setSmtpUser(e.target.value)}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              </Field>
+              <Field label="Password" htmlFor="smtp-pass">
+                <input
+                  id="smtp-pass"
+                  type="password"
+                  value={smtpPass}
+                  onChange={(e) => setSmtpPass(e.target.value)}
+                  className={inputClass}
+                  placeholder={data?.smtpPassSet ? "Stored — leave blank to keep it" : ""}
+                  autoComplete="new-password"
+                />
+              </Field>
+            </div>
+
+            <Field label="From address" htmlFor="smtp-from">
               <input
-                id="smtp-host"
-                value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
+                id="smtp-from"
+                value={smtpFrom}
+                onChange={(e) => setSmtpFrom(e.target.value)}
                 className={inputClass}
-                placeholder="smtp.yourprovider.com"
+                placeholder="Your Company &lt;hello@yourcompany.com&gt;"
               />
-            </Field>
-            <Field label="Port" htmlFor="smtp-port">
-              <input
-                id="smtp-port"
-                value={smtpPort}
-                onChange={(e) => setSmtpPort(e.target.value.replace(/[^0-9]/g, ""))}
-                className={inputClass}
-                placeholder="587"
-                inputMode="numeric"
-              />
-              <p className="mt-1 text-xs text-slate-500">587 for most providers, 465 for implicit TLS.</p>
-            </Field>
-            <Field label="Username" htmlFor="smtp-user">
-              <input
-                id="smtp-user"
-                value={smtpUser}
-                onChange={(e) => setSmtpUser(e.target.value)}
-                className={inputClass}
-                autoComplete="off"
-              />
-            </Field>
-            <Field label="Password" htmlFor="smtp-pass">
-              <input
-                id="smtp-pass"
-                type="password"
-                value={smtpPass}
-                onChange={(e) => setSmtpPass(e.target.value)}
-                className={inputClass}
-                placeholder={data?.smtpPassSet ? "Stored — leave blank to keep it" : ""}
-                autoComplete="new-password"
-              />
+              <p className="mt-1 text-xs text-slate-500">
+                What recipients see as the sender. Most providers require it to match the account above.
+              </p>
             </Field>
           </div>
-
-          <Field label="From address" htmlFor="smtp-from">
-            <input
-              id="smtp-from"
-              value={smtpFrom}
-              onChange={(e) => setSmtpFrom(e.target.value)}
-              className={inputClass}
-              placeholder="Your Company &lt;hello@yourcompany.com&gt;"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              What recipients see as the sender. Most providers require it to match the account above.
-            </p>
-          </Field>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {isReseller && (
       <Card className="p-5">
