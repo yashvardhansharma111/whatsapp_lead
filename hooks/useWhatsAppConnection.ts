@@ -86,7 +86,14 @@ export interface WhatsAppIntegrationsDTO {
 
 /** The payload the browser collects from Meta and hands to our server to verify. */
 export interface ConnectWhatsAppInput {
-  token: string;
+  /**
+   * Meta's one-time authorization code from the FB.login callback.
+   *
+   * Named `token` until it turned out the gateway reads `code`, so every connection
+   * sent `code=undefined` to Meta and got "Invalid verification code format" back. It
+   * was never a token — a token is what the code is exchanged *for*.
+   */
+  code: string;
   wabaId?: string;
   phoneNumberId?: string;
   businessId?: string;

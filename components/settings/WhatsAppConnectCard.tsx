@@ -669,7 +669,7 @@ export function WhatsAppConnectCard({ businessId }: { businessId?: string }) {
 
         connect.mutate(
           {
-            token: code,
+            code,
             wabaId: data?.waba_id,
             phoneNumberId: data?.phone_number_id,
             businessId: target?.id,
