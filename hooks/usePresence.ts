@@ -32,7 +32,10 @@ export function useMyPresence() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/auth/me")
+    // `/api/auth/me` is not a route — it fell into NextAuth's catch-all and answered 400
+    // on every page load, which this `.catch` then hid. The stored Away/Busy therefore
+    // never came back after a reload.
+    void fetch("/api/conversations/presence")
       .then((r) => r.json())
       .then((j) => {
         const u = (j?.data ?? j) as { presenceStatus?: string | null };
