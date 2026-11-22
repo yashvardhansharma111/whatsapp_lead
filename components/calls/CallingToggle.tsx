@@ -34,7 +34,7 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
   }
 
   /**
-   * Handing the switch to the department's hours.
+   * Handing the switch to the business's hours.
    *
    * Turning it off deliberately leaves calling wherever it currently is rather than
    * forcing it on, so switching the schedule off at night does not start ringing phones
@@ -46,7 +46,7 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
       await save.mutateAsync({ integrationId, enabled: on, followBusinessHours: next });
       showToast(
         next
-          ? "Calling now follows this department's business hours."
+          ? "Calling now follows this business's working hours."
           : "Calling no longer follows business hours; it stays as it is now.",
         "success",
       );
@@ -100,7 +100,7 @@ export function CallingToggle({ integrationId, disabled }: { integrationId: stri
         <span className="min-w-0">
           <span className="block text-sm text-slate-800">Follow business hours</span>
           <span className="block text-xs text-slate-500">
-            Calling opens and closes with this department&apos;s working hours, so nobody
+            Calling opens and closes with this business&apos;s working hours, so nobody
             calls a phone no one is sitting at. Set the hours in Business profile.
           </span>
         </span>
