@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ImportWizard, type ImportWizardConfig } from "@/components/import/ImportWizard";
 import { useContactTags } from "@/hooks/useContacts";
 import { useImportContacts } from "@/hooks/useContacts";
 import { IMPORT_FIELDS, validateRows, type ImportContactPayload } from "@/lib/contactsImport";
+import { ImportGrouping } from "./ImportGrouping";
 
 /**
  * Contact import — a thin binding of the shared `ImportWizard` to the contact field
@@ -15,10 +17,39 @@ import { IMPORT_FIELDS, validateRows, type ImportContactPayload } from "@/lib/co
 export function ImportContactsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { mutateAsync } = useImportContacts();
   const { data: labels = [] } = useContactTags();
+  const queryClient = useQueryClient();
   // Labels to put on every row in this file. The client case this exists for is one
   // hospital importing each location's list separately and then broadcasting per
   // location — the label is a property of the file, not of any column in it.
   const [importTags, setImportTags] = useState<string[]>([]);
+  /** Empty means no segment is saved for this import. */
+  const [segmentName, setSegmentName] = useState("");
+
+  /**
+   * Save the labelled batch as a segment, once the rows are actually in.
+   *
+   * A segment is a stored rule, so this does not copy anybody into anything — it saves
+   * "has any of these labels" under a name. That is what makes the imported group show
+   * up on the Segments screen, and it keeps being right as more contacts get the label.
+   */
+  const saveSegment = useCallback(async () => {
+    const name = segmentName.trim();
+    if (!name || importTags.length === 0) return;
+    const res = await fetch("/api/segments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        description: `Everyone labelled ${importTags.join(", ")}.`,
+        filters: { rules: [{ field: "tags", op: "any", values: importTags }] },
+      }),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json?.error ?? "The contacts were imported, but the segment could not be saved.");
+    }
+    await queryClient.invalidateQueries({ queryKey: ["segments"] });
+  }, [importTags, segmentName, queryClient]);
 
   const config = useMemo<ImportWizardConfig<ImportContactPayload>>(
     () => ({
@@ -44,38 +75,16 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
         { header: "Notes",       example: "Interested in plan A" },
         { header: "Labels",      example: "hot, vip" },
       ],
-      preImportControls: labels.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <p className="text-xs font-medium text-slate-700">Label everyone in this file</p>
-          <p className="mb-2 text-[11px] text-slate-500">
-            Optional. Applied on top of any Labels column, so you can import one
-            location&apos;s list and broadcast to just that label later.
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {labels.map((l) => {
-              const on = importTags.includes(l.name);
-              return (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() =>
-                    setImportTags((prev) =>
-                      on ? prev.filter((n) => n !== l.name) : [...prev, l.name],
-                    )
-                  }
-                  className={`rounded-full border px-2.5 py-1 text-xs transition ${
-                    on
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {l.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      preImportControls: (
+        <ImportGrouping
+          labels={labels}
+          selected={importTags}
+          onSelect={setImportTags}
+          segmentName={segmentName}
+          onSegmentName={setSegmentName}
+        />
       ),
+      onImported: saveSegment,
       mappingHint: (
         <>
           Your file needs a header row. A <span className="font-medium">Phone</span> column is
@@ -84,7 +93,7 @@ export function ImportContactsModal({ open, onClose }: { open: boolean; onClose:
         </>
       ),
     }),
-    [mutateAsync, labels, importTags],
+    [mutateAsync, labels, importTags, segmentName, saveSegment],
   );
 
   return <ImportWizard open={open} onClose={onClose} config={config} />;

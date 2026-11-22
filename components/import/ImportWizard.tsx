@@ -70,6 +70,15 @@ export interface ImportWizardConfig<T> {
    * someone can see what they are about to bring in and decide how to mark it.
    */
   preImportControls?: ReactNode;
+  /**
+   * Run once after every batch has gone, before the report is shown.
+   *
+   * For work that only makes sense if rows actually landed — saving a segment for the
+   * labels this file was given, say. It is deliberately not part of `importBatch`, which
+   * runs once per five hundred rows; anything here happens once, and not at all if the
+   * import threw partway.
+   */
+  onImported?: (result: ImportResult) => Promise<void> | void;
 }
 
 type Step = "upload" | "sheet" | "map" | "preview" | "importing" | "done";
@@ -88,6 +97,24 @@ const ACCEPT = [
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ].join(",");
+
+/**
+ * The mapping grid's two columns, the other way round.
+ *
+ * The grid fills row by row, so each pair of fields is one row and swapping the pair
+ * swaps the columns. It matters because Phone is the one required field and it was
+ * sitting on the right of the first row, below and across from Name — the asterisk the
+ * whole step depends on was the second thing read, not the first.
+ *
+ * An odd field out stays where it is; there is no column to swap it with.
+ */
+function swapColumns<T>(fields: T[]): T[] {
+  const out = [...fields];
+  for (let i = 0; i + 1 < out.length; i += 2) {
+    [out[i], out[i + 1]] = [out[i + 1], out[i]];
+  }
+  return out;
+}
 
 /** Footer row: stacked full-width buttons on phones, a split row from `sm` up. */
 const FOOTER = "flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between [&>button]:w-full sm:[&>button]:w-auto";
@@ -233,6 +260,12 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
         acc.failed += r.failed;
         if (acc.errors.length < 50) acc.errors.push(...r.errors.slice(0, 50 - acc.errors.length));
         setProgress({ done: Math.min(i + batch.length, validPayload.length), total: validPayload.length });
+      }
+      // A failure here must not lose the report — the rows are already in.
+      try {
+        await config.onImported?.(acc);
+      } catch (e) {
+        setError((e as Error).message || "The contacts were imported, but a follow-up step failed.");
       }
       setResult(acc);
       setStep("done");
@@ -456,7 +489,7 @@ function ImportFlow<T>({ onClose, config }: { onClose: () => void; config: Impor
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {config.fields.map((field) => (
+            {swapColumns(config.fields).map((field) => (
               <label key={field.key} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <span className="text-sm font-medium text-slate-700 sm:w-28 sm:shrink-0">
                   {field.label}
